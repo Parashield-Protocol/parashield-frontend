@@ -63,7 +63,7 @@ export function ClaimStatus({ policyId }: Props) {
         className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-60 transition-colors"
       >
         {status === 'submitting' || status === 'polling'
-          ? <><Loader2 size={14} className="animate-spin" /> {status === 'submitting' ? 'Submitting…' : 'Waiting for oracle…'}</>
+          ? <>{status === 'submitting' ? 'Submitting…' : 'Waiting for oracle…'}</>
           : 'Submit Claim'}
       </button>
     </div>

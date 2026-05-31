@@ -3,9 +3,6 @@
 import { useState } from 'react';
 import type { Product } from '@/lib/api';
 import { connectFreighter, getConnectedWallet } from '@/lib/stellar';
-// icons inline to avoid lucide-react install issues on cold build
-const X = () => <span style={{fontSize:'18px'}}>✕</span>;
-const Loader2 = ({ className }: { className?: string }) => <span className={className}>⟳</span>;
 
 interface Props {
   product: Product;
@@ -55,7 +52,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
           className="absolute right-4 top-4 text-gray-500 hover:text-white transition-colors"
           aria-label="Close"
         >
-          <X size={20} />
+          ✕
         </button>
 
         <h2 className="text-xl font-bold">Buy Policy</h2>
@@ -139,7 +136,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
               disabled={step === 'signing'}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-2.5 font-semibold text-black hover:bg-emerald-400 disabled:opacity-60 transition-colors"
             >
-              {step === 'signing' ? <><Loader2 size={16} className="animate-spin" /> Signing…</> : 'Buy Policy'}
+              {step === 'signing' ? 'Signing…' : 'Buy Policy'}
             </button>
           </>
         )}
