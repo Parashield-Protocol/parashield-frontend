@@ -97,6 +97,54 @@ export async function signTransaction(xdrEnvelope: string): Promise<string> {
   return signedTxXdr;
 }
 
+/**
+ * Sign an arbitrary UTF-8 message with the connected wallet for use as an
+ * auth challenge.  Uses `signMessage` when the kit supports it; falls back to
+ * signing a minimal Stellar transaction envelope so older wallet extensions
+ * that only implement `signTransaction` are still supported.
+ *
+ * Returns a hex-encoded signature string suitable for sending to the backend
+ * as `signedChallenge`.
+ */
+export async function signAuthMessage(message: string): Promise<string> {
+  const address = getStoredAddress();
+  if (!address) throw new WalletError('No wallet connected');
+
+  const kit = getKit();
+
+  // Prefer signMessage (supported by most modern wallet extensions via SEP-43).
+  if (typeof (kit as unknown as Record<string, unknown>).signMessage === 'function') {
+    const { signedMessage } = await (kit as unknown as {
+      signMessage: (opts: { message: string; address: string }) => Promise<{ signedMessage: string }>;
+    }).signMessage({ message, address });
+    return signedMessage;
+  }
+
+  // Fallback: sign a minimal transaction whose memo encodes the challenge, then
+  // return the signed XDR. The backend can verify the Ed25519 signature on
+  // the transaction hash against the wallet's public key.
+  const { TransactionBuilder, Networks, Account, Operation, Asset, Memo } =
+    await import('@stellar/stellar-sdk');
+
+  const network = NETWORK === WalletNetwork.PUBLIC ? Networks.PUBLIC : Networks.TESTNET;
+  const account = new Account(address, '0');
+  const tx = new TransactionBuilder(account, {
+    fee: '100',
+    networkPassphrase: network,
+  })
+    .addOperation(Operation.manageData({ name: 'auth', value: message.slice(0, 64) }))
+    .addMemo(Memo.text(message.slice(0, 28)))
+    .setTimeout(30)
+    .build();
+
+  const { signedTxXdr } = await kit.signTransaction(tx.toXDR(), {
+    networkPassphrase: network,
+    address,
+  });
+
+  return signedTxXdr;
+}
+
 export function fromStroops(stroops: bigint | string, decimals = 7): string {
   const n = BigInt(stroops);
   const divisor = 10n ** BigInt(decimals);
