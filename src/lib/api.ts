@@ -1,7 +1,7 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import { ApiError } from './errors';
 import { API_URL } from './constants';
-import type { Product, Policy, Claim, OracleReading, PoolStats, ApiResponse, PaginatedResponse } from '@/types';
+import type { Product, Policy, Claim, OracleReading, PoolStats, ProtocolStats, ApiResponse, PaginatedResponse } from '@/types';
 
 // Re-export for backward compat with existing imports
 export type { Product, Policy };
@@ -116,4 +116,17 @@ export function fetchPoolStats(): Promise<PoolStats[]> {
 
 export function fetchPoolById(poolId: string): Promise<PoolStats> {
   return get<PoolStats>(`/pools/${poolId}`);
+}
+
+// ── Protocol stats ────────────────────────────────────────────────────────────
+
+export function fetchProtocolStats(): Promise<ProtocolStats> {
+  return Promise.all([
+    get<{ totalCoverage: string }>('/policies/stats'),
+    get<{ totalPayouts: string }>('/claims/stats'),
+  ]).then(([policies, claims]) => ({
+    totalCoverage: policies.totalCoverage,
+    totalPayouts:    claims.totalPayouts,
+    activeProducts:  0,
+  }));
 }

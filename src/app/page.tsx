@@ -1,12 +1,46 @@
 'use client';
 
+import { useState, useMemo, useEffect } from 'react';
 import { useProducts } from '@/hooks/useProducts';
+import { fetchProtocolStats } from '@/lib/api';
+import { formatUSDC } from '@/lib/format';
 import { ProductCard } from '@/components/ProductCard';
-import { SkeletonCard } from '@/components/Skeleton';
+import { Skeleton, SkeletonCard } from '@/components/Skeleton';
 import { LogoWordmark } from '@/components/Logo';
 
+function StatValue({ loading, failed, children }: { loading: boolean; failed: boolean; children: React.ReactNode }) {
+  if (loading) return <Skeleton className="mx-auto h-9 w-28" />;
+  if (failed)  return <p className="text-3xl font-black text-teal-400">—</p>;
+  return <p className="text-3xl font-black text-teal-400">{children}</p>;
+}
+
 export default function HomePage() {
-  const { products, loading } = useProducts();
+  const { products, loading, error: productsError } = useProducts();
+
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError,   setStatsError]   = useState(false);
+  const [totalCoverage, setTotalCoverage] = useState<string | null>(null);
+  const [totalPayouts,  setTotalPayouts]  = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatsLoading(true);
+    setStatsError(false);
+    fetchProtocolStats()
+      .then((stats) => {
+        if (cancelled) return;
+        setTotalCoverage(stats.totalCoverage);
+        setTotalPayouts(stats.totalPayouts);
+      })
+      .catch(() => { if (!cancelled) setStatsError(true); })
+      .finally(() => { if (!cancelled) setStatsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const activeProductCount = useMemo(
+    () => products.filter((p) => p.status === 'Active').length,
+    [products],
+  );
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -79,17 +113,29 @@ export default function HomePage() {
 
       {/* Stats */}
       <section className="border-t border-white/10 px-6 py-12">
-        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-6 text-center">
-          {[
-            { v: '33', l: 'Tests passing' },
-            { v: '4',  l: 'Live products' },
-            { v: '$0.00001', l: 'Per transaction' },
-          ].map((s) => (
-            <div key={s.l}>
-              <p className="text-3xl font-black text-teal-400">{s.v}</p>
-              <p className="mt-1 text-sm text-gray-500">{s.l}</p>
-            </div>
-          ))}
+        <div className="mx-auto grid max-w-4xl grid-cols-2 gap-6 text-center sm:grid-cols-4">
+          <div>
+            <StatValue loading={statsLoading} failed={statsError}>
+              {totalCoverage !== null ? formatUSDC(totalCoverage, false) : null}
+            </StatValue>
+            <p className="mt-1 text-sm text-gray-500">Total coverage issued</p>
+          </div>
+          <div>
+            <StatValue loading={loading} failed={!!productsError}>
+              {activeProductCount}
+            </StatValue>
+            <p className="mt-1 text-sm text-gray-500">Active products</p>
+          </div>
+          <div>
+            <StatValue loading={statsLoading} failed={statsError}>
+              {totalPayouts !== null ? formatUSDC(totalPayouts, false) : null}
+            </StatValue>
+            <p className="mt-1 text-sm text-gray-500">Total payouts</p>
+          </div>
+          <div>
+            <p className="text-3xl font-black text-teal-400">$0.00001</p>
+            <p className="mt-1 text-sm text-gray-500">Per transaction</p>
+          </div>
         </div>
       </section>
     </main>
