@@ -1,8 +1,11 @@
 'use client';
 
 import { use } from 'react';
+import Link from 'next/link';
 import { usePolicy } from '@/hooks/usePolicies';
 import { useWallet } from '@/hooks/useWallet';
+import { useClaim } from '@/hooks/useClaim';
+import { useToast } from '@/context/ToastContext';
 import { OracleDataWidget } from '@/components/OracleDataWidget';
 import { PolicyStatusTimeline } from '@/components/PolicyStatusTimeline';
 import { TransactionLink } from '@/components/TransactionLink';
@@ -19,6 +22,15 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
   const { address }       = useWallet();
   const { show: toast }   = useToast();
   const { step, claim, error: claimError, submit: submitClaim } = useClaim();
+
+  const handleClaim = async () => {
+    if (!address || !policy) return;
+    try {
+      await submitClaim(address, policy.id);
+    } catch (err) {
+      toast(String(err), 'error');
+    }
+  };
 
   if (loading) return <FullPageSpinner />;
 
