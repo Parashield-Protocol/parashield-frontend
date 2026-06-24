@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Product } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
-import { buyPolicy } from '@/lib/api';
 import { displayToStroops, basisPointsToPercent } from '@/lib/format';
 import { toUserMessage } from '@/lib/errors';
-import { buildBuyPolicyTx } from '@/lib/contract';
-import { signTransaction } from '@/lib/stellar';
+import { invokeBuyPolicy } from '@/lib/contract';
+import { buildRainfallKey, buildFlightKey } from '@/lib/oracle';
 import { Modal } from './Modal';
 import { StepProgress } from './ProgressBar';
 import { useToast } from '@/context/ToastContext';
@@ -30,9 +29,32 @@ export function BuyPolicyModal({ product, onClose }: Props) {
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
 
+  // Crop builder state
+  const [lat, setLat] = useState('-0.0917');
+  const [lng, setLng] = useState('34.7679');
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+
+  // Flight builder state
+  const [flightNumber, setFlightNumber] = useState('');
+  const [flightDate, setFlightDate] = useState(new Date().toISOString().split('T')[0]);
+
   const coverageNum   = parseFloat(coverage) || 0;
   const premiumPct    = product.premiumRate / 10_000;
   const estimatedPrem = (coverageNum * premiumPct).toFixed(2);
+
+  // Automatically build oracle key based on inputs
+  useEffect(() => {
+    if (product.category === 'crop') {
+      const latNum = parseFloat(lat) || 0;
+      const lngNum = parseFloat(lng) || 0;
+      setOracleKey(buildRainfallKey(latNum, lngNum, year, month));
+    } else if (product.category === 'flight') {
+      setOracleKey(buildFlightKey(flightNumber.trim(), flightDate));
+    } else if (product.category === 'defi') {
+      setOracleKey('defi');
+    }
+  }, [product.category, lat, lng, year, month, flightNumber, flightDate]);
 
   function validate(): string {
     const cov = parseFloat(coverage);
@@ -43,8 +65,21 @@ export function BuyPolicyModal({ product, onClose }: Props) {
     if (isNaN(dur) || dur < 1 || dur > product.maxDuration) {
       return `Duration must be between 1 and ${product.maxDuration} days`;
     }
-    if (!oracleKey.trim() || oracleKey.trim().length > 9) {
-      return 'Oracle key is required and must be at most 9 characters';
+    if (product.category === 'crop') {
+      if (isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))) {
+        return 'Valid latitude and longitude are required';
+      }
+    } else if (product.category === 'flight') {
+      if (!flightNumber.trim()) {
+        return 'Flight number is required';
+      }
+      if (!flightDate) {
+        return 'Flight date is required';
+      }
+    } else if (product.category === 'disaster' || product.category === 'health') {
+      if (!oracleKey.trim() || oracleKey.trim().length > 9) {
+        return 'Oracle key is required and must be at most 9 characters';
+      }
     }
     return '';
   }
@@ -58,25 +93,14 @@ export function BuyPolicyModal({ product, onClose }: Props) {
     setBusy(true);
     setError('');
     try {
-      const unsignedXdr = await buildBuyPolicyTx(
+      const txHash = await invokeBuyPolicy(
         address,
         product.id,
         BigInt(displayToStroops(coverage)),
         oracleKey.trim(),
         parseInt(duration, 10),
       );
-      
-      const signedXdr = await signTransaction(unsignedXdr);
-      
-      const { policyId } = await buyPolicy({
-        productId: product.id,
-        coverage:  displayToStroops(coverage).toString(),
-        oracleKey: oracleKey.trim(),
-        duration:  parseInt(duration, 10),
-        wallet:    address,
-        signedXdr,
-      });
-      showToast(`Policy ${policyId.slice(0, 8)}… activated`, 'success');
+      showToast(`Policy activation transaction ${txHash.slice(0, 8)}… submitted`, 'success');
       onClose();
     } catch (err) {
       setError(toUserMessage(err));
@@ -117,20 +141,138 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
               />
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
-                Oracle Key
-              </label>
-              <input
-                type="text"
-                value={oracleKey}
-                onChange={(e) => setOracleKey(e.target.value)}
-                placeholder='e.g. "kis2606" for Kisumu June 2026'
-                maxLength={9}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
-              />
-              <p className="mt-1 text-[10px] text-gray-500">Max 9 chars (Soroban Symbol)</p>
-            </div>
+
+            {product.category === 'crop' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                      Latitude
+                    </label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={lat}
+                      onChange={(e) => setLat(e.target.value)}
+                      placeholder="e.g. -0.0917"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                      Longitude
+                    </label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={lng}
+                      onChange={(e) => setLng(e.target.value)}
+                      placeholder="e.g. 34.7679"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                      Month
+                    </label>
+                    <select
+                      value={month}
+                      onChange={(e) => setMonth(parseInt(e.target.value, 10))}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none text-white appearance-none"
+                    >
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <option key={m} value={m} className="bg-gray-900 text-white">
+                          {new Date(2026, m - 1).toLocaleString('en-US', { month: 'long' })}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                      Year
+                    </label>
+                    <select
+                      value={year}
+                      onChange={(e) => setYear(parseInt(e.target.value, 10))}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none text-white appearance-none"
+                    >
+                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((y) => (
+                        <option key={y} value={y} className="bg-gray-900 text-white">
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-400">
+                  Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
+                </div>
+              </div>
+            )}
+
+            {product.category === 'flight' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    Flight Number
+                  </label>
+                  <input
+                    type="text"
+                    value={flightNumber}
+                    onChange={(e) => setFlightNumber(e.target.value)}
+                    placeholder="e.g. KQ100"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={flightDate}
+                    onChange={(e) => setFlightDate(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                  />
+                </div>
+                <div className="mt-2 text-xs text-gray-400">
+                  Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
+                </div>
+              </div>
+            )}
+
+            {product.category === 'defi' && (
+              <div className="space-y-2">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  Oracle Key (Fixed)
+                </label>
+                <div className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-mono text-gray-400 select-all">
+                  defi
+                </div>
+              </div>
+            )}
+
+            {(product.category !== 'crop' && product.category !== 'flight' && product.category !== 'defi') && (
+              <div className="space-y-2">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  Oracle Key
+                </label>
+                <input
+                  type="text"
+                  value={oracleKey}
+                  onChange={(e) => setOracleKey(e.target.value)}
+                  placeholder='e.g. "dis2606" for Disaster June 2026'
+                  maxLength={9}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                />
+                <p className="mt-1 text-[10px] text-gray-500">Max 9 chars (Soroban Symbol)</p>
+                <div className="mt-2 text-xs text-gray-400">
+                  Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
+                </div>
+              </div>
+            )}
           </>
         )}
 

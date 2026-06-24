@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { submitClaim, fetchClaim } from '@/lib/api';
+import { fetchClaim } from '@/lib/api';
 import type { Claim } from '@/types';
 import { toUserMessage } from '@/lib/errors';
+import { invokeSubmitClaim } from '@/lib/contract';
 
 type ClaimStep = 'idle' | 'submitting' | 'polling' | 'done' | 'timeout' | 'error';
 
@@ -17,14 +18,14 @@ export function useClaim() {
     setStep('submitting');
     setError(null);
     try {
-      const id = await submitClaim(claimant, policyId);
-      setClaimId(id);
+      const txHash = await invokeSubmitClaim(claimant, policyId);
+      setClaimId(txHash);
       setStep('polling');
 
       // Poll up to 20 times with 3-second intervals
       for (let i = 0; i < 20; i++) {
         await new Promise((r) => setTimeout(r, 3000));
-        const result = await fetchClaim(id);
+        const result = await fetchClaim(txHash);
         if (result) {
           setClaim(result);
           if (result.status === 'Paid' || result.status === 'Rejected') {
