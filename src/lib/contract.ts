@@ -47,6 +47,43 @@ export async function simulateContractCall(
   return result.result.retval;
 }
 
+export async function buildBuyPolicyTx(
+  walletAddress: string,
+  productId: string,
+  coverageStroops: bigint,
+  oracleKey: string,
+  durationDays: number,
+): Promise<string> {
+  const rpc      = getRpc();
+  const account  = await rpc.getAccount(walletAddress);
+  const contract = new Contract(POLICY_CONTRACT_ID);
+
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      contract.call(
+        'buy_policy',
+        nativeToScVal(walletAddress,    { type: 'address' }),
+        nativeToScVal(productId,        { type: 'string'  }),
+        nativeToScVal(coverageStroops,  { type: 'i128'    }),
+        nativeToScVal(oracleKey,        { type: 'symbol'  }),
+        nativeToScVal(durationDays * 86400, { type: 'u64' }),
+      ),
+    )
+    .setTimeout(60)
+    .build();
+
+  const simResult = await rpc.simulateTransaction(tx);
+  if (StellarRpc.Api.isSimulationError(simResult)) {
+    throw new ContractError(`buy_policy simulation failed: ${simResult.error}`);
+  }
+
+  const assembled = StellarRpc.assembleTransaction(tx, simResult).build();
+  return assembled.toXDR();
+}
+
 export async function invokeBuyPolicy(
   walletAddress: string,
   productId: string,

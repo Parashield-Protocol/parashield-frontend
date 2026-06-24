@@ -16,7 +16,8 @@
     "@creit.tech/stellar-wallets-kit": "^2.0.0",
     "axios":                 "^1.7.0",
     "clsx":                  "^2.1.1",
-    "lucide-react":          "^0.468.0"
+    "lucide-react":          "^0.468.0",
+    "posthog-js":            "^1.131.0"
   },
   "devDependencies": {
     "@types/node":         "^22.0.0",
