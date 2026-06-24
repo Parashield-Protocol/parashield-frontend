@@ -12,8 +12,16 @@ import { WalletError } from './errors';
 
 export type WalletAddress = string;
 
+export interface WalletConnection {
+  address:           WalletAddress;
+  networkPassphrase: string | null;
+}
+
 const NETWORK: WalletNetwork =
   STELLAR_NETWORK === 'PUBLIC' ? WalletNetwork.PUBLIC : WalletNetwork.TESTNET;
+
+/** Network passphrase the app expects connected wallets to be using. */
+export const EXPECTED_NETWORK_PASSPHRASE: string = NETWORK;
 
 let _kit: StellarWalletsKit | null = null;
 
@@ -28,9 +36,9 @@ function getKit(): StellarWalletsKit {
   return _kit;
 }
 
-export async function connectWallet(): Promise<WalletAddress> {
+export async function connectWallet(): Promise<WalletConnection> {
   const kit = getKit();
-  return new Promise<WalletAddress>((resolve, reject) => {
+  return new Promise<WalletConnection>((resolve, reject) => {
     kit.openModal({
       modalTitle: 'Connect your wallet',
       onWalletSelected: async (option: ISupportedWallet) => {
@@ -40,11 +48,13 @@ export async function connectWallet(): Promise<WalletAddress> {
           if (!address) throw new WalletError('No address returned from wallet');
           storage.set(WALLET_STORAGE_KEY, option.id);
           storage.set(ADDRESS_STORAGE_KEY, address);
+          let networkPassphrase: string | null = null;
           try {
-            const { network, networkPassphrase } = await kit.getNetwork();
-            if (network) storage.set(NETWORK_STORAGE_KEY, networkPassphrase ?? network);
+            const net = await kit.getNetwork();
+            networkPassphrase = net.networkPassphrase ?? net.network ?? null;
+            if (net.network) storage.set(NETWORK_STORAGE_KEY, net.networkPassphrase ?? net.network);
           } catch { /* network read is best-effort */ }
-          resolve(address);
+          resolve({ address, networkPassphrase });
         } catch (err) {
           reject(new WalletError('Wallet connection failed', err));
         }
