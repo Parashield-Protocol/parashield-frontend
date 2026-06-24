@@ -5,6 +5,7 @@ import { ToastContainer } from '@/components/Toast';
 import { NetworkBanner } from '@/components/NetworkBanner';
 import { WalletProvider } from '@/context/WalletContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { Analytics } from '@/components/Analytics';
 
 export const metadata: Metadata = {
   title:       'Parashield — Parametric Insurance on Stellar',
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-gray-950 text-white antialiased">
         <WalletProvider>
           <ToastProvider>
+            <Analytics />
             <NetworkBanner />
             <NavBar />
             {children}
