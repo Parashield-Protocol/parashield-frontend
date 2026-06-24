@@ -60,6 +60,10 @@ export function formatOracleValue(value: string, dataType: string): string {
       return `${n.toFixed(2)} mm`;
     case 'flight':
       return `${Math.round(n)} min delay`;
+    case 'defi':
+      if (n === 1) return 'Exploit detected';
+      if (n === 0) return 'No exploit';
+      return `Unknown (${n.toFixed(0)})`;
     default:
       return n.toFixed(4);
   }
