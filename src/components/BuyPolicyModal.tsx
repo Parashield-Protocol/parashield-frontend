@@ -6,6 +6,8 @@ import { useWallet } from '@/hooks/useWallet';
 import { buyPolicy } from '@/lib/api';
 import { displayToStroops, basisPointsToPercent } from '@/lib/format';
 import { toUserMessage } from '@/lib/errors';
+import { buildBuyPolicyTx } from '@/lib/contract';
+import { signTransaction } from '@/lib/stellar';
 import { Modal } from './Modal';
 import { StepProgress } from './ProgressBar';
 import { useToast } from '@/context/ToastContext';
@@ -56,13 +58,23 @@ export function BuyPolicyModal({ product, onClose }: Props) {
     setBusy(true);
     setError('');
     try {
+      const unsignedXdr = await buildBuyPolicyTx(
+        address,
+        product.id,
+        BigInt(displayToStroops(coverage)),
+        oracleKey.trim(),
+        parseInt(duration, 10),
+      );
+      
+      const signedXdr = await signTransaction(unsignedXdr);
+      
       const { policyId } = await buyPolicy({
         productId: product.id,
         coverage:  displayToStroops(coverage).toString(),
         oracleKey: oracleKey.trim(),
         duration:  parseInt(duration, 10),
         wallet:    address,
-        signedXdr: '',
+        signedXdr,
       });
       showToast(`Policy ${policyId.slice(0, 8)}… activated`, 'success');
       onClose();

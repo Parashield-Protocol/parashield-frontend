@@ -47,6 +47,43 @@ export async function simulateContractCall(
   return result.result.retval;
 }
 
+export async function buildBuyPolicyTx(
+  walletAddress: string,
+  productId: string,
+  coverageStroops: bigint,
+  oracleKey: string,
+  durationDays: number,
+): Promise<string> {
+  const rpc      = getRpc();
+  const account  = await rpc.getAccount(walletAddress);
+  const contract = new Contract(POLICY_CONTRACT_ID);
+
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      contract.call(
+        'buy_policy',
+        nativeToScVal(walletAddress,    { type: 'address' }),
+        nativeToScVal(productId,        { type: 'string'  }),
+        nativeToScVal(coverageStroops,  { type: 'i128'    }),
+        nativeToScVal(oracleKey,        { type: 'symbol'  }),
+        nativeToScVal(durationDays * 86400, { type: 'u64' }),
+      ),
+    )
+    .setTimeout(60)
+    .build();
+
+  const simResult = await rpc.simulateTransaction(tx);
+  if (StellarRpc.Api.isSimulationError(simResult)) {
+    throw new ContractError(`buy_policy simulation failed: ${simResult.error}`);
+  }
+
+  const assembled = StellarRpc.assembleTransaction(tx, simResult).build();
+  return assembled.toXDR();
+}
+
 export async function invokeBuyPolicy(
   walletAddress: string,
   productId: string,
@@ -125,6 +162,48 @@ export async function invokeSubmitClaim(
 
   if (submitResult.status === 'ERROR') {
     throw new ContractError(`Claim transaction rejected: ${JSON.stringify(submitResult.errorResult)}`);
+  }
+  return submitResult.hash;
+}
+
+export async function buildDepositTx(
+  poolId: string,
+  amount: bigint,
+  wallet: string,
+): Promise<string> {
+  const rpc      = getRpc();
+  const account  = await rpc.getAccount(wallet);
+  const contract = new Contract(poolId);
+
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      contract.call(
+        'deposit',
+        nativeToScVal(amount, { type: 'i128' }),
+        nativeToScVal(wallet, { type: 'address' }),
+      ),
+    )
+    .setTimeout(60)
+    .build();
+
+  const simResult = await rpc.simulateTransaction(tx);
+  if (StellarRpc.Api.isSimulationError(simResult)) {
+    throw new ContractError(`deposit simulation failed: ${simResult.error}`);
+  }
+
+  return StellarRpc.assembleTransaction(tx, simResult).build().toXDR();
+}
+
+export async function submitSignedTransaction(signedXdr: string): Promise<string> {
+  const rpc          = getRpc();
+  const signedTx     = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+  const submitResult = await rpc.sendTransaction(signedTx);
+
+  if (submitResult.status === 'ERROR') {
+    throw new ContractError(`Transaction rejected: ${JSON.stringify(submitResult.errorResult)}`);
   }
   return submitResult.hash;
 }
