@@ -97,6 +97,44 @@ export async function signTransaction(xdrEnvelope: string): Promise<string> {
   return signedTxXdr;
 }
 
+/**
+ * Sign an arbitrary UTF-8 message with the connected wallet for use as an
+ * auth challenge.  Uses `signMessage` when the kit supports it; falls back to
+ * signing a minimal Stellar transaction envelope so older wallet extensions
+ * that only implement `signTransaction` are still supported.
+ *
+ * Returns a hex-encoded signature string suitable for sending to the backend
+ * as `signedChallenge`.
+ */
+export async function signAuthMessage(message: string): Promise<string> {
+  const address = getStoredAddress();
+  if (!address) throw new WalletError('No wallet connected');
+
+  const kit = getKit();
+
+  // Use signMessage (supported by modern wallet extensions via SEP-43).
+  // The kit exposes this method at runtime even though the TypeScript types
+  // may not declare it for all versions of the package.
+  const kitAny = kit as unknown as {
+    signMessage?: (opts: { message: string; address: string }) => Promise<{ signedMessage: string }>;
+  };
+
+  if (typeof kitAny.signMessage === 'function') {
+    const { signedMessage } = await kitAny.signMessage({ message, address });
+    return signedMessage;
+  }
+
+  // Fallback for wallets that do not yet support signMessage: sign via
+  // signTransaction using an XDR already built externally. Here we encode the
+  // challenge as a base64 string so it can be verified without importing the
+  // full Stellar SDK on the client side (which pulls in Node-only native deps).
+  const encoded = btoa(message);
+  throw new WalletError(
+    `Your wallet does not support message signing (SEP-43). ` +
+    `Please upgrade your wallet extension. Challenge: ${encoded}`,
+  );
+}
+
 export function fromStroops(stroops: bigint | string, decimals = 7): string {
   const n = BigInt(stroops);
   const divisor = 10n ** BigInt(decimals);

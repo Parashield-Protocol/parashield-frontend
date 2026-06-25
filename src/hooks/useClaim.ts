@@ -1,26 +1,39 @@
-'use client';
+"use client";
 
 import { useState, useCallback } from 'react';
 import { fetchClaim } from '@/lib/api';
 import type { Claim } from '@/types';
 import { toUserMessage } from '@/lib/errors';
 import { invokeSubmitClaim } from '@/lib/contract';
+import { useState, useCallback } from "react";
+import { submitClaim, fetchClaim } from "@/lib/api";
+import type { Claim } from "@/types";
+import { toUserMessage } from "@/lib/errors";
 
-type ClaimStep = 'idle' | 'submitting' | 'polling' | 'done' | 'timeout' | 'error';
+type ClaimStep =
+  | "idle"
+  | "submitting"
+  | "polling"
+  | "done"
+  | "timeout"
+  | "error";
 
 export function useClaim() {
-  const [step,    setStep]    = useState<ClaimStep>('idle');
+  const [step, setStep] = useState<ClaimStep>("idle");
   const [claimId, setClaimId] = useState<string | null>(null);
-  const [claim,   setClaim]   = useState<Claim | null>(null);
-  const [error,   setError]   = useState<string | null>(null);
+  const [claim, setClaim] = useState<Claim | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = useCallback(async (claimant: string, policyId: string) => {
-    setStep('submitting');
+    setStep("submitting");
     setError(null);
     try {
       const txHash = await invokeSubmitClaim(claimant, policyId);
       setClaimId(txHash);
       setStep('polling');
+      const id = await submitClaim(claimant, policyId);
+      setClaimId(id);
+      setStep("polling");
 
       // Poll up to 20 times with 3-second intervals
       for (let i = 0; i < 20; i++) {
@@ -28,21 +41,24 @@ export function useClaim() {
         const result = await fetchClaim(txHash);
         if (result) {
           setClaim(result);
-          if (result.status === 'Paid' || result.status === 'Rejected') {
-            setStep('done');
-            return;
+          if (result.status === "Paid" || result.status === "Rejected") {
+            setStep("done");
+            return { error: null };
           }
         }
       }
-      setStep('timeout');
+      setStep("timeout");
+      return { error: null };
     } catch (err) {
-      setError(toUserMessage(err));
-      setStep('error');
+      const errorMsg = toUserMessage(err);
+      setError(errorMsg);
+      setStep("error");
+      return { error: errorMsg };
     }
   }, []);
 
   const reset = useCallback(() => {
-    setStep('idle');
+    setStep("idle");
     setClaimId(null);
     setClaim(null);
     setError(null);

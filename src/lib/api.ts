@@ -65,6 +65,26 @@ function post<T>(url: string, body: unknown): Promise<T> {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
+/**
+ * Fetch a server-issued nonce for the given wallet address.
+ * Falls back to a locally generated random nonce if the backend does not
+ * expose a challenge endpoint (HTTP 404 / network error).
+ */
+export async function fetchChallenge(wallet: string): Promise<string> {
+  try {
+    const nonce = await get<string>(`/auth/challenge?wallet=${encodeURIComponent(wallet)}`);
+    return nonce;
+  } catch {
+    // Backend has no challenge endpoint — generate a cryptographically random
+    // nonce locally. The backend must accept client-generated nonces or this
+    // fallback should be removed once the endpoint is deployed.
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+    return `${wallet}:${hex}`;
+  }
+}
+
 export function login(wallet: string, signedChallenge: string): Promise<{ token: string }> {
   return post('/auth/login', { wallet, signedChallenge });
 }

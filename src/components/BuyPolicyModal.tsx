@@ -123,7 +123,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
               <input
                 type="number"
                 value={coverage}
-                onChange={(e) => setCoverage(e.target.value)}
+                onChange={(e) => { setCoverage(e.target.value); setError(''); }}
                 placeholder={`${product.coverageMin} – ${product.coverageMax}`}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
               />
@@ -135,7 +135,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
               <input
                 type="number"
                 value={duration}
-                onChange={(e) => setDuration(e.target.value)}
+                onChange={(e) => { setDuration(e.target.value); setError(''); }}
                 min={1}
                 max={product.maxDuration}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
@@ -273,6 +273,20 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 </div>
               </div>
             )}
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                Oracle Key
+              </label>
+              <input
+                type="text"
+                value={oracleKey}
+                onChange={(e) => { setOracleKey(e.target.value); setError(''); }}
+                placeholder='e.g. "kis2606" for Kisumu June 2026'
+                maxLength={9}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+              />
+              <p className="mt-1 text-[10px] text-gray-500">Max 9 chars (Soroban Symbol)</p>
+            </div>
           </>
         )}
 
@@ -314,18 +328,29 @@ export function BuyPolicyModal({ product, onClose }: Props) {
         {error && <p className="text-sm text-red-400">{error}</p>}
       </div>
 
-      <button
-        onClick={handleBuy}
-        disabled={busy || connecting}
-        className="mt-6 w-full rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
-      >
-        {connecting  ? 'Connecting wallet…' :
-         busy        ? 'Submitting…' :
-         !address    ? 'Connect Wallet' :
-         step === 2  ? 'Sign & Confirm' :
-         step === 1  ? 'Confirm details' :
-         'Next'}
-      </button>
+      <div className="mt-6 flex gap-3">
+        {step > 0 && (
+          <button
+            onClick={() => setStep((s) => s - 1)}
+            disabled={busy}
+            className="w-1/3 rounded-xl border border-white/10 py-2.5 font-semibold text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
+          >
+            Back
+          </button>
+        )}
+        <button
+          onClick={handleBuy}
+          disabled={busy || connecting}
+          className="flex-1 rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
+        >
+          {connecting  ? 'Connecting wallet…' :
+           busy        ? 'Submitting…' :
+           !address    ? 'Connect Wallet' :
+           step === 2  ? 'Sign & Confirm' :
+           step === 1  ? 'Confirm details' :
+           'Next'}
+        </button>
+      </div>
     </Modal>
   );
 }
