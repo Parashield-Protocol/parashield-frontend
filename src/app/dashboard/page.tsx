@@ -45,13 +45,13 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatsCard label="Active policies" value={active.length.toString()} />
+          <StatsCard label="Active policies" value={loading ? "—" : active.length.toString()} />
           <StatsCard
             label="Total policies"
-            value={policies.length.toString()}
+            value={loading ? "—" : policies.length.toString()}
           />
-          <StatsCard label="Total coverage" value={formatUSDC(totalCov)} />
-          <StatsCard label="Total premiums" value={formatUSDC(totalPaid)} />
+          <StatsCard label="Total coverage" value={loading ? "—" : formatUSDC(totalCov)} />
+          <StatsCard label="Total premiums" value={loading ? "—" : formatUSDC(totalPaid)} />
         </div>
       )}
 
