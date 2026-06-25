@@ -27,8 +27,13 @@ export function useOracleReading(key: string | null) {
   useEffect(() => {
     void load();
     if (!key) return;
-    const interval = setInterval(() => { void load(); }, ORACLE_REFRESH_INTERVAL_MS);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => { if (!document.hidden) void load(); }, ORACLE_REFRESH_INTERVAL_MS);
+    const onVisible = () => { if (!document.hidden) void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [load, key]);
 
   return { reading, loading, error, refetch: load };
@@ -54,8 +59,13 @@ export function useAllOracleReadings() {
 
   useEffect(() => {
     void load();
-    const interval = setInterval(() => { void load(); }, ORACLE_REFRESH_INTERVAL_MS);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => { if (!document.hidden) void load(); }, ORACLE_REFRESH_INTERVAL_MS);
+    const onVisible = () => { if (!document.hidden) void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [load]);
 
   return { readings, loading, error, refetch: load };

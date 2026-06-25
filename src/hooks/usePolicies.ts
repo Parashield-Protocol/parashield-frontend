@@ -31,9 +31,14 @@ export function usePolicies(walletAddress: string | null) {
     void load();
     if (!walletAddress) return;
     const interval = setInterval(() => {
-      void load();
+      if (!document.hidden) void load();
     }, POLLING_INTERVAL_MS);
-    return () => clearInterval(interval);
+    const onVisible = () => { if (!document.hidden) void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [load, walletAddress]);
 
   return { policies, loading, error, refetch: load };

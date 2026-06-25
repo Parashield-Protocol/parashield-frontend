@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { PoolStats } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
 import { fetchPoolShares } from '@/lib/api';
@@ -46,6 +46,9 @@ export function DepositModal({ pool, onClose }: Props) {
   const [busy,         setBusy]         = useState(false);
   const [error,        setError]        = useState('');
 
+  const poolTotalLiquidityRef = useRef(pool.totalLiquidity);
+  useEffect(() => { poolTotalLiquidityRef.current = pool.totalLiquidity; });
+
   useEffect(() => {
     let cancelled = false;
     setLoadingShares(true);
@@ -58,13 +61,14 @@ export function DepositModal({ pool, onClose }: Props) {
       })
       .catch((err) => {
         if (cancelled) return;
-        setShareSupply(BigInt(pool.totalLiquidity));
-        setTotalLiquidity(BigInt(pool.totalLiquidity));
+        const fallback = BigInt(poolTotalLiquidityRef.current);
+        setShareSupply(fallback);
+        setTotalLiquidity(fallback);
         setError(toUserMessage(err));
       })
       .finally(() => { if (!cancelled) setLoadingShares(false); });
     return () => { cancelled = true; };
-  }, [pool.poolId, pool.totalLiquidity]);
+  }, [pool.poolId]);
 
   const amountNum     = parseFloat(amount) || 0;
   const depositStroops = amount ? displayToStroops(amount) : 0n;

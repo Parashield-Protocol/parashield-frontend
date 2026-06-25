@@ -54,7 +54,10 @@ export function basisPointsToPercent(bps: number, decimals = 2): string {
 }
 
 export function formatOracleValue(value: string, dataType: string): string {
-  const n = Number(BigInt(value)) / 1e7;
+  const raw = BigInt(value);
+  const whole = raw / 10_000_000n;
+  const frac = raw % 10_000_000n;
+  const n = Number(whole) + Number(frac) / 1e7;
   switch (dataType) {
     case 'weather':
       return `${n.toFixed(2)} mm`;
