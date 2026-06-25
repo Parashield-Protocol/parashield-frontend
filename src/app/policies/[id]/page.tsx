@@ -2,22 +2,18 @@
 
 import { use } from 'react';
 import { usePolicy } from '@/hooks/usePolicies';
-import { useClaim } from '@/hooks/useClaim';
 import { useWallet } from '@/hooks/useWallet';
 import { OracleDataWidget } from '@/components/OracleDataWidget';
 import { PolicyStatusTimeline } from '@/components/PolicyStatusTimeline';
 import { Badge } from '@/components/Badge';
 import { FullPageSpinner } from '@/components/LoadingSpinner';
-import { formatUSDC, formatDate, timeLeft, basisPointsToPercent } from '@/lib/format';
-import { useToast } from '@/context/ToastContext';
-import Link from 'next/link';
+import { formatUSDC, formatDate, timeLeft } from '@/lib/format';
+import { ClaimStatus } from '@/components/ClaimStatus';
 
 export default function PolicyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id }            = use(params);
   const { policy, loading } = usePolicy(id);
   const { address }       = useWallet();
-  const { show: toast }   = useToast();
-  const { step, error: claimError, submit: submitClaim } = useClaim();
 
   if (loading) return <FullPageSpinner />;
 
@@ -27,13 +23,6 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
         <p className="text-gray-400">Policy not found.</p>
       </main>
     );
-  }
-
-  async function handleClaim() {
-    if (!address) { toast('Connect your wallet first', 'warning'); return; }
-    await submitClaim(address, id);
-    if (!claimError) toast('Claim submitted successfully', 'success');
-    else toast(claimError, 'error');
   }
 
   const canClaim = policy.status === 'Active' && address === policy.policyholder;
@@ -82,25 +71,9 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
             If the oracle has confirmed the trigger condition was met, you can submit a claim.
             The smart contract will verify and pay out automatically.
           </p>
-          <button
-            onClick={handleClaim}
-            disabled={step === 'submitting' || step === 'polling'}
-            className="mt-4 rounded-xl bg-teal-500 px-6 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
-          >
-            {step === 'submitting' ? 'Submitting…' :
-             step === 'polling'    ? 'Processing…' :
-             'Submit Claim'}
-          </button>
-          {claimError && <p className="mt-3 text-sm text-red-400">{claimError}</p>}
-          {step === 'timeout' && (
-            <div className="mt-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-sm text-yellow-300">
-              Claim submitted — processing is taking longer than usual. Check your{' '}
-              <Link href="/claims" className="underline hover:text-yellow-200 transition-colors">
-                claim history
-              </Link>{' '}
-              for the final status.
-            </div>
-          )}
+          <div className="mt-4">
+            <ClaimStatus policyId={id} />
+          </div>
         </div>
       )}
     </main>
