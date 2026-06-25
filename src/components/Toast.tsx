@@ -44,10 +44,12 @@ export function ToastContainer() {
   const { toasts } = useToast();
   if (!toasts.length) return null;
   return (
-    <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-auto w-[340px]">
-      {toasts.map((t) => (
-        <ToastItem key={t.id} toast={t} />
-      ))}
+    <div className="pointer-events-none fixed inset-0 z-50">
+      <div className="pointer-events-auto absolute bottom-6 right-6 flex w-[340px] flex-col gap-3">
+        {toasts.map((t) => (
+          <ToastItem key={t.id} toast={t} />
+        ))}
+      </div>
     </div>
   );
 }

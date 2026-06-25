@@ -16,6 +16,11 @@ const NAV_LINKS = [
   { href: '/pools',     label: 'Risk Pools'  },
 ];
 
+function isActive(pathname: string, href: string): boolean {
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(href + '/');
+}
+
 export function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -35,7 +40,7 @@ export function NavBar() {
               key={href}
               href={href}
               className={`transition-colors hover:text-white ${
-                pathname === href
+                isActive(pathname, href)
                   ? 'text-white border-b-2 border-teal-400 pb-0.5'
                   : 'text-gray-400'
               }`}
