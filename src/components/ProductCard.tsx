@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { Product } from '@/types';
 import { BuyPolicyModal } from './BuyPolicyModal';
 import { Badge } from './Badge';
+import { TriggerConditionBadge } from './TriggerConditionBadge';
 import { basisPointsToPercent, formatUSDC } from '@/lib/format';
 import { CATEGORY_ICONS } from '@/lib/constants';
 
@@ -29,13 +30,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <h3 className="mt-4 text-base font-semibold leading-snug text-white">{product.name}</h3>
 
-        <p className="mt-2 text-sm text-gray-400">
-          Trigger:{' '}
-          <span className="font-mono text-white">
-            {product.comparison === 'LessThan' ? '<' : product.comparison === 'GreaterThan' ? '>' : '='}
-            {' '}{product.threshold}
-          </span>
-        </p>
+        <div className="mt-2">
+          <TriggerConditionBadge product={product} />
+        </div>
 
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-xl bg-white/5 p-3">

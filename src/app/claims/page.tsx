@@ -5,7 +5,8 @@ import { useWallet } from '@/hooks/useWallet';
 import { fetchUserClaims } from '@/lib/api';
 import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
 import { ClaimHistoryTable } from '@/components/ClaimHistoryTable';
-import { FullPageSpinner, LoadingSpinner } from '@/components/LoadingSpinner';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { SkeletonTable } from '@/components/Skeleton';
 import type { Claim } from '@/types';
 
 export default function ClaimsPage() {
@@ -55,7 +56,9 @@ export default function ClaimsPage() {
       </p>
 
       {loading && !retrying ? (
-        <FullPageSpinner />
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <SkeletonTable rows={5} />
+        </div>
       ) : error ? (
         <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-sm text-red-400">
           <p>{error}</p>

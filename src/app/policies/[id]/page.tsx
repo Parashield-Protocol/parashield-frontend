@@ -16,6 +16,16 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
   const { address }       = useWallet();
 
   if (loading) return <FullPageSpinner />;
+import PolicyDetailClient from './policy-detail-client';
+
+export function generateStaticParams() {
+  return [{ id: 'dummy' }];
+}
+
+export const dynamicParams = false;
+
+export default async function PolicyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  return <PolicyDetailClient params={params} />;
 "use client";
 
 import { use } from "react";
@@ -32,6 +42,7 @@ import { formatUSDC, formatDate, timeLeft, shortenAddress } from "@/lib/format";
 import { CopyButton } from "@/components/CopyButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClaimStatus } from "@/components/ClaimStatus";
+import { Skeleton, SkeletonText } from "@/components/Skeleton";
 
 export default function PolicyDetailPage({
   params,
@@ -56,40 +67,40 @@ export default function PolicyDetailPage({
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-12 animate-pulse">
-        {/* Header skeleton */}
+      <main className="mx-auto max-w-3xl px-6 py-12">
         <div className="mb-6 flex items-center gap-4">
-          <div className="h-8 w-64 bg-white/10 rounded flex-1" />
-          <div className="h-6 w-20 bg-white/10 rounded" />
+          <Skeleton className="h-8 flex-1 rounded-xl" />
+          <Skeleton className="h-6 w-20 rounded-full" />
         </div>
 
-        {/* Stats grid skeleton */}
         <div className="grid gap-4 sm:grid-cols-2">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
               className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
             >
-              <div className="h-3 w-24 bg-white/10 rounded" />
-              <div className="mt-2 h-4 w-32 bg-white/10 rounded" />
+              <Skeleton className="h-3 w-24 rounded-full" />
+              <div className="mt-2">
+                <SkeletonText count={2} />
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Timeline skeleton */}
-        <div className="mt-8">
-          <div className="h-4 w-32 bg-white/10 rounded mb-4" />
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <Skeleton className="h-3 w-32 rounded-full" />
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-12 bg-white/10 rounded" />
+              <Skeleton key={i} className="h-12 rounded-xl" />
             ))}
           </div>
         </div>
 
-        {/* Oracle widget skeleton */}
         <div className="mt-6">
-          <div className="h-4 w-40 bg-white/10 rounded mb-3" />
-          <div className="h-24 bg-white/10 rounded" />
+          <Skeleton className="mb-3 h-4 w-40 rounded-full" />
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <SkeletonText count={3} />
+          </div>
         </div>
       </main>
     );

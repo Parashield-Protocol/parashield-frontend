@@ -9,12 +9,30 @@ import { Analytics } from '@/components/Analytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://parashield.app'),
   title:       'Parashield — Parametric Insurance on Stellar',
   description: 'Automatic payouts triggered by real-world data. No claims adjuster. Powered by Soroban smart contracts.',
+  icons: {
+    icon: '/assets/parashield-logo-dark.png',
+  },
   openGraph: {
     title:       'Parashield',
     description: 'Parametric insurance on Stellar. Pay out in seconds, not weeks.',
     type:        'website',
+    images: [
+      {
+        url:    '/opengraph-image',
+        width:  1200,
+        height: 630,
+        alt:    'Parashield — Parametric Insurance on Stellar',
+      },
+    ],
+  },
+  twitter: {
+    card:        'summary_large_image',
+    title:       'Parashield — Parametric Insurance on Stellar',
+    description: 'Automatic payouts triggered by real-world data. No claims adjuster. Powered by Soroban smart contracts.',
+    images:      ['/opengraph-image'],
   },
 };
 

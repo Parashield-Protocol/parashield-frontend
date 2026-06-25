@@ -18,9 +18,6 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-let _counter = 0;
-function nextId() { return `toast-${++_counter}`; }
-
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -33,7 +30,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     variant: ToastVariant = 'info',
     duration = TOAST_DEFAULT_DURATION_MS,
   ) => {
-    const id = nextId();
+    const id = crypto.randomUUID();
     setToasts((prev) => [...prev, { id, message, variant, duration }]);
     if (duration > 0) {
       setTimeout(() => dismiss(id), duration);
