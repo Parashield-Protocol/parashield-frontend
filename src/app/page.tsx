@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useProducts } from '@/hooks/useProducts';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useDebounce } from '@/hooks/useDebounce';
 import { ProductCard } from '@/components/ProductCard';
 import { SkeletonCard } from '@/components/Skeleton';
@@ -16,7 +17,7 @@ type CategoryFilterValue = Category | 'all';
 export default function HomePage() {
   const { products, loading, error, refetch } = useProducts();
   const [searchQuery, setSearchQuery]   = useState('');
-  const [category, setCategory]         = useState<CategoryFilterValue>('all');
+  const [category, setCategory]         = useLocalStorage<CategoryFilterValue>('ps_category_filter', 'all');
   const debouncedQuery                  = useDebounce(searchQuery, 250);
 
   const filteredProducts = useMemo(() => {
