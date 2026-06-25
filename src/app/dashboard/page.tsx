@@ -63,7 +63,7 @@ export default function DashboardPage() {
             href="/policies"
             className="text-sm text-teal-400 hover:text-teal-300 transition-colors"
           >
-            View all →
+            View all {active.length > 6 ? `(${active.length}) ` : ""}→
           </Link>
         </div>
 
