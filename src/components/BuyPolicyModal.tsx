@@ -77,8 +77,8 @@ export function BuyPolicyModal({ product, onClose }: Props) {
         return 'Flight date is required';
       }
     } else if (product.category === 'disaster' || product.category === 'health') {
-      if (!oracleKey.trim() || oracleKey.trim().length > 9) {
-        return 'Oracle key is required and must be at most 9 characters';
+      if (!oracleKey.trim() || oracleKey.trim().length > 32) {
+        return 'Oracle key is required and must be at most 32 characters';
       }
     }
     return '';
@@ -263,11 +263,11 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                   type="text"
                   value={oracleKey}
                   onChange={(e) => { setOracleKey(e.target.value); setError(''); }}
-                  placeholder='e.g. "kis2606" for Kisumu June 2026'
-                  maxLength={9}
+                  placeholder='e.g. rainfall:1.5,36.8:2026-06'
+                  maxLength={32}
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
                 />
-                <p className="mt-1 text-[10px] text-gray-500">Max 9 chars (Soroban Symbol)</p>
+                <p className="mt-1 text-[10px] text-gray-500">Max 32 chars (Soroban Symbol)</p>
                 <div className="mt-2 text-xs text-gray-400">
                   Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
                 </div>

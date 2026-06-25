@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { connectWallet, disconnectWallet, getStoredAddress, signAuthMessage, EXPECTED_NETWORK_PASSPHRASE } from '@/lib/stellar';
+import { connectWallet, disconnectWallet, getStoredAddress, getConnectedAddress, signAuthMessage, EXPECTED_NETWORK_PASSPHRASE } from '@/lib/stellar';
 import { toUserMessage } from '@/lib/errors';
 import { fetchChallenge, login, setAuthErrorHandler } from '@/lib/api';
 import storage from '@/lib/storage';
@@ -85,15 +85,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // briefly exposing a false "connected" state that the 401 interceptor would
   // revoke milliseconds later on the first API call.
   useEffect(() => {
-    const stored = getStoredAddress();
-    if (!stored) return;
-    const hasSession = !!storage.getSession(AUTH_TOKEN_STORAGE_KEY);
-    if (hasSession) {
-      setAddress(stored);
-    } else {
-      disconnectWallet();
+    async function initWallet() {
+      const stored = getStoredAddress();
+      if (!stored) return;
+
+      const hasSession = !!storage.getSession(AUTH_TOKEN_STORAGE_KEY);
+      if (!hasSession) {
+        disconnect();
+        return;
+      }
+
+      try {
+        const liveAddress = await getConnectedAddress();
+        if (liveAddress && liveAddress === stored) {
+          setAddress(stored);
+        } else {
+          disconnect();
+        }
+      } catch {
+        disconnect();
+      }
     }
-  }, []);
+    initWallet();
+  }, [disconnect]);
 
   useEffect(() => {
     setAuthErrorHandler(disconnect);

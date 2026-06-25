@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/context/ToastContext';
 
 interface CopyButtonProps {
@@ -12,8 +12,10 @@ interface CopyButtonProps {
 export function CopyButton({ text, label, className }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
   const { show: showToast } = useToast();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function handleCopy() {
+    if (timerRef.current) clearTimeout(timerRef.current);
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
@@ -35,11 +37,17 @@ export function CopyButton({ text, label, className }: CopyButtonProps) {
         }
       }
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       showToast('Copy failed – please copy the text manually', 'error');
     }
   }
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   return (
     <button
