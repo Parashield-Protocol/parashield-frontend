@@ -147,7 +147,7 @@ export function DepositModal({ pool, onClose }: Props) {
         disabled={busy || loadingShares || paused}
         className="mt-6 w-full rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
       >
-        {busy ? 'Signing & submitting…' : 'Confirm deposit'}
+        {busy ? 'Confirming on chain…' : 'Confirm deposit'}
       </button>
     </Modal>
   );

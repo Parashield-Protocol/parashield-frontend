@@ -73,7 +73,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setAddress(addr);
     } catch (err) {
       const msg = toUserMessage(err);
-      if (!msg.includes('closed')) setError(msg);
+      if (!msg.includes('Wallet modal closed')) setError(msg);
     } finally {
       setConnecting(false);
     }

@@ -13,7 +13,7 @@ export function setAuthErrorHandler(handler: () => void): void {
   onAuthError = handler;
 }
 
-const client = axios.create({ baseURL: API_URL, timeout: 10_000 });
+const client = axios.create({ baseURL: API_URL, timeout: 60_000 });
 
 client.interceptors.request.use((config) => {
   const token = storage.getSession(AUTH_TOKEN_STORAGE_KEY);
@@ -61,6 +61,11 @@ function post<T>(url: string, body: unknown): Promise<T> {
     const { data } = await client.post<ApiResponse<T>>(url, body);
     return data.data;
   });
+}
+
+// No-retry variant for mutation endpoints that must not be re-submitted on failure.
+function postOnce<T>(url: string, body: unknown): Promise<T> {
+  return client.post<ApiResponse<T>>(url, body).then(({ data }) => data.data);
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -119,7 +124,7 @@ export interface BuyPolicyPayload {
 }
 
 export function buyPolicy(payload: BuyPolicyPayload): Promise<{ policyId: string; txHash: string }> {
-  return post('/policies/buy', payload);
+  return postOnce('/policies/buy', payload);
 }
 
 // ── Claims ────────────────────────────────────────────────────────────────────
@@ -129,18 +134,24 @@ export function fetchUserClaims(wallet: string): Promise<Claim[]> {
 }
 
 export function fetchClaim(claimId: string): Promise<Claim | null> {
-  return get<Claim>(`/claims/${claimId}`).catch(() => null);
+  return get<Claim>(`/claims/${claimId}`).catch((err) => {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  });
 }
 
 export function submitClaim(claimant: string, policyId: string): Promise<string> {
-  return post<{ claimId: string }>('/claims', { claimant, policyId })
+  return postOnce<{ claimId: string }>('/claims', { claimant, policyId })
     .then((d) => d.claimId);
 }
 
 // ── Oracle ────────────────────────────────────────────────────────────────────
 
 export function fetchOracleReading(key: string): Promise<OracleReading | null> {
-  return get<OracleReading>('/oracle/reading', { params: { key } }).catch(() => null);
+  return get<OracleReading>('/oracle/reading', { params: { key } }).catch((err) => {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  });
 }
 
 export function fetchRainfallPreview(

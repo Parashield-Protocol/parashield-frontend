@@ -197,7 +197,7 @@ export async function buildDepositTx(
   return StellarRpc.assembleTransaction(tx, simResult).build().toXDR();
 }
 
-export async function submitSignedTransaction(signedXdr: string): Promise<string> {
+export async function submitSignedTransaction(signedXdr: string, confirmTimeoutMs = 30_000): Promise<string> {
   const rpc          = getRpc();
   const signedTx     = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
   const submitResult = await rpc.sendTransaction(signedTx);
@@ -205,5 +205,18 @@ export async function submitSignedTransaction(signedXdr: string): Promise<string
   if (submitResult.status === 'ERROR') {
     throw new ContractError(`Transaction rejected: ${JSON.stringify(submitResult.errorResult)}`);
   }
-  return submitResult.hash;
+
+  const hash     = submitResult.hash;
+  const deadline = Date.now() + confirmTimeoutMs;
+
+  while (Date.now() < deadline) {
+    const txResult = await rpc.getTransaction(hash);
+    if (txResult.status === StellarRpc.Api.GetTransactionStatus.SUCCESS) return hash;
+    if (txResult.status === StellarRpc.Api.GetTransactionStatus.FAILED) {
+      throw new ContractError('Transaction failed on-chain', hash);
+    }
+    await new Promise<void>((r) => setTimeout(r, 2_000));
+  }
+
+  throw new ContractError(`Transaction confirmation timed out after ${confirmTimeoutMs / 1_000}s`, hash);
 }
