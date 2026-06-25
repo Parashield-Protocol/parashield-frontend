@@ -262,8 +262,8 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 <input
                   type="text"
                   value={oracleKey}
-                  onChange={(e) => setOracleKey(e.target.value)}
-                  placeholder='e.g. "dis2606" for Disaster June 2026'
+                  onChange={(e) => { setOracleKey(e.target.value); setError(''); }}
+                  placeholder='e.g. "kis2606" for Kisumu June 2026'
                   maxLength={9}
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
                 />
