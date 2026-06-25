@@ -19,7 +19,7 @@ interface Props {
 const STEPS = ['Configure', 'Review', 'Sign'];
 
 export function BuyPolicyModal({ product, onClose }: Props) {
-  const { address, connect, connecting } = useWallet();
+  const { address, connect, connecting, error: walletError } = useWallet();
   const { show: showToast }             = useToast();
 
   const [coverage,  setCoverage]  = useState('');
@@ -273,6 +273,20 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 </div>
               </div>
             )}
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                Oracle Key
+              </label>
+              <input
+                type="text"
+                value={oracleKey}
+                onChange={(e) => { setOracleKey(e.target.value); setError(''); }}
+                placeholder='e.g. "rainfall:0.09,34.77:2026-06"'
+                maxLength={9}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+              />
+              <p className="mt-1 text-[10px] text-gray-500">Max 9 chars (Soroban Symbol)</p>
+            </div>
           </>
         )}
 
@@ -336,6 +350,9 @@ export function BuyPolicyModal({ product, onClose }: Props) {
            step === 1  ? 'Confirm details' :
            'Next'}
         </button>
+        {walletError && !address && (
+          <p className="mt-2 text-sm text-red-400">{walletError}</p>
+        )}
       </div>
     </Modal>
   );

@@ -1,5 +1,5 @@
 export interface OracleKey {
-  dataType: 'rainfall' | 'temperature' | 'flight' | 'defi';
+  dataType: 'rainfall' | 'temperature' | 'flight' | 'defi' | 'unknown';
   location?: string;
   flightNumber?: string;
   period?: string;
@@ -27,7 +27,7 @@ export function parseOracleKey(key: string): OracleKey {
     const [, defiKey] = key.split(':', 2);
     return { dataType: 'defi', defiKey };
   }
-  return { dataType: 'defi', rawKey: key };
+  return { dataType: 'unknown', rawKey: key };
 }
 
 export function oracleKeyLabel(key: string): string {
@@ -47,6 +47,8 @@ export function oracleKeyLabel(key: string): string {
         return 'DeFi Exploit Monitor';
       }
       return parsed.rawKey;
+    case 'unknown':
+      return parsed.rawKey ?? key;
     default:
       return key;
   }
@@ -56,6 +58,7 @@ export function oracleValueUnit(dataType: string): string {
   if (dataType === 'rainfall')    return 'mm';
   if (dataType === 'temperature') return '°C';
   if (dataType === 'flight')      return 'min';
+  if (dataType === 'unknown')     return '';
   return '';
 }
 

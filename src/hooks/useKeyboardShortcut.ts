@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 type Key = string;
 type Modifiers = { ctrl?: boolean; shift?: boolean; alt?: boolean; meta?: boolean };
@@ -10,6 +10,9 @@ export function useKeyboardShortcut(
   handler: () => void,
   modifiers: Modifiers = {},
 ) {
+  const handlerRef = useRef(handler);
+  useEffect(() => { handlerRef.current = handler; });
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key.toLowerCase() !== key.toLowerCase()) return;
@@ -18,9 +21,9 @@ export function useKeyboardShortcut(
       if (modifiers.alt   && !e.altKey)   return;
       if (modifiers.meta  && !e.metaKey)  return;
       e.preventDefault();
-      handler();
+      handlerRef.current();
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [key, handler, modifiers]);
+  }, [key, modifiers]);
 }
