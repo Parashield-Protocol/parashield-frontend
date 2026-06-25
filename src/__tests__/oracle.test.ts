@@ -22,8 +22,8 @@ describe('parseOracleKey', () => {
     expect(result.period).toBe('2026-06-01');
   });
 
-  it('handles unknown keys as defi', () => {
-    expect(parseOracleKey('unknown:key').dataType).toBe('defi');
+  it('handles unknown keys as unknown', () => {
+    expect(parseOracleKey('unknown:key').dataType).toBe('unknown');
   });
 
   it('parses defi keys', () => {

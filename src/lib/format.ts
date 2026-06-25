@@ -60,13 +60,18 @@ export function formatOracleValue(value: string, dataType: string): string {
   const n = Number(whole) + Number(frac) / 1e7;
   switch (dataType) {
     case 'weather':
+    case 'rainfall':
       return `${n.toFixed(2)} mm`;
+    case 'temperature':
+      return `${n.toFixed(2)} °C`;
     case 'flight':
       return `${Math.round(n)} min delay`;
     case 'defi':
       if (n === 1) return 'Exploit detected';
       if (n === 0) return 'No exploit';
       return `Unknown (${n.toFixed(0)})`;
+    case 'unknown':
+      return n.toFixed(4);
     default:
       return n.toFixed(4);
   }

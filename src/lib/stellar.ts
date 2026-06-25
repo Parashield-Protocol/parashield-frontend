@@ -124,13 +124,11 @@ export async function signAuthMessage(message: string): Promise<string> {
     return signedMessage;
   }
 
-  // Fallback for wallets that do not yet support signMessage: sign via
-  // signTransaction using an XDR already built externally. Here we encode the
-  // challenge as a base64 string so it can be verified without importing the
-  // full Stellar SDK on the client side (which pulls in Node-only native deps).
-  const encoded = btoa(message);
+  // Fallback: the connected wallet does not support SEP-43 signMessage.
+  // A signTransaction-based challenge path requires backend support to verify
+  // a signed transaction envelope, so for now we surface a clear error.
   throw new WalletError(
-    `Your wallet does not support message signing (SEP-43). ` +
-    `Please upgrade your wallet extension. Challenge: ${encoded}`,
+    'Your wallet does not support the signing method required for login. ' +
+    'Please use Freighter or another SEP-43-compatible wallet.',
   );
 }

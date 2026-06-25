@@ -19,7 +19,7 @@ interface Props {
 const STEPS = ['Configure', 'Review', 'Sign'];
 
 export function BuyPolicyModal({ product, onClose }: Props) {
-  const { address, connect, connecting } = useWallet();
+  const { address, connect, connecting, error: walletError } = useWallet();
   const { show: showToast }             = useToast();
 
   const [coverage,  setCoverage]  = useState('');
@@ -281,7 +281,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 type="text"
                 value={oracleKey}
                 onChange={(e) => { setOracleKey(e.target.value); setError(''); }}
-                placeholder='e.g. "kis2606" for Kisumu June 2026'
+                placeholder='e.g. "rainfall:0.09,34.77:2026-06"'
                 maxLength={9}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
               />
@@ -350,6 +350,9 @@ export function BuyPolicyModal({ product, onClose }: Props) {
            step === 1  ? 'Confirm details' :
            'Next'}
         </button>
+        {walletError && !address && (
+          <p className="mt-2 text-sm text-red-400">{walletError}</p>
+        )}
       </div>
     </Modal>
   );
