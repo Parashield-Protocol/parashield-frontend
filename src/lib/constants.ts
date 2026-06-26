@@ -69,3 +69,4 @@ export const AUTH_TOKEN_STORAGE_KEY = 'ps_auth_token';
 export const TOAST_DEFAULT_DURATION_MS = 4000;
 export const POLLING_INTERVAL_MS       = 30_000;
 export const ORACLE_REFRESH_INTERVAL_MS = 60_000;
+export const CLAIMS_REFRESH_INTERVAL_MS = 15_000;

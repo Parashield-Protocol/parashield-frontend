@@ -56,38 +56,26 @@ function get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
   });
 }
 
+// POST is intentionally fire-once — retries on state-mutating requests can
+// cause duplicate side-effects (e.g. double policy purchase) if the server
+// processed the first attempt but the response was lost (issue #130).
 function post<T>(url: string, body: unknown): Promise<T> {
-  return withRetry(async () => {
-    const { data } = await client.post<ApiResponse<T>>(url, body);
-    return data.data;
-  });
-}
-
-// No-retry variant for mutation endpoints that must not be re-submitted on failure.
-function postOnce<T>(url: string, body: unknown): Promise<T> {
   return client.post<ApiResponse<T>>(url, body).then(({ data }) => data.data);
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 /**
- * Fetch a server-issued nonce for the given wallet address.
- * Falls back to a locally generated random nonce if the backend does not
- * expose a challenge endpoint (HTTP 404 / network error).
+ * Fetch a server-issued nonce for the given wallet address (issue #131).
+ *
+ * The nonce MUST come from the server — a client-generated nonce defeats the
+ * challenge-response security model and allows replay attacks. All errors
+ * (network failures, 404, 5xx) propagate to the caller so the connect-wallet
+ * flow can display a meaningful error rather than silently accepting a
+ * client-forged challenge.
  */
-export async function fetchChallenge(wallet: string): Promise<string> {
-  try {
-    const nonce = await get<string>(`/auth/challenge?wallet=${encodeURIComponent(wallet)}`);
-    return nonce;
-  } catch {
-    // Backend has no challenge endpoint — generate a cryptographically random
-    // nonce locally. The backend must accept client-generated nonces or this
-    // fallback should be removed once the endpoint is deployed.
-    const bytes = new Uint8Array(32);
-    crypto.getRandomValues(bytes);
-    const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
-    return `${wallet}:${hex}`;
-  }
+export function fetchChallenge(wallet: string): Promise<string> {
+  return get<string>(`/auth/challenge?wallet=${encodeURIComponent(wallet)}`);
 }
 
 export function login(wallet: string, signedChallenge: string): Promise<{ token: string }> {
@@ -124,7 +112,7 @@ export interface BuyPolicyPayload {
 }
 
 export function buyPolicy(payload: BuyPolicyPayload): Promise<{ policyId: string; txHash: string }> {
-  return postOnce('/policies/buy', payload);
+  return post('/policies/buy', payload);
 }
 
 // ── Claims ────────────────────────────────────────────────────────────────────
@@ -141,7 +129,7 @@ export function fetchClaim(claimId: string): Promise<Claim | null> {
 }
 
 export function submitClaim(claimant: string, policyId: string): Promise<string> {
-  return postOnce<{ claimId: string }>('/claims', { claimant, policyId })
+  return post<{ claimId: string }>('/claims', { claimant, policyId })
     .then((d) => d.claimId);
 }
 

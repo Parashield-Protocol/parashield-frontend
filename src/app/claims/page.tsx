@@ -8,6 +8,7 @@ import { ClaimHistoryTable } from '@/components/ClaimHistoryTable';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { SkeletonTable } from '@/components/Skeleton';
 import type { Claim } from '@/types';
+import { CLAIMS_REFRESH_INTERVAL_MS } from '@/lib/constants';
 
 export default function ClaimsPage() {
   const { address, connected } = useWallet();
@@ -16,9 +17,9 @@ export default function ClaimsPage() {
   const [retrying, setRetrying] = useState(false);
   const [error,    setError]   = useState<string | null>(null);
 
-  const loadClaims = useCallback(async () => {
+  const loadClaims = useCallback(async (silent = false) => {
     if (!address) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const data = await fetchUserClaims(address);
       setClaims(data);
@@ -26,13 +27,25 @@ export default function ClaimsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load claims');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [address]);
 
   useEffect(() => {
     loadClaims();
-  }, [loadClaims]);
+    if (!address) return;
+    const interval = setInterval(() => {
+      if (!document.hidden) void loadClaims(true);
+    }, CLAIMS_REFRESH_INTERVAL_MS);
+    const onVisible = () => {
+      if (!document.hidden) void loadClaims(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [loadClaims, address]);
 
   const handleRetry = useCallback(async () => {
     setRetrying(true);
