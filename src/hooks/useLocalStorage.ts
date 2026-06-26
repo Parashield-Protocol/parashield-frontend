@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
+  const initialRef = useRef(initialValue);
+
   const [storedValue, setStoredValue] = useState<T>(() => {
     if (typeof window === 'undefined') return initialValue;
     try {
@@ -22,9 +24,9 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   }, [key]);
 
   const remove = useCallback(() => {
-    setStoredValue(initialValue);
+    setStoredValue(initialRef.current);
     try { localStorage.removeItem(key); } catch { /* ignore */ }
-  }, [key, initialValue]);
+  }, [key]);
 
   return [storedValue, setValue, remove] as const;
 }
