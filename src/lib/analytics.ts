@@ -17,6 +17,12 @@ interface EventProperties {
   [key: string]: string | number | boolean | undefined;
 }
 
+let posthogReady = false;
+
+export function setPostHogReady(ready: boolean): void {
+  posthogReady = ready;
+}
+
 function truncateWalletAddress(address?: string): string | undefined {
   if (!address) return undefined;
   return address.slice(0, 8);
@@ -44,8 +50,10 @@ export function page(name: string, properties?: EventProperties): void {
     console.debug('[analytics:page]', name, properties);
   }
   
-  posthog.capture('$pageview', { 
-    $current_url: window.location.href,
-    ...properties 
-  });
+  if (posthogReady) {
+    posthog.capture('$pageview', { 
+      $current_url: window.location.href,
+      ...properties 
+    });
+  }
 }

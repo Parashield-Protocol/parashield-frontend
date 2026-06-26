@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { fetchPoolStats } from '@/lib/api';
+import { useState } from 'react';
 import type { PoolStats } from '@/types';
 import { formatUSDC } from '@/lib/format';
 import { Badge } from '@/components/Badge';
@@ -10,28 +9,32 @@ import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/Skeleton';
 import { DepositModal } from '@/components/DepositModal';
 import { useWallet } from '@/hooks/useWallet';
+import { usePools } from '@/hooks/usePools';
 import { CATEGORY_ICONS, CATEGORY_LABELS } from '@/lib/constants';
 
 export default function PoolsPage() {
   const { connected } = useWallet();
-  const [pools,        setPools]        = useState<PoolStats[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState<string | null>(null);
+  const { pools, loading, error, refetch } = usePools();
   const [depositPool,  setDepositPool]  = useState<PoolStats | null>(null);
-
-  useEffect(() => {
-    fetchPoolStats()
-      .then(setPools)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load pools'))
-      .finally(() => setLoading(false));
-  }, []);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <h1 className="text-2xl font-bold">Risk Pools</h1>
-      <p className="mt-1 text-sm text-gray-400">
-        Provide liquidity, underwrite risk, and earn yield on USDC premiums
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Risk Pools</h1>
+          <p className="mt-1 text-sm text-gray-400">
+            Provide liquidity, underwrite risk, and earn yield on USDC premiums
+          </p>
+        </div>
+        <button
+          onClick={() => void refetch()}
+          disabled={loading}
+          className="rounded-lg bg-teal-500 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors flex items-center gap-2"
+        >
+          {loading && <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-300 border-t-teal-100" />}
+          Refresh
+        </button>
+      </div>
 
       {loading && (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -40,8 +43,18 @@ export default function PoolsPage() {
       )}
 
       {error && (
-        <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-sm text-red-400">
-          {error}
+        <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-sm text-red-400">{error}</p>
+            <button
+              onClick={() => void refetch()}
+              disabled={loading}
+              className="shrink-0 rounded-lg bg-red-500 px-4 py-2 text-xs font-semibold text-white hover:bg-red-400 disabled:opacity-60 transition-colors flex items-center gap-2"
+            >
+              {loading && <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-red-300 border-t-red-100" />}
+              Try again
+            </button>
+          </div>
         </div>
       )}
 
