@@ -10,38 +10,49 @@ export function usePolicies(walletAddress: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  // Reset immediately when wallet disconnects
+  useEffect(() => {
     if (!walletAddress) {
       setPolicies([]);
-      return;
+      setError(null);
     }
+  }, [walletAddress]);
+
+  const load = useCallback(async (signal?: AbortSignal) => {
+    if (!walletAddress) return;
     setLoading(true);
     setError(null);
     try {
       const data = await fetchUserPolicies(walletAddress);
+      if (signal?.aborted) return;
       setPolicies(data);
     } catch (err) {
+      if (signal?.aborted) return;
       setError(err instanceof Error ? err.message : "Failed to load policies");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [walletAddress]);
 
   useEffect(() => {
-    void load();
     if (!walletAddress) return;
+    const controller = new AbortController();
+    void load(controller.signal);
     const interval = setInterval(() => {
-      if (!document.hidden) void load();
+      if (!document.hidden) void load(controller.signal);
     }, POLLING_INTERVAL_MS);
-    const onVisible = () => { if (!document.hidden) void load(); };
+    const onVisible = () => { if (!document.hidden) void load(controller.signal); };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
+      controller.abort();
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [load, walletAddress]);
 
-  return { policies, loading, error, refetch: load };
+  const refetch = useCallback(() => load(), [load]);
+
+  return { policies, loading, error, refetch };
 }
 
 export function usePolicy(id: string | null) {
