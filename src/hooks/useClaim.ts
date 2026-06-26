@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { fetchClaim } from '@/lib/api';
 import type { Claim } from '@/types';
 import { toUserMessage } from '@/lib/errors';
@@ -13,18 +13,30 @@ export function useClaim() {
   const [claimId, setClaimId] = useState<string | null>(null);
   const [claim,   setClaim]   = useState<Claim | null>(null);
   const [error,   setError]   = useState<string | null>(null);
+  
+  const cancelledRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
 
   const submit = useCallback(async (claimant: string, policyId: string) => {
+    cancelledRef.current = false;
     setStep('submitting');
     setError(null);
     try {
       const txHash = await invokeSubmitClaim(claimant, policyId);
+      if (cancelledRef.current) return { error: null };
       setClaimId(txHash);
       setStep('polling');
 
       for (let i = 0; i < 20; i++) {
         await new Promise((r) => setTimeout(r, 3000));
+        if (cancelledRef.current) return { error: null };
         const result = await fetchClaim(txHash);
+        if (cancelledRef.current) return { error: null };
         if (result) {
           setClaim(result);
           if (result.status === 'Paid' || result.status === 'Rejected') {
@@ -33,9 +45,11 @@ export function useClaim() {
           }
         }
       }
+      if (cancelledRef.current) return { error: null };
       setStep('timeout');
       return { error: null };
     } catch (err) {
+      if (cancelledRef.current) return { error: null };
       const errorMsg = toUserMessage(err);
       setError(errorMsg);
       setStep('error');
@@ -44,6 +58,7 @@ export function useClaim() {
   }, []);
 
   const reset = useCallback(() => {
+    cancelledRef.current = true;
     setStep('idle');
     setClaimId(null);
     setClaim(null);
