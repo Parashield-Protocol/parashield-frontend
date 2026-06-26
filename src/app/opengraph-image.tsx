@@ -11,6 +11,18 @@ export const size = {
 export const contentType = 'image/png';
 
 export default async function Image() {
+  let fontData: ArrayBuffer | undefined;
+  try {
+    const response = await fetch(
+      'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2'
+    );
+    if (response.ok) {
+      fontData = await response.arrayBuffer();
+    }
+  } catch (error) {
+    console.error('Failed to fetch Inter font for OG image, falling back to sans-serif', error);
+  }
+
   return new ImageResponse(
     (
       <div
@@ -50,7 +62,7 @@ export default async function Image() {
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </div>
-          <span style={{ fontSize: '84px', fontWeight: 'bold', letterSpacing: '-0.05em', fontFamily: 'sans-serif' }}>
+          <span style={{ fontSize: '84px', fontWeight: 'bold', letterSpacing: '-0.05em', fontFamily: 'Inter, sans-serif' }}>
             <span style={{ color: '#2dd4bf' }}>Para</span>
             <span style={{ color: '#ffffff' }}>shield</span>
           </span>
@@ -63,7 +75,7 @@ export default async function Image() {
           lineHeight: '1.4',
           margin: '0',
           fontWeight: '500',
-          fontFamily: 'sans-serif',
+          fontFamily: 'Inter, sans-serif',
         }}>
           Parametric insurance on Stellar. Pay out in seconds, not weeks.
         </p>
@@ -71,6 +83,16 @@ export default async function Image() {
     ),
     {
       ...size,
+      fonts: fontData
+        ? [
+            {
+              name: 'Inter',
+              data: fontData,
+              style: 'normal',
+              weight: 700,
+            },
+          ]
+        : undefined,
     }
   );
 }
