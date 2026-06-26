@@ -831,7 +831,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/curves@npm:^1.0.0, @noble/curves@npm:^1.4.2, @noble/curves@npm:~1.9.0":
+"@noble/curves@npm:^1.0.0, @noble/curves@npm:^1.4.2, @noble/curves@npm:^1.9.6, @noble/curves@npm:~1.9.0":
   version: 1.9.7
   resolution: "@noble/curves@npm:1.9.7"
   dependencies:
@@ -882,6 +882,7 @@ __metadata:
   resolution: "@parashield/frontend@workspace:."
   dependencies:
     "@creit.tech/stellar-wallets-kit": "npm:^1.9.5"
+    "@stellar/stellar-base": "npm:^14.0.0"
     "@stellar/stellar-sdk": "npm:^13.0.0"
     "@tailwindcss/postcss": "npm:^4.0.0"
     "@types/node": "npm:^22.0.0"
@@ -1838,6 +1839,20 @@ __metadata:
     sodium-native:
       optional: true
   checksum: 10c0/858ce88842a12762d7daad3c22f309816eda51b9b9eb0676ab82999b963e3ec16c808680a9189577319259bd7c16c36c0bec4f0d8ea26f992be609ce51a3f2e6
+  languageName: node
+  linkType: hard
+
+"@stellar/stellar-base@npm:^14.0.0":
+  version: 14.1.0
+  resolution: "@stellar/stellar-base@npm:14.1.0"
+  dependencies:
+    "@noble/curves": "npm:^1.9.6"
+    "@stellar/js-xdr": "npm:^3.1.2"
+    base32.js: "npm:^0.1.0"
+    bignumber.js: "npm:^9.3.1"
+    buffer: "npm:^6.0.3"
+    sha.js: "npm:^2.4.12"
+  checksum: 10c0/48e434c7588a58c9a34a8ae75bea528b4edbd20ef550b0b98f4fcbfbf8823621c6c99fa97cc25c1dd1481167d62ed51c93fe76ddfde61591b271734c0ba4874a
   languageName: node
   linkType: hard
 
@@ -3024,7 +3039,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bignumber.js@npm:^9.0.0, bignumber.js@npm:^9.1.2, bignumber.js@npm:^9.3.0":
+"bignumber.js@npm:^9.0.0, bignumber.js@npm:^9.1.2, bignumber.js@npm:^9.3.0, bignumber.js@npm:^9.3.1":
   version: 9.3.1
   resolution: "bignumber.js@npm:9.3.1"
   checksum: 10c0/61342ba5fe1c10887f0ecf5be02ff6709271481aff48631f86b4d37d55a99b87ce441cfd54df3d16d10ee07ceab7e272fc0be430c657ffafbbbf7b7d631efb75
@@ -5321,7 +5336,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sha.js@npm:^2.3.6, sha.js@npm:^2.4.0, sha.js@npm:^2.4.8":
+"sha.js@npm:^2.3.6, sha.js@npm:^2.4.0, sha.js@npm:^2.4.12, sha.js@npm:^2.4.8":
   version: 2.4.12
   resolution: "sha.js@npm:2.4.12"
   dependencies:
