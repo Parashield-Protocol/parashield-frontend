@@ -715,6 +715,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@netlify/plugin-nextjs@npm:^5.15.12":
+  version: 5.15.12
+  resolution: "@netlify/plugin-nextjs@npm:5.15.12"
+  checksum: 10c0/04a9568b366d680d5a2703aeafe0581bc2d36388ef2f944b25a3d1535fe704b313158df262eac91452289aa7decb0dcceea94626a1c38a37eca5eef60da65378
+  languageName: node
+  linkType: hard
+
 "@next/env@npm:15.5.19":
   version: 15.5.19
   resolution: "@next/env@npm:15.5.19"
@@ -882,6 +889,7 @@ __metadata:
   resolution: "@parashield/frontend@workspace:."
   dependencies:
     "@creit.tech/stellar-wallets-kit": "npm:^1.9.5"
+    "@netlify/plugin-nextjs": "npm:^5.15.12"
     "@stellar/stellar-base": "npm:^14.0.0"
     "@stellar/stellar-sdk": "npm:^13.0.0"
     "@tailwindcss/postcss": "npm:^4.0.0"
