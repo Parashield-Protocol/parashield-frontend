@@ -1,5 +1,25 @@
+# Dependencies
 node_modules/
+
+# Next.js build output
 .next/
 out/
+
+# Environment files
 .env
 *.env.local
+.env.*.local
+
+# Test snapshots & coverage
+**/__snapshots__/
+coverage/
+*.lcov
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -12,10 +12,11 @@ import { CLAIMS_REFRESH_INTERVAL_MS } from '@/lib/constants';
 
 export default function ClaimsPage() {
   const { address, connected } = useWallet();
-  const [claims,   setClaims]  = useState<Claim[]>([]);
-  const [loading,  setLoading] = useState(false);
-  const [retrying, setRetrying] = useState(false);
-  const [error,    setError]   = useState<string | null>(null);
+  const [claims,      setClaims]      = useState<Claim[]>([]);
+  const [loading,     setLoading]     = useState(false);
+  const [retrying,    setRetrying]    = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
   const loadClaims = useCallback(async (silent = false) => {
     if (!address) return;
@@ -23,6 +24,7 @@ export default function ClaimsPage() {
     try {
       const data = await fetchUserClaims(address);
       setClaims(data);
+      setLastFetched(new Date());
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load claims');
@@ -63,10 +65,29 @@ export default function ClaimsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <h1 className="text-2xl font-bold">Claim History</h1>
-      <p className="mt-1 text-sm text-gray-400">
-        All claims submitted from your connected wallet
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Claim History</h1>
+          <p className="mt-1 text-sm text-gray-400">
+            All claims submitted from your connected wallet
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {lastFetched && (
+            <span className="text-xs text-gray-500">
+              Updated {lastFetched.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            onClick={() => void loadClaims(false)}
+            disabled={loading || retrying}
+            className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
+          >
+            {(loading || retrying) && <LoadingSpinner size="sm" className="h-3 w-3" />}
+            Refresh
+          </button>
+        </div>
+      </div>
 
       {loading && !retrying ? (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">

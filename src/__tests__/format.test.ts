@@ -23,6 +23,20 @@ describe('stroopsToDisplay', () => {
   it('respects decimal precision', () => {
     expect(stroopsToDisplay('12345678', 4)).toBe('1.2345');
   });
+
+  it('returns — for empty string', () => {
+    expect(stroopsToDisplay('')).toBe('—');
+  });
+
+  it('returns — for whitespace-only string', () => {
+    expect(stroopsToDisplay('   ')).toBe('—');
+  });
+
+  it('returns — for non-numeric string', () => {
+    expect(stroopsToDisplay('N/A')).toBe('—');
+    expect(stroopsToDisplay('undefined')).toBe('—');
+    expect(stroopsToDisplay('1.5')).toBe('—'); // floats are non-integer strings
+  });
 });
 
 describe('displayToStroops', () => {
@@ -34,6 +48,18 @@ describe('displayToStroops', () => {
 
   it('handles amounts without decimals', () => {
     expect(displayToStroops('100')).toBe(1000000000n);
+  });
+
+  it('throws TypeError on empty string', () => {
+    expect(() => displayToStroops('')).toThrow(TypeError);
+  });
+
+  it('throws TypeError on non-numeric string', () => {
+    expect(() => displayToStroops('N/A')).toThrow(TypeError);
+  });
+
+  it('throws TypeError on negative value', () => {
+    expect(() => displayToStroops('-500')).toThrow(TypeError);
   });
 });
 

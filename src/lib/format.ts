@@ -1,6 +1,10 @@
 import { STROOPS_PER_UNIT } from './constants';
 
 export function stroopsToDisplay(stroops: string | bigint, decimals = 2): string {
+  if (typeof stroops === 'string') {
+    const trimmed = stroops.trim();
+    if (trimmed === '' || !/^-?\d+$/.test(trimmed)) return '—';
+  }
   const n = BigInt(stroops);
   const whole = n / STROOPS_PER_UNIT;
   const frac  = n % STROOPS_PER_UNIT;
@@ -9,7 +13,14 @@ export function stroopsToDisplay(stroops: string | bigint, decimals = 2): string
 }
 
 export function displayToStroops(display: string): bigint {
-  const [whole = '0', frac = ''] = display.replace(/,/g, '').split('.');
+  const trimmed = display.trim();
+  if (trimmed === '' || isNaN(Number(trimmed))) {
+    throw new TypeError(`displayToStroops: invalid input "${display}"`);
+  }
+  if (parseFloat(trimmed) < 0) {
+    throw new TypeError(`displayToStroops: negative value not allowed "${display}"`);
+  }
+  const [whole = '0', frac = ''] = trimmed.replace(/,/g, '').split('.');
   const fracPadded = frac.padEnd(7, '0').slice(0, 7);
   return BigInt(whole) * STROOPS_PER_UNIT + BigInt(fracPadded || '0');
 }
