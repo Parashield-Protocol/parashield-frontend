@@ -25,6 +25,10 @@ export const USDC_ISSUER =
 
 export const STROOPS_PER_UNIT = 10_000_000n;
 
+// Minimum deposit: 0.01 USDC (10,000 stroops)
+// This prevents dust deposits that may round to 0 or be rejected by the pool contract
+export const MIN_DEPOSIT_STROOPS = 10_000n;
+
 export const POLICY_CONTRACT_ID =
   process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID ?? '';
 
