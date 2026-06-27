@@ -1,17 +1,36 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import { ApiError } from './errors';
-import { API_URL } from './constants';
-import type { Product, Policy, Claim, OracleReading, PoolStats, ProtocolStats, ApiResponse, PaginatedResponse } from '@/types';
+import { API_URL, AUTH_TOKEN_STORAGE_KEY } from './constants';
+import storage from './storage';
+import type { Product, Policy, Claim, OracleReading, PoolStats, PoolShareInfo, ApiResponse, PaginatedResponse } from '@/types';
 
 // Re-export for backward compat with existing imports
 export type { Product, Policy };
 
-const client = axios.create({ baseURL: API_URL, timeout: 10_000 });
+let onAuthError: (() => void) | null = null;
+
+export function setAuthErrorHandler(handler: () => void): void {
+  onAuthError = handler;
+}
+
+const client = axios.create({ baseURL: API_URL, timeout: 60_000 });
+
+client.interceptors.request.use((config) => {
+  const token = storage.getSession(AUTH_TOKEN_STORAGE_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 client.interceptors.response.use(
   (res) => res,
   (err: AxiosError<{ message?: string; error?: string }>) => {
     const status  = err.response?.status ?? 0;
+    if (status === 401) {
+      storage.removeSession(AUTH_TOKEN_STORAGE_KEY);
+      if (onAuthError) onAuthError();
+    }
     const message = err.response?.data?.message ?? err.response?.data?.error ?? err.message;
     throw new ApiError(message, status);
   },
@@ -37,11 +56,30 @@ function get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
   });
 }
 
+// POST is intentionally fire-once — retries on state-mutating requests can
+// cause duplicate side-effects (e.g. double policy purchase) if the server
+// processed the first attempt but the response was lost (issue #130).
 function post<T>(url: string, body: unknown): Promise<T> {
-  return withRetry(async () => {
-    const { data } = await client.post<ApiResponse<T>>(url, body);
-    return data.data;
-  });
+  return client.post<ApiResponse<T>>(url, body).then(({ data }) => data.data);
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch a server-issued nonce for the given wallet address (issue #131).
+ *
+ * The nonce MUST come from the server — a client-generated nonce defeats the
+ * challenge-response security model and allows replay attacks. All errors
+ * (network failures, 404, 5xx) propagate to the caller so the connect-wallet
+ * flow can display a meaningful error rather than silently accepting a
+ * client-forged challenge.
+ */
+export function fetchChallenge(wallet: string): Promise<string> {
+  return get<string>(`/auth/challenge?wallet=${encodeURIComponent(wallet)}`);
+}
+
+export function login(wallet: string, signedChallenge: string): Promise<{ token: string }> {
+  return post('/auth/login', { wallet, signedChallenge });
 }
 
 // ── Products ──────────────────────────────────────────────────────────────────
@@ -84,7 +122,10 @@ export function fetchUserClaims(wallet: string): Promise<Claim[]> {
 }
 
 export function fetchClaim(claimId: string): Promise<Claim | null> {
-  return get<Claim>(`/claims/${claimId}`).catch(() => null);
+  return get<Claim>(`/claims/${claimId}`).catch((err) => {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  });
 }
 
 export function submitClaim(claimant: string, policyId: string): Promise<string> {
@@ -95,7 +136,10 @@ export function submitClaim(claimant: string, policyId: string): Promise<string>
 // ── Oracle ────────────────────────────────────────────────────────────────────
 
 export function fetchOracleReading(key: string): Promise<OracleReading | null> {
-  return get<OracleReading>('/oracle/reading', { params: { key } }).catch(() => null);
+  return get<OracleReading>('/oracle/reading', { params: { key } }).catch((err) => {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  });
 }
 
 export function fetchRainfallPreview(
@@ -118,15 +162,6 @@ export function fetchPoolById(poolId: string): Promise<PoolStats> {
   return get<PoolStats>(`/pools/${poolId}`);
 }
 
-// ── Protocol stats ────────────────────────────────────────────────────────────
-
-export function fetchProtocolStats(): Promise<ProtocolStats> {
-  return Promise.all([
-    get<{ totalCoverage: string }>('/policies/stats'),
-    get<{ totalPayouts: string }>('/claims/stats'),
-  ]).then(([policies, claims]) => ({
-    totalCoverage: policies.totalCoverage,
-    totalPayouts:    claims.totalPayouts,
-    activeProducts:  0,
-  }));
+export function fetchPoolShares(poolId: string): Promise<PoolShareInfo> {
+  return get<PoolShareInfo>(`/pools/${poolId}/shares`);
 }

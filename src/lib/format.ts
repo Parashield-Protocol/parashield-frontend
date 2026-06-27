@@ -54,12 +54,24 @@ export function basisPointsToPercent(bps: number, decimals = 2): string {
 }
 
 export function formatOracleValue(value: string, dataType: string): string {
-  const n = Number(BigInt(value)) / 1e7;
+  const raw = BigInt(value);
+  const whole = raw / 10_000_000n;
+  const frac = raw % 10_000_000n;
+  const n = Number(whole) + Number(frac) / 1e7;
   switch (dataType) {
     case 'weather':
+    case 'rainfall':
       return `${n.toFixed(2)} mm`;
+    case 'temperature':
+      return `${n.toFixed(2)} °C`;
     case 'flight':
       return `${Math.round(n)} min delay`;
+    case 'defi':
+      if (n === 1) return 'Exploit detected';
+      if (n === 0) return 'No exploit';
+      return `Unknown (${n.toFixed(0)})`;
+    case 'unknown':
+      return n.toFixed(4);
     default:
       return n.toFixed(4);
   }
@@ -67,14 +79,26 @@ export function formatOracleValue(value: string, dataType: string): string {
 
 export function timeLeft(endEpochSeconds: number): string {
   const diff = endEpochSeconds - Math.floor(Date.now() / 1000);
-  if (diff <= 0) return 'Expired';
-  if (diff < 3600)  return `${Math.floor(diff / 60)}m left`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h left`;
-  return `${Math.floor(diff / 86400)}d left`;
+  if (diff > 0) {
+    if (diff < 3600)  return `${Math.floor(diff / 60)}m left`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h left`;
+    return `${Math.floor(diff / 86400)}d left`;
+  }
+  const elapsed = -diff;
+  if (elapsed < 3600)   return `Expired ${Math.floor(elapsed / 60)}m ago`;
+  if (elapsed < 86400)  return `Expired ${Math.floor(elapsed / 3600)}h ago`;
+  if (elapsed < 2592000) return `Expired ${Math.floor(elapsed / 86400)}d ago`;
+  return `Expired ${formatDate(endEpochSeconds)}`;
 }
 
 export function utilizationColor(rate: number): string {
   if (rate < 0.5) return 'text-emerald-400';
   if (rate < 0.8) return 'text-amber-400';
   return 'text-red-400';
+}
+
+export function estimatePremium(coverageDisplay: string, premiumRateBps: number): string {
+  const coverageStroops = displayToStroops(coverageDisplay || '0');
+  const premiumStroops = (coverageStroops * BigInt(premiumRateBps)) / 10_000n;
+  return stroopsToDisplay(premiumStroops, 2);
 }

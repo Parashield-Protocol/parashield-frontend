@@ -22,8 +22,18 @@ describe('parseOracleKey', () => {
     expect(result.period).toBe('2026-06-01');
   });
 
-  it('handles unknown keys as defi', () => {
-    expect(parseOracleKey('unknown:key').dataType).toBe('defi');
+  it('handles unknown keys as unknown', () => {
+    expect(parseOracleKey('unknown:key').dataType).toBe('unknown');
+  });
+
+  it('parses defi keys', () => {
+    const bare = parseOracleKey('defi');
+    expect(bare.dataType).toBe('defi');
+    expect(bare.defiKey).toBeUndefined();
+
+    const keyed = parseOracleKey('defi:protocol-monitor');
+    expect(keyed.dataType).toBe('defi');
+    expect(keyed.defiKey).toBe('protocol-monitor');
   });
 });
 
@@ -42,6 +52,16 @@ describe('buildRainfallKey', () => {
 describe('buildFlightKey', () => {
   it('builds the correct flight key', () => {
     expect(buildFlightKey('KQ100', '2026-06-01')).toBe('flight:KQ100:2026-06-01');
+  });
+});
+
+describe('oracleKeyLabel', () => {
+  it('formats bare defi keys', () => {
+    expect(oracleKeyLabel('defi')).toBe('DeFi Exploit Monitor');
+  });
+
+  it('formats keyed defi keys', () => {
+    expect(oracleKeyLabel('defi:protocol-monitor')).toBe('DeFi · protocol-monitor');
   });
 });
 

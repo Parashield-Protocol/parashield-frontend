@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useProducts } from '@/hooks/useProducts';
-import { fetchProtocolStats } from '@/lib/api';
-import { formatUSDC } from '@/lib/format';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useDebounce } from '@/hooks/useDebounce';
 import { ProductCard } from '@/components/ProductCard';
 import { Skeleton, SkeletonCard } from '@/components/Skeleton';
 import { LogoWordmark } from '@/components/Logo';
+import { SearchBar } from '@/components/SearchBar';
+import { CategoryFilter } from '@/components/CategoryFilter';
+import { EmptyState } from '@/components/EmptyState';
+import type { Category } from '@/types';
+
+type CategoryFilterValue = Category | 'all';
 
 function StatValue({ loading, failed, children }: { loading: boolean; failed: boolean; children: React.ReactNode }) {
   if (loading) return <Skeleton className="mx-auto h-9 w-28" />;
@@ -15,32 +21,26 @@ function StatValue({ loading, failed, children }: { loading: boolean; failed: bo
 }
 
 export default function HomePage() {
-  const { products, loading, error: productsError } = useProducts();
+  const { products, loading, error, refetch } = useProducts();
+  const [searchQuery, setSearchQuery]   = useState('');
+  const [category, setCategory]         = useLocalStorage<CategoryFilterValue>('ps_category_filter', 'all');
+  const debouncedQuery                  = useDebounce(searchQuery, 250);
 
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [statsError,   setStatsError]   = useState(false);
-  const [totalCoverage, setTotalCoverage] = useState<string | null>(null);
-  const [totalPayouts,  setTotalPayouts]  = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setStatsLoading(true);
-    setStatsError(false);
-    fetchProtocolStats()
-      .then((stats) => {
-        if (cancelled) return;
-        setTotalCoverage(stats.totalCoverage);
-        setTotalPayouts(stats.totalPayouts);
-      })
-      .catch(() => { if (!cancelled) setStatsError(true); })
-      .finally(() => { if (!cancelled) setStatsLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
-  const activeProductCount = useMemo(
-    () => products.filter((p) => p.status === 'Active').length,
-    [products],
-  );
+  const filteredProducts = useMemo(() => {
+    let result = products;
+    if (category !== 'all') {
+      result = result.filter((p) => p.category === category);
+    }
+    const q = debouncedQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter((p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        (p.description?.toLowerCase().includes(q) ?? false),
+      );
+    }
+    return result;
+  }, [products, category, debouncedQuery]);
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -76,18 +76,45 @@ export default function HomePage() {
 
       {/* Product marketplace */}
       <section className="mx-auto max-w-7xl px-6 py-16">
-        <div className="mb-10 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">Insurance Products</h2>
-            <p className="mt-1 text-sm text-gray-500">Live on Stellar testnet · Payouts in USDC</p>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold">Insurance Products</h2>
+          <p className="mt-1 text-sm text-gray-500">Live on Stellar testnet · Payouts in USDC</p>
+        </div>
+
+        <CategoryFilter value={category} onChange={setCategory} className="mb-4" />
+        <SearchBar
+          onSearch={setSearchQuery}
+          placeholder="Search products…"
+          className="mb-8 max-w-md"
+        />
+
+        {loading ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
           </div>
-        </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {loading
-            ? [1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)
-            : products.map((p) => <ProductCard key={p.id} product={p} />)
-          }
-        </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-sm text-red-400">
+            <p>{error}</p>
+            <button
+              onClick={refetch}
+              className="mt-3 rounded-lg border border-red-500/30 px-4 py-2 text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <EmptyState
+            icon="🔍"
+            title="No products found"
+            description={debouncedQuery
+              ? `No products match "${debouncedQuery}". Try a different search or category.`
+              : 'No products in this category yet.'}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {filteredProducts.map((p) => <ProductCard key={p.id} product={p} />)}
+          </div>
+        )}
       </section>
 
       {/* How it works */}

@@ -1,25 +1,31 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { fetchUserPolicies, fetchPolicy } from '@/lib/api';
-import type { Policy } from '@/types';
-import { POLLING_INTERVAL_MS } from '@/lib/constants';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { fetchUserPolicies, fetchPolicy } from "@/lib/api";
+import type { Policy } from "@/types";
+import { POLLING_INTERVAL_MS } from "@/lib/constants";
 
 export function usePolicies(walletAddress: string | null) {
   const [policies, setPolicies] = useState<Policy[]>([]);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const isFirstLoad = useRef(true);
 
   const load = useCallback(async () => {
-    if (!walletAddress) { setPolicies([]); return; }
-    setLoading(true);
+    if (!walletAddress) {
+      setPolicies([]);
+      isFirstLoad.current = true;
+      return;
+    }
+    if (isFirstLoad.current) setLoading(true);
     setError(null);
     try {
       const data = await fetchUserPolicies(walletAddress);
       setPolicies(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load policies');
+      setError(err instanceof Error ? err.message : "Failed to load policies");
     } finally {
+      isFirstLoad.current = false;
       setLoading(false);
     }
   }, [walletAddress]);
@@ -27,28 +33,54 @@ export function usePolicies(walletAddress: string | null) {
   useEffect(() => {
     void load();
     if (!walletAddress) return;
-    const interval = setInterval(() => { void load(); }, POLLING_INTERVAL_MS);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (!document.hidden) void load();
+    }, POLLING_INTERVAL_MS);
+    const onVisible = () => { if (!document.hidden) void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [load, walletAddress]);
 
   return { policies, loading, error, refetch: load };
 }
 
 export function usePolicy(id: string | null) {
-  const [policy,  setPolicy]  = useState<Policy | null>(null);
+  const [policy, setPolicy] = useState<Policy | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const cancelledRef = useRef(false);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    cancelledRef.current = false;
+    setLoading(true);
+    setError(null);
+    try {
+      const p = await fetchPolicy(id);
+      if (!cancelledRef.current) {
+        setPolicy(p);
+      }
+    } catch (err) {
+      if (!cancelledRef.current) {
+        setError(err instanceof Error ? err.message : "Failed to load policy");
+      }
+    } finally {
+      if (!cancelledRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
-    let cancelled = false;
-    setLoading(true);
-    fetchPolicy(id)
-      .then((p) => { if (!cancelled) setPolicy(p); })
-      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load policy'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [id]);
+    void load();
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, [load, id]);
 
-  return { policy, loading, error };
+  return { policy, loading, error, refetch: load };
 }

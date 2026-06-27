@@ -25,6 +25,10 @@ export const USDC_ISSUER =
 
 export const STROOPS_PER_UNIT = 10_000_000n;
 
+// Minimum deposit: 0.01 USDC (10,000 stroops)
+// This prevents dust deposits that may round to 0 or be rejected by the pool contract
+export const MIN_DEPOSIT_STROOPS = 10_000n;
+
 export const POLICY_CONTRACT_ID =
   process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID ?? '';
 
@@ -64,7 +68,9 @@ export const STATUS_COLOURS: Record<string, string> = {
 export const WALLET_STORAGE_KEY   = 'ps_wallet_id';
 export const ADDRESS_STORAGE_KEY  = 'ps_wallet_address';
 export const NETWORK_STORAGE_KEY  = 'ps_wallet_network';
+export const AUTH_TOKEN_STORAGE_KEY = 'ps_auth_token';
 
 export const TOAST_DEFAULT_DURATION_MS = 4000;
 export const POLLING_INTERVAL_MS       = 30_000;
 export const ORACLE_REFRESH_INTERVAL_MS = 60_000;
+export const CLAIMS_REFRESH_INTERVAL_MS = 15_000;

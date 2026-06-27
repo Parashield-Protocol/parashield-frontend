@@ -1,27 +1,36 @@
 'use client';
 
-import { useDebounce } from '@/hooks/useDebounce';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface SearchBarProps {
   onSearch:   (query: string) => void;
   placeholder?: string;
   className?:   string;
-  debounceMs?:  number;
 }
 
 export function SearchBar({
   onSearch,
   placeholder = 'Search…',
   className,
-  debounceMs = 300,
 }: SearchBarProps) {
   const [query, setQuery] = useState('');
-  const debounced         = useDebounce(query, debounceMs);
+
+  const onSearchRef = useRef(onSearch);
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  });
+
+  const isMountedRef = useRef(false);
 
   useEffect(() => {
-    onSearch(debounced);
-  }, [debounced, onSearch]);
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      if (query === '') {
+        return;
+      }
+    }
+    onSearchRef.current(query);
+  }, [query]);
 
   return (
     <div className={`relative ${className ?? ''}`}>

@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
@@ -18,14 +19,17 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-let _counter = 0;
-function nextId() { return `toast-${++_counter}`; }
-
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const dismiss = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    const timer = timers.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timers.current.delete(id);
+    }
+    setToasts((prev: Toast[]) => prev.filter((t: Toast) => t.id !== id));
   }, []);
 
   const show = useCallback((
@@ -33,10 +37,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     variant: ToastVariant = 'info',
     duration = TOAST_DEFAULT_DURATION_MS,
   ) => {
-    const id = nextId();
-    setToasts((prev) => [...prev, { id, message, variant, duration }]);
+    const id = crypto.randomUUID();
+    setToasts((prev: Toast[]) => [...prev, { id, message, variant, duration }]);
     if (duration > 0) {
-      setTimeout(() => dismiss(id), duration);
+      timers.current.set(id, setTimeout(() => dismiss(id), duration));
     }
   }, [dismiss]);
 

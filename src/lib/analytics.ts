@@ -1,3 +1,5 @@
+import posthog from 'posthog-js';
+
 type EventName =
   | 'wallet_connect'
   | 'wallet_disconnect'
@@ -8,24 +10,50 @@ type EventName =
   | 'claim_success'
   | 'claim_error'
   | 'product_view'
-  | 'oracle_refresh';
+  | 'oracle_refresh'
+  | 'app_error';
 
 interface EventProperties {
   [key: string]: string | number | boolean | undefined;
 }
 
+let posthogReady = false;
+
+export function setPostHogReady(ready: boolean): void {
+  posthogReady = ready;
+}
+
+function truncateWalletAddress(address?: string): string | undefined {
+  if (!address) return undefined;
+  return address.slice(0, 8);
+}
+
 export function track(event: EventName, properties?: EventProperties): void {
   if (typeof window === 'undefined') return;
-  if (process.env.NODE_ENV === 'development') {
-    console.debug('[analytics]', event, properties);
+  
+  const sanitizedProperties = { ...properties };
+  if (sanitizedProperties.wallet && typeof sanitizedProperties.wallet === 'string') {
+    sanitizedProperties.wallet = truncateWalletAddress(sanitizedProperties.wallet);
   }
-  // Stub: wire up PostHog / Mixpanel / custom analytics here
-  // window.analytics?.track(event, properties);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('[analytics]', event, sanitizedProperties);
+  }
+  
+  posthog.capture(event, sanitizedProperties);
 }
 
 export function page(name: string, properties?: EventProperties): void {
   if (typeof window === 'undefined') return;
+  
   if (process.env.NODE_ENV === 'development') {
     console.debug('[analytics:page]', name, properties);
+  }
+  
+  if (posthogReady) {
+    posthog.capture('$pageview', { 
+      $current_url: window.location.href,
+      ...properties 
+    });
   }
 }

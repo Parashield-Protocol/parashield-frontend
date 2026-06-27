@@ -1,13 +1,17 @@
 'use client';
 
+import { useRef } from 'react';
 import { useAllOracleReadings } from '@/hooks/useOracle';
-import { FullPageSpinner } from '@/components/LoadingSpinner';
+import { SkeletonTable } from '@/components/Skeleton';
 import { Badge } from '@/components/Badge';
 import { formatOracleValue, formatDateTime } from '@/lib/format';
 import { oracleKeyLabel, confidenceLabel, confidenceColour } from '@/lib/oracle';
 
 export default function OraclePage() {
   const { readings, loading, error, refetch } = useAllOracleReadings();
+  const lastSuccessRef = useRef<Date | null>(null);
+  if (!error && readings.length > 0) lastSuccessRef.current = new Date();
+  const isStale = error !== null && readings.length > 0;
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -26,11 +30,20 @@ export default function OraclePage() {
         </button>
       </div>
 
-      {loading && <FullPageSpinner />}
+      {loading && readings.length === 0 && (
+        <div className="mt-8">
+          <SkeletonTable rows={5} />
+        </div>
+      )}
 
       {error && (
         <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-sm text-red-400">
-          {error}
+          <p>{error}</p>
+          {isStale && lastSuccessRef.current && (
+            <p className="mt-2 text-xs text-red-300">
+              Showing data last updated {formatDateTime(lastSuccessRef.current.toISOString())} — refresh failed.
+            </p>
+          )}
         </div>
       )}
 
@@ -40,8 +53,8 @@ export default function OraclePage() {
         </div>
       )}
 
-      {!loading && readings.length > 0 && (
-        <div className="mt-8 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02]">
+      {readings.length > 0 && !isStale && (
+        <div className={`mt-8 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] transition-opacity ${loading ? 'opacity-50' : ''}`}>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-500">
@@ -54,8 +67,8 @@ export default function OraclePage() {
               </tr>
             </thead>
             <tbody>
-              {readings.map((r, i) => (
-                <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
+              {readings.map((r) => (
+                <tr key={r.key} className="border-b border-white/5 hover:bg-white/[0.02]">
                   <td className="p-4 font-mono text-xs text-gray-300 max-w-[200px] truncate">
                     {oracleKeyLabel(r.key)}
                   </td>

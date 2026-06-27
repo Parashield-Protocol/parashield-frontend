@@ -14,8 +14,8 @@ export interface Product {
   triggerType: TriggerType;
   threshold:   string;
   comparison:  Comparison;
-  coverageMin: string;
-  coverageMax: string;
+  coverageMin: string;  // stroops
+  coverageMax: string;  // stroops
   premiumRate: number;  // basis points (500 = 5.00%)
   maxDuration: number;  // days
   status:      'Active' | 'Paused' | 'Deprecated';
@@ -31,6 +31,7 @@ export interface Policy {
   oracleKey:    string;
   startTime:    number;  // unix epoch seconds
   endTime:      number;  // unix epoch seconds
+  cancelledAt?: number;  // unix epoch seconds, set when status === 'Cancelled'
   status:       PolicyStatus;
   contractTxHash?: string;
 }
@@ -67,10 +68,10 @@ export interface PoolStats {
   apy:             number;  // annualized yield as decimal
 }
 
-export interface ProtocolStats {
-  totalCoverage:  string;  // stroops — sum of active policy coverage
-  activeProducts: number;
-  totalPayouts:   string;  // stroops — cumulative paid claims
+export interface PoolShareInfo {
+  totalLiquidity: string;  // stroops
+  shareSupply:    string;  // total LP shares outstanding
+  paused?:        boolean;
 }
 
 export interface WalletState {
