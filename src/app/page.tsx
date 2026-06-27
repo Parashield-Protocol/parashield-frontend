@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useDebounce } from '@/hooks/useDebounce';
+import { fetchProtocolStats } from '@/lib/api';
+import { formatUSDC } from '@/lib/format';
 import { ProductCard } from '@/components/ProductCard';
 import { Skeleton, SkeletonCard } from '@/components/Skeleton';
 import { LogoWordmark } from '@/components/Logo';
@@ -25,6 +27,31 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery]   = useState('');
   const [category, setCategory]         = useLocalStorage<CategoryFilterValue>('ps_category_filter', 'all');
   const debouncedQuery                  = useDebounce(searchQuery, 250);
+
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError,   setStatsError]   = useState(false);
+  const [totalCoverage, setTotalCoverage] = useState<string | null>(null);
+  const [totalPayouts,  setTotalPayouts]  = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatsLoading(true);
+    setStatsError(false);
+    fetchProtocolStats()
+      .then((stats) => {
+        if (cancelled) return;
+        setTotalCoverage(stats.totalCoverage);
+        setTotalPayouts(stats.totalPayouts);
+      })
+      .catch(() => { if (!cancelled) setStatsError(true); })
+      .finally(() => { if (!cancelled) setStatsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const activeProductCount = useMemo(
+    () => products.filter((p) => p.status === 'Active').length,
+    [products],
+  );
 
   const filteredProducts = useMemo(() => {
     let result = products;
@@ -148,7 +175,7 @@ export default function HomePage() {
             <p className="mt-1 text-sm text-gray-500">Total coverage issued</p>
           </div>
           <div>
-            <StatValue loading={loading} failed={!!productsError}>
+            <StatValue loading={loading} failed={!!error}>
               {activeProductCount}
             </StatValue>
             <p className="mt-1 text-sm text-gray-500">Active products</p>
