@@ -2,6 +2,9 @@
 
 import { useEffect, type ReactNode } from 'react';
 
+let activeModals = 0;
+let originalOverflow = '';
+
 interface ModalProps {
   open:     boolean;
   onClose:  () => void;
@@ -17,6 +20,23 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (activeModals === 0) {
+      originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    activeModals++;
+
+    return () => {
+      activeModals = Math.max(0, activeModals - 1);
+      if (activeModals === 0) {
+        document.body.style.overflow = originalOverflow;
+      }
+    };
+  }, [open]);
 
   if (!open) return null;
 

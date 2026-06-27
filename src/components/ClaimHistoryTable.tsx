@@ -50,23 +50,6 @@ export function ClaimHistoryTable({ claims, className }: ClaimHistoryTableProps)
     return claims
       .map((claim, index) => ({ claim, index }))
       .sort((left, right) => {
-        if (sort.column === 'payoutAmount') {
-          const leftValue = left.claim.payoutAmount ? BigInt(left.claim.payoutAmount) : null;
-          const rightValue = right.claim.payoutAmount ? BigInt(right.claim.payoutAmount) : null;
-
-          if (leftValue === null && rightValue === null) {
-            return left.index - right.index;
-          }
-
-          if (leftValue === null) return 1;
-          if (rightValue === null) return -1;
-
-          if (leftValue !== rightValue) {
-            const payoutDirection = sort.direction === 'asc' ? 1 : -1;
-            return (leftValue < rightValue ? -1 : 1) * payoutDirection;
-          }
-        }
-
         const primary = compareValues(left.claim, right.claim);
         if (primary !== 0) {
           return primary * direction;

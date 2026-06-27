@@ -8,7 +8,7 @@ import { buildDepositTx, submitSignedTransaction } from '@/lib/contract';
 import { signTransaction } from '@/lib/stellar';
 import { displayToStroops, formatUSDC, stroopsToDisplay } from '@/lib/format';
 import { ContractError, toUserMessage } from '@/lib/errors';
-import { CATEGORY_LABELS } from '@/lib/constants';
+import { CATEGORY_LABELS, MIN_DEPOSIT_STROOPS } from '@/lib/constants';
 import { Modal } from './Modal';
 import { useToast } from '@/context/ToastContext';
 
@@ -75,6 +75,10 @@ export function DepositModal({ pool, onClose }: Props) {
     if (!address) return;
     if (paused) { setError('This pool is currently paused. Deposits are not accepted.'); return; }
     if (amountNum <= 0) { setError('Enter a valid USDC amount.'); return; }
+    if (depositStroops < MIN_DEPOSIT_STROOPS) { 
+      setError(`Minimum deposit is ${stroopsToDisplay(MIN_DEPOSIT_STROOPS, 2)} USDC`);
+      return;
+    }
 
     setBusy(true);
     setError('');
