@@ -3,7 +3,7 @@
 import { useOracleReading } from '@/hooks/useOracle';
 import { LoadingSpinner } from './LoadingSpinner';
 import { formatOracleValue, formatDateTime } from '@/lib/format';
-import { oracleKeyLabel, confidenceLabel, confidenceColour } from '@/lib/oracle';
+import { oracleKeyLabel, confidenceLabel, confidenceColour, parseOracleKey } from '@/lib/oracle';
 
 interface OracleDataWidgetProps {
   oracleKey: string;
@@ -59,7 +59,7 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
       <p className="mt-1 text-xs text-gray-400 truncate">{oracleKeyLabel(oracleKey)}</p>
 
       <p className="mt-3 text-2xl font-black text-white">
-        {formatOracleValue(reading.value, reading.dataType)}
+        {formatOracleValue(reading.value, parseOracleKey(oracleKey).dataType)}
       </p>
 
       <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500">

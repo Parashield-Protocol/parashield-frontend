@@ -65,7 +65,15 @@ export function DepositModal({ pool, onClose }: Props) {
   }, [pool.poolId]);
 
   const amountNum     = parseFloat(amount) || 0;
-  const depositStroops = amount ? displayToStroops(amount) : 0n;
+  let   depositStroops = 0n;
+  try {
+    depositStroops = amount ? displayToStroops(amount) : 0n;
+  } catch {
+    // Negative or otherwise invalid input — keep depositStroops at 0n so
+    // the render doesn't throw. handleDeposit surfaces the user-facing
+    // validation error below via amountNum <= 0.
+    depositStroops = 0n;
+  }
   const sharesAvailable = shareSupply !== null && totalLiquidity !== null;
   const estimatedShares = sharesAvailable
     ? estimateShares(depositStroops, totalLiquidity, shareSupply)
