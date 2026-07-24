@@ -39,6 +39,7 @@ export function NavBar() {
             <Link
               key={href}
               href={href}
+              aria-current={isActive(pathname, href) ? 'page' : undefined}
               className={`transition-colors hover:text-white ${
                 isActive(pathname, href)
                   ? 'text-white border-b-2 border-teal-400 pb-0.5'
@@ -72,6 +73,7 @@ export function NavBar() {
                 key={href}
                 href={href}
                 onClick={() => setMobileMenuOpen(false)}
+                aria-current={isActive(pathname, href) ? 'page' : undefined}
                 className={`block py-2 text-sm transition-colors hover:text-white ${
                   isActive(pathname, href)
                     ? 'text-white border-b-2 border-teal-400 pb-0.5'
