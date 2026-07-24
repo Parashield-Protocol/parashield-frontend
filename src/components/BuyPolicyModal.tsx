@@ -134,7 +134,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
       } catch (syncErr) {
         showToast(
           `Policy purchased on-chain (${txHash.slice(0, 8)}…) but could not be recorded: ${toUserMessage(syncErr)}`,
-          'error',
+          'warning',
         );
       }
 
