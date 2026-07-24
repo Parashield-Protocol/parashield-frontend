@@ -73,7 +73,10 @@ export async function buildBuyPolicyTx(
         nativeToScVal(walletAddress,    { type: 'address' }),
         nativeToScVal(productId,        { type: 'string'  }),
         nativeToScVal(coverageStroops,  { type: 'i128'    }),
-        nativeToScVal(oracleKey,        { type: 'symbol'  }),
+        // Oracle keys contain ':', ',' and '-' (see src/lib/oracle.ts), none of
+        // which are legal in a Soroban ScSymbol ([A-Za-z0-9_] only). Encoding as
+        // a symbol made every keyed product fail at simulation (issue #194).
+        nativeToScVal(oracleKey,        { type: 'string'  }),
         nativeToScVal(durationDays * 86400, { type: 'u64' }),
       ),
     )
@@ -105,6 +108,12 @@ async function waitForConfirmation(hash: string): Promise<string> {
   throw new ContractError(`Transaction not confirmed after ${TX_POLL_MAX_ATTEMPTS * TX_POLL_INTERVAL_MS / 1000}s — hash: ${hash}`);
 }
 
+export interface BuyPolicyResult {
+  txHash:    string;
+  /** The signed envelope, so callers can hand it to the backend (issue #195). */
+  signedXdr: string;
+}
+
 // invokeBuyPolicy reuses buildBuyPolicyTx so the buy_policy argument list
 // lives in exactly one place — any future contract signature change only
 // needs to be updated in buildBuyPolicyTx (issue #128).
@@ -114,7 +123,7 @@ export async function invokeBuyPolicy(
   coverageStroops: bigint,
   oracleKey: string,
   durationDays: number,
-): Promise<string> {
+): Promise<BuyPolicyResult> {
   const assembledXdr = await buildBuyPolicyTx(walletAddress, productId, coverageStroops, oracleKey, durationDays);
   const signedXdr    = await signTransaction(assembledXdr);
   const signedTx     = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
@@ -123,7 +132,8 @@ export async function invokeBuyPolicy(
   if (submitResult.status === 'ERROR') {
     throw new ContractError(`Transaction rejected: ${JSON.stringify(submitResult.errorResult)}`);
   }
-  return waitForConfirmation(submitResult.hash);
+  const txHash = await waitForConfirmation(submitResult.hash);
+  return { txHash, signedXdr };
 }
 
 export async function invokeSubmitClaim(
