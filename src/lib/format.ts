@@ -7,10 +7,12 @@ export function stroopsToDisplay(stroops: string | bigint | null | undefined, de
     if (trimmed === '' || !/^-?\d+$/.test(trimmed)) return '—';
   }
   const n = BigInt(stroops as string | bigint);
-  const whole = n / STROOPS_PER_UNIT;
-  const frac  = n % STROOPS_PER_UNIT;
+  const negative = n < 0n;
+  const abs = negative ? -n : n;
+  const whole = abs / STROOPS_PER_UNIT;
+  const frac  = abs % STROOPS_PER_UNIT;
   const fracStr = frac.toString().padStart(7, '0').slice(0, decimals);
-  return `${whole.toLocaleString()}.${fracStr}`;
+  return `${negative ? '-' : ''}${whole.toLocaleString()}.${fracStr}`;
 }
 
 export function displayToStroops(display: string): bigint {
