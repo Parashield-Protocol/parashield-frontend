@@ -11,25 +11,34 @@ export function usePolicies(walletAddress: string | null) {
   const [error, setError] = useState<string | null>(null);
   const isFirstLoad = useRef(true);
 
-  // Reset immediately when wallet disconnects
-  useEffect(() => {
-    if (!walletAddress) {
-      setPolicies([]);
-      isFirstLoad.current = true;
-      return;
+  const load = useCallback(async (signal: AbortSignal) => {
+    if (!walletAddress) return;
+    const isFirst = isFirstLoad.current;
+    if (isFirst) {
+      setLoading(true);
+      isFirstLoad.current = false;
     }
-    if (isFirstLoad.current) setLoading(true);
     setError(null);
     try {
       const data = await fetchUserPolicies(walletAddress);
-      if (signal?.aborted) return;
+      if (signal.aborted) return;
       setPolicies(data);
     } catch (err) {
-      if (signal?.aborted) return;
+      if (signal.aborted) return;
       setError(err instanceof Error ? err.message : "Failed to load policies");
     } finally {
-      isFirstLoad.current = false;
-      setLoading(false);
+      if (isFirst && !signal.aborted) {
+        setLoading(false);
+      }
+    }
+  }, [walletAddress]);
+
+  useEffect(() => {
+    if (!walletAddress) {
+      setPolicies([]);
+      setError(null);
+      isFirstLoad.current = true;
+      return;
     }
   }, [walletAddress]);
 
@@ -49,7 +58,10 @@ export function usePolicies(walletAddress: string | null) {
     };
   }, [load, walletAddress]);
 
-  const refetch = useCallback(() => load(), [load]);
+  const refetch = useCallback(() => {
+    const controller = new AbortController();
+    return load(controller.signal);
+  }, [load]);
 
   return { policies, loading, error, refetch };
 }
@@ -58,36 +70,32 @@ export function usePolicy(id: string | null) {
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const cancelledRef = useRef(false);
-
-  const load = useCallback(async () => {
-    if (!id) return;
-    cancelledRef.current = false;
-    setLoading(true);
-    setError(null);
-    try {
-      const p = await fetchPolicy(id);
-      if (!cancelledRef.current) {
-        setPolicy(p);
-      }
-    } catch (err) {
-      if (!cancelledRef.current) {
-        setError(err instanceof Error ? err.message : "Failed to load policy");
-      }
-    } finally {
-      if (!cancelledRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [id]);
 
   useEffect(() => {
     if (!id) return;
-    void load();
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetchPolicy(id)
+      .then((p) => {
+        if (!cancelled) {
+          setPolicy(p);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load policy");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
     return () => {
-      cancelledRef.current = true;
+      cancelled = true;
     };
-  }, [load, id]);
+  }, [id]);
 
-  return { policy, loading, error, refetch: load };
+  return { policy, loading, error };
 }
