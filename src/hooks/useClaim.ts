@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { fetchClaim } from '@/lib/api';
-import { useState, useCallback, useEffect } from 'react';
 import { fetchClaim, fetchUserClaims } from '@/lib/api';
 import type { Claim } from '@/types';
 import { toUserMessage } from '@/lib/errors';
@@ -26,21 +24,6 @@ export function useClaim(policyId?: string) {
     };
   }, []);
 
-  const submit = useCallback(async (claimant: string, policyId: string) => {
-    cancelledRef.current = false;
-    setStep('submitting');
-    setError(null);
-    try {
-      const txHash = await invokeSubmitClaim(claimant, policyId);
-      if (cancelledRef.current) return { error: null };
-      setClaimId(txHash);
-      setStep('polling');
-
-      for (let i = 0; i < 20; i++) {
-        await new Promise((r) => setTimeout(r, 3000));
-        if (cancelledRef.current) return { error: null };
-        const result = await fetchClaim(txHash);
-        if (cancelledRef.current) return { error: null };
   // Fetch existing claim for this policy on load
   useEffect(() => {
     const walletAddress = address;
@@ -112,8 +95,6 @@ export function useClaim(policyId?: string) {
       } else {
         timer = setTimeout(poll, 3000);
       }
-      if (cancelledRef.current) return { error: null };
-      setStep('timeout');
     }
 
     timer = setTimeout(poll, 3000);
