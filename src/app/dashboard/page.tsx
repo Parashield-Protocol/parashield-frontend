@@ -6,7 +6,7 @@ import { ConnectWalletPrompt } from "@/components/ConnectWalletPrompt";
 import { PolicyCard } from "@/components/PolicyCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
-import { formatUSDC } from "@/lib/format";
+import { formatUSDC, safeBigInt } from "@/lib/format";
 import { StatsCard } from "@/components/StatsCard";
 import { WalletAddressDisplay } from "@/components/WalletAddressDisplay";
 import Link from "next/link";
@@ -24,8 +24,8 @@ export default function DashboardPage() {
   }
 
   const active = policies.filter((p) => p.status === "Active");
-  const totalCov = active.reduce((sum, p) => sum + BigInt(p.coverage), 0n);
-  const totalPaid = active.reduce((sum, p) => sum + BigInt(p.premiumPaid), 0n);
+  const totalCov = active.reduce((sum, p) => sum + safeBigInt(p.coverage), 0n);
+  const totalPaid = active.reduce((sum, p) => sum + safeBigInt(p.premiumPaid), 0n);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -73,6 +73,8 @@ export default function DashboardPage() {
               <SkeletonCard key={i} />
             ))}
           </div>
+        ) : error ? (
+          <p className="text-sm text-gray-400">Unable to load policies — {error}</p>
         ) : active.length === 0 ? (
           <EmptyState
             icon="🛡️"

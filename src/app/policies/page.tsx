@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useWallet } from '@/hooks/useWallet';
@@ -10,9 +10,9 @@ import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/Badge';
 import Link from 'next/link';
 
-type Filter = 'All' | 'Active' | 'Expired' | 'Claimed';
+type Filter = 'All' | 'Active' | 'Expired' | 'Claimed' | 'Cancelled';
 
-const FILTERS: Filter[] = ['All', 'Active', 'Expired', 'Claimed'];
+const FILTERS: Filter[] = ['All', 'Active', 'Expired', 'Claimed', 'Cancelled'];
 
 export default function PoliciesPage() {
   const { address, connected } = useWallet();
@@ -33,10 +33,11 @@ export default function PoliciesPage() {
   }, {});
 
   const filterCounts: Record<Filter, number> = {
-    All:     policies.length,
-    Active:  statusCounts['Active']  ?? 0,
-    Expired: statusCounts['Expired'] ?? 0,
-    Claimed: statusCounts['Claimed'] ?? 0,
+    All:       policies.length,
+    Active:    statusCounts['Active']    ?? 0,
+    Expired:   statusCounts['Expired']   ?? 0,
+    Claimed:   statusCounts['Claimed']   ?? 0,
+    Cancelled: statusCounts['Cancelled'] ?? 0,
   };
 
   const filteredPolicies = filter === 'All'
@@ -78,7 +79,7 @@ export default function PoliciesPage() {
                   isActive
                     ? 'bg-teal-500 text-white'
                     : count === 0
-                      ? 'border border-white/5 text-gray-600 cursor-default opacity-50'
+                      ? 'border border-white/5 text-gray-400 cursor-default opacity-50'
                       : 'border border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
                 }`}
               >

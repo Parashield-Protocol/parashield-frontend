@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Badge } from './Badge';
 import { EmptyState } from './EmptyState';
 import { TransactionLink } from './TransactionLink';
@@ -13,7 +13,7 @@ interface ClaimHistoryTableProps {
   className?: string;
 }
 
-export function ClaimHistoryTable({ claims, className }: ClaimHistoryTableProps) {
+function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProps) {
   type SortColumn = 'submittedAt' | 'status' | 'payoutAmount' | 'triggerMet';
   type SortDirection = 'asc' | 'desc';
 
@@ -95,7 +95,7 @@ export function ClaimHistoryTable({ claims, className }: ClaimHistoryTableProps)
     <div className={`overflow-x-auto ${className ?? ''}`}>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-500">
+          <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
             <th className="pb-3 pr-4">Claim ID</th>
             <th className="pb-3 pr-4">Policy</th>
             <th className="pb-3 pr-4">
@@ -163,7 +163,7 @@ export function ClaimHistoryTable({ claims, className }: ClaimHistoryTableProps)
                 </Link>
               </td>
               <td className="py-4 pr-4">
-                <span className={`text-xs font-semibold ${claim.triggerMet ? 'text-emerald-400' : 'text-gray-500'}`}>
+                <span className={`text-xs font-semibold ${claim.triggerMet ? 'text-emerald-400' : 'text-gray-400'}`}>
                   {claim.triggerMet ? '✓ Met' : '✕ Not met'}
                 </span>
               </td>
@@ -177,7 +177,7 @@ export function ClaimHistoryTable({ claims, className }: ClaimHistoryTableProps)
                 {claim.txHash && claim.status === 'Paid' ? (
                   <TransactionLink txHash={claim.txHash} />
                 ) : (
-                  <span className="text-xs text-gray-500">—</span>
+                  <span className="text-xs text-gray-400">—</span>
                 )}
               </td>
               <td className="py-4">
@@ -190,3 +190,5 @@ export function ClaimHistoryTable({ claims, className }: ClaimHistoryTableProps)
     </div>
   );
 }
+
+export const ClaimHistoryTable = memo(ClaimHistoryTableComponent);

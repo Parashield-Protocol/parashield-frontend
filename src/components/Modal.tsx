@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
@@ -95,7 +95,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
             <h2 id={titleId} className="text-lg font-bold text-white">{title}</h2>
             <button
               onClick={onClose}
-              className="text-gray-500 transition-colors hover:text-white"
+              className="text-gray-400 transition-colors hover:text-white"
               aria-label="Close modal"
             >
               ✕
@@ -105,7 +105,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
         {!title && (
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 text-gray-500 transition-colors hover:text-white"
+            className="absolute right-4 top-4 text-gray-400 transition-colors hover:text-white"
             aria-label="Close modal"
           >
             ✕

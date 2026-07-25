@@ -1,5 +1,13 @@
 import { STROOPS_PER_UNIT } from './constants';
 
+export function safeBigInt(value: string | bigint | null | undefined): bigint {
+  if (value === null || value === undefined) return 0n;
+  if (typeof value === 'bigint') return value;
+  const trimmed = value.trim();
+  if (trimmed === '' || !/^-?\d+$/.test(trimmed)) return 0n;
+  return BigInt(trimmed);
+}
+
 export function stroopsToDisplay(stroops: string | bigint | null | undefined, decimals = 2): string {
   if (stroops === null || stroops === undefined) return '—';
   if (typeof stroops === 'string') {
@@ -10,7 +18,7 @@ export function stroopsToDisplay(stroops: string | bigint | null | undefined, de
   const negative = n < 0n;
   const abs = negative ? -n : n;
   const whole = abs / STROOPS_PER_UNIT;
-  const frac  = abs % STROOPS_PER_UNIT;
+  const frac = abs % STROOPS_PER_UNIT;
   const fracStr = frac.toString().padStart(7, '0').slice(0, decimals);
   return `${negative ? '-' : ''}${whole.toLocaleString()}.${fracStr}`;
 }
@@ -35,80 +43,96 @@ export function formatUSDC(stroops: string | bigint, showSymbol = true): string 
 
 export function shortenAddress(address: string, chars = 4): string {
   if (!address || address.length < chars * 2 + 3) return address;
-  return `${address.slice(0, chars + 1)}…${address.slice(-chars)}`;
+  return `${address.slice(0, chars)}…${address.slice(-chars)}`;
 }
 
 export function formatDate(epochSeconds: number): string {
   return new Date(epochSeconds * 1000).toLocaleDateString('en-GB', {
-    day:   '2-digit',
+    day: '2-digit',
     month: 'short',
-    year:  'numeric',
+    year: 'numeric',
   });
 }
 
 export function formatDateTime(epochSeconds: number): string {
   return new Date(epochSeconds * 1000).toLocaleString('en-GB', {
-    day:    '2-digit',
-    month:  'short',
-    year:   'numeric',
-    hour:   '2-digit',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-export function formatDuration(days: number): string {
-  if (days === 1) return '1 day';
-  if (days < 30) return `${days} days`;
-  if (days < 365) return `${Math.round(days / 30)} mo`;
-  return `${(days / 365).toFixed(1)} yr`;
 }
 
 export function basisPointsToPercent(bps: number, decimals = 2): string {
   return `${(bps / 100).toFixed(decimals)}%`;
 }
 
+// Formats a fixed-point (1e7) BigInt as a decimal string entirely in
+// BigInt/string space — converting through Number loses precision once
+// `whole` exceeds Number.MAX_SAFE_INTEGER (issue #201).
+function fixedPointToFixed(raw: bigint, decimals: number): string {
+  const negative = raw < 0n;
+  const abs = negative ? -raw : raw;
+  const whole = abs / 10_000_000n;
+  const frac = abs % 10_000_000n;
+  const fracStr = frac.toString().padStart(7, '0').slice(0, decimals);
+  return `${negative ? '-' : ''}${whole}.${fracStr}`;
+}
+
 export function formatOracleValue(value: string, dataType: string): string {
   const raw = BigInt(value);
-  const whole = raw / 10_000_000n;
-  const frac = raw % 10_000_000n;
-  const n = Number(whole) + Number(frac) / 1e7;
   switch (dataType) {
     case 'weather':
     case 'rainfall':
-      return `${n.toFixed(2)} mm`;
+      return `${fixedPointToFixed(raw, 2)} mm`;
     case 'temperature':
-      return `${n.toFixed(2)} °C`;
-    case 'flight':
+      return `${fixedPointToFixed(raw, 2)} °C`;
+    case 'flight': {
+      const n = Number(raw) / 1e7;
       return `${Math.round(n)} min delay`;
-    case 'defi':
+    }
+    case 'defi': {
+      const n = Number(raw) / 1e7;
       if (n === 1) return 'Exploit detected';
       if (n === 0) return 'No exploit';
       return `Unknown (${n.toFixed(0)})`;
+    }
     case 'unknown':
-      return n.toFixed(4);
+      return fixedPointToFixed(raw, 4);
     default:
-      return n.toFixed(4);
+      return fixedPointToFixed(raw, 4);
   }
 }
 
 export function timeLeft(endEpochSeconds: number): string {
   const diff = endEpochSeconds - Math.floor(Date.now() / 1000);
   if (diff > 0) {
-    if (diff < 3600)  return `${Math.floor(diff / 60)}m left`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m left`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h left`;
     return `${Math.floor(diff / 86400)}d left`;
   }
   const elapsed = -diff;
-  if (elapsed < 3600)   return `Expired ${Math.floor(elapsed / 60)}m ago`;
-  if (elapsed < 86400)  return `Expired ${Math.floor(elapsed / 3600)}h ago`;
+  if (elapsed < 3600) return `Expired ${Math.floor(elapsed / 60)}m ago`;
+  if (elapsed < 86400) return `Expired ${Math.floor(elapsed / 3600)}h ago`;
   if (elapsed < 2592000) return `Expired ${Math.floor(elapsed / 86400)}d ago`;
   return `Expired ${formatDate(endEpochSeconds)}`;
 }
 
+export function getUtilizationColorName(rate: number): 'teal' | 'amber' | 'red' {
+  if (rate < 0.5) return 'teal';
+  if (rate < 0.8) return 'amber';
+  return 'red';
+}
+
 export function utilizationColor(rate: number): string {
-  if (rate < 0.5) return 'text-emerald-400';
-  if (rate < 0.8) return 'text-amber-400';
-  return 'text-red-400';
+  const colorName = getUtilizationColorName(rate);
+  const colorMap: Record<'teal' | 'amber' | 'red', string> = {
+    teal: 'text-emerald-400',
+    amber: 'text-amber-400',
+    red: 'text-red-400',
+  };
+  return colorMap[colorName];
 }
 
 export function estimatePremium(coverageDisplay: string, premiumRateBps: number): string {

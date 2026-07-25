@@ -15,7 +15,7 @@ describe('constants', () => {
   });
 
   it('CATEGORY_ICONS covers expected categories', () => {
-    for (const cat of ['crop', 'flight', 'disaster', 'health', 'defi']) {
+    for (const cat of ['crop', 'flight', 'disaster', 'health', 'defi'] as Array<keyof typeof CATEGORY_ICONS>) {
       expect(CATEGORY_ICONS[cat]).toBeTruthy();
     }
   });

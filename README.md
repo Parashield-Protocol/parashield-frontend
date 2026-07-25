@@ -10,7 +10,7 @@ Next.js 15 marketplace for Parashield. Browse insurance products, buy policies w
 |---|---|---|
 | `/` | `app/page.tsx` | Product grid + hero. Server component — fetches products at request time. Falls back to seed data if API is offline. |
 | `/policies` | `app/policies/page.tsx` | User policy portfolio. Client component — requires wallet connection. |
-| `/pools` | — | Risk pool LP view — v2, not yet built. |
+| `/pools` | `app/pools/page.tsx` | Risk pool LP view with live pool stats, deposit flow, and wallet-gated actions. |
 
 ---
 
@@ -18,7 +18,9 @@ Next.js 15 marketplace for Parashield. Browse insurance products, buy policies w
 
 **`ProductCard`** — displays one insurance product. Shows trigger condition, premium rate, and coverage range. "Buy Policy" opens `BuyPolicyModal`.
 
-**`BuyPolicyModal`** — full purchase flow: coverage input, duration, oracle key, estimated premium calculation, wallet signing. Soroban tx integration is stubbed — the signing step simulates 2 seconds then shows success. Replace the stub with a real `policy-engine.buy_policy()` invocation.
+**`BuyPolicyModal`** — full purchase flow: coverage input, duration, oracle key, estimated premium calculation, wallet signing, and on-chain policy purchase via `invokeBuyPolicy()` with a backend sync step for policy visibility.
+
+**`DepositModal`** — wallet-gated pool deposit flow with share estimation, contract signing, and on-chain submission for risk-pool liquidity.
 
 **`ClaimStatus`** — rendered inside each active policy card. "Submit Claim" button calls `POST /claims`, then polls `GET /claims/:id` every 3 seconds until the result is `Paid`, `Rejected`, or `Expired`.
 
@@ -65,19 +67,12 @@ The kit is imported dynamically (`await import(...)`) to avoid SSR errors in the
 
 ---
 
-## What needs to be wired
+## Current implementation status
 
-`BuyPolicyModal` has the full UX but the transaction signing step is a 2-second fake. To go live, replace the `// TODO` block with:
+The purchase and pools flows are already wired end to end:
 
-```ts
-import { TransactionBuilder, Networks, BASE_FEE, rpc } from '@stellar/stellar-sdk';
-
-// Build InvokeHostFunction for policy-engine.buy_policy(...)
-// Sign with the connected wallet via stellar-wallets-kit
-// Submit via rpc.sendTransaction(...)
-```
-
-The contracts and API are fully functional — this is the only missing piece.
+- `BuyPolicyModal` uses `invokeBuyPolicy()` to build and submit a real Soroban transaction, then syncs the purchase record to the backend.
+- The pools experience is implemented in `app/pools/page.tsx` and `DepositModal`, including live pool stats, deposit estimates, and on-chain deposits.
 
 ---
 

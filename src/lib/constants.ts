@@ -1,14 +1,19 @@
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
-export const STELLAR_NETWORK =
-  (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'TESTNET') as 'TESTNET' | 'PUBLIC';
+const _rawNetwork = (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'TESTNET')
+  .trim()
+  .toUpperCase() as 'TESTNET' | 'PUBLIC' | 'MAINNET';
 
-export const HORIZON_URL =
-  process.env.NEXT_PUBLIC_HORIZON_URL ??
-  (STELLAR_NETWORK === 'PUBLIC'
-    ? 'https://horizon.stellar.org'
-    : 'https://horizon-testnet.stellar.org');
+if (_rawNetwork !== 'TESTNET' && _rawNetwork !== 'PUBLIC') {
+  console.warn(
+    `[parashield] Unrecognised NEXT_PUBLIC_STELLAR_NETWORK "${process.env.NEXT_PUBLIC_STELLAR_NETWORK}". ` +
+    'Expected "TESTNET" or "PUBLIC". Falling back to TESTNET.',
+  );
+}
+
+export const STELLAR_NETWORK: 'TESTNET' | 'PUBLIC' =
+  _rawNetwork === 'PUBLIC' || _rawNetwork === 'MAINNET' ? 'PUBLIC' : 'TESTNET';
 
 export const SOROBAN_RPC_URL =
   process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ??
@@ -16,29 +21,53 @@ export const SOROBAN_RPC_URL =
     ? 'https://soroban.stellar.org'
     : 'https://soroban-testnet.stellar.org');
 
-export const USDC_ASSET_CODE   = 'USDC';
-export const USDC_ISSUER_TESTNET = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
-export const USDC_ISSUER =
-  STELLAR_NETWORK === 'PUBLIC'
-    ? 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN'
-    : USDC_ISSUER_TESTNET;
-
 export const STROOPS_PER_UNIT = 10_000_000n;
 
-// Minimum deposit: 0.01 USDC (10,000 stroops)
-// This prevents dust deposits that may round to 0 or be rejected by the pool contract
-export const MIN_DEPOSIT_STROOPS = 10_000n;
+// Minimum deposit: 0.01 USDC (100,000 stroops)
+// At STROOPS_PER_UNIT = 10_000_000n, 100_000n stroops = 0.01 USDC.
+// This prevents dust deposits that may round to 0 or be rejected by the pool contract.
+export const MIN_DEPOSIT_STROOPS = 100_000n;
+
+const _CONTRACT_RE = /^C[A-Z2-7]{55}$/;
+
+function validateContractId(envKey: string, label: string): string {
+  const raw = process.env[envKey] ?? '';
+  const id = raw.trim();
+  if (!id) {
+    throw new Error(
+      `[parashield] ${label} (${envKey}) is not set. ` +
+      `Add ${envKey}=<contract_id> to your .env file and restart the app.`,
+    );
+  }
+  if (!_CONTRACT_RE.test(id)) {
+    throw new Error(
+      `[parashield] ${label} (${envKey}) is invalid: "${id}". ` +
+      'Expected a Stellar contract ID (starts with C, 56 alphanumeric characters).',
+    );
+  }
+  return id;
+}
 
 export const POLICY_CONTRACT_ID =
   process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID ?? '';
 
-export const ORACLE_CONTRACT_ID =
-  process.env.NEXT_PUBLIC_ORACLE_CONTRACT_ID ?? '';
-
 export const CLAIMS_CONTRACT_ID =
   process.env.NEXT_PUBLIC_CLAIMS_CONTRACT_ID ?? '';
 
-export const CATEGORY_LABELS: Record<string, string> = {
+/**
+ * Validate that all required contract IDs are present and well-formed.
+ * Call once at app startup (e.g. from layout.tsx) so misconfiguration
+ * fails fast with a clear message instead of deep in a purchase/claim flow.
+ */
+export function validateConfig(): void {
+  validateContractId('NEXT_PUBLIC_POLICY_CONTRACT_ID', 'Policy Contract ID');
+  validateContractId('NEXT_PUBLIC_ORACLE_CONTRACT_ID', 'Oracle Contract ID');
+  validateContractId('NEXT_PUBLIC_CLAIMS_CONTRACT_ID', 'Claims Contract ID');
+}
+
+import type { Category, PolicyStatus, ClaimStatus } from '@/types';
+
+export const CATEGORY_LABELS: Record<Category, string> = {
   crop:     'Crop Insurance',
   flight:   'Flight Delay',
   disaster: 'Natural Disaster',
@@ -46,7 +75,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   defi:     'DeFi Cover',
 };
 
-export const CATEGORY_ICONS: Record<string, string> = {
+export const CATEGORY_ICONS: Record<Category, string> = {
   crop:     '🌾',
   flight:   '✈️',
   disaster: '🌪️',
@@ -54,7 +83,7 @@ export const CATEGORY_ICONS: Record<string, string> = {
   defi:     '🔐',
 };
 
-export const STATUS_COLOURS: Record<string, string> = {
+export const STATUS_COLOURS: Record<PolicyStatus | ClaimStatus, string> = {
   Active:     'emerald',
   Expired:    'gray',
   Claimed:    'sky',
