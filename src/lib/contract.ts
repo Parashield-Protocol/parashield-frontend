@@ -100,9 +100,9 @@ async function waitForConfirmation(hash: string): Promise<string> {
   for (let attempt = 0; attempt < TX_POLL_MAX_ATTEMPTS; attempt++) {
     await new Promise((r) => setTimeout(r, TX_POLL_INTERVAL_MS));
     const status = await rpc.getTransaction(hash);
-    if (status.status === 'SUCCESS') return hash;
-    if (status.status === 'FAILED') {
-      throw new ContractError('Transaction failed on-chain.', hash, (status as any).resultXdr ?? status);
+    if (status.status === StellarRpc.Api.GetTransactionStatus.SUCCESS) return hash;
+    if (status.status === StellarRpc.Api.GetTransactionStatus.FAILED) {
+      throw new ContractError('Transaction failed on-chain.', hash, status.resultXdr ?? status);
     }
   }
   throw new ContractError(`Transaction not confirmed after ${TX_POLL_MAX_ATTEMPTS * TX_POLL_INTERVAL_MS / 1000}s — hash: ${hash}`);

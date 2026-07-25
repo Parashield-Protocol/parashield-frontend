@@ -103,8 +103,11 @@ export async function signTransaction(xdrEnvelope: string): Promise<string> {
  * signing a minimal Stellar transaction envelope so older wallet extensions
  * that only implement `signTransaction` are still supported.
  *
- * Returns a hex-encoded signature string suitable for sending to the backend
- * as `signedChallenge`.
+ * Returns the signature string exactly as provided by the wallet kit (no
+ * encoding transformation is applied), for sending to the backend as
+ * `signedChallenge`. SEP-43 `signMessage` implementations typically return
+ * this base64-encoded rather than hex-encoded — callers/backends must not
+ * assume hex.
  */
 export async function signAuthMessage(message: string): Promise<string> {
   const address = getStoredAddress();

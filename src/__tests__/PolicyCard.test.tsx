@@ -98,7 +98,7 @@ describe('PolicyCard', () => {
 
   it('displays product name when available', () => {
     const html = renderToStaticMarkup(
-      <PolicyCard policy={makePolicy({ product: { name: 'Crop Insurance' } as any })} />
+      <PolicyCard policy={makePolicy({ product: { name: 'Crop Insurance' } as unknown as Policy['product'] })} />
     );
     expect(html).toContain('Crop Insurance');
   });

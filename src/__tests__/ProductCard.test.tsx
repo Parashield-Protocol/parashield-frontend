@@ -97,7 +97,7 @@ describe('ProductCard', () => {
 
   it('renders fallback icon for unrecognized category', () => {
     const html = renderToStaticMarkup(
-      <ProductCard product={makeProduct({ category: 'unknown' as any })} />
+      <ProductCard product={makeProduct({ category: 'unknown' as unknown as Product['category'] })} />
     );
     expect(html).toContain('🛡️');
   });

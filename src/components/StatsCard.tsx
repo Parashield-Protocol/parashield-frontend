@@ -1,4 +1,4 @@
-﻿interface StatsCardProps {
+﻿export interface StatsCardProps {
   label:      string;
   value:      string;
   sublabel?:  string;

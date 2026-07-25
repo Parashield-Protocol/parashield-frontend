@@ -6,14 +6,12 @@ import { page, setPostHogReady } from '@/lib/analytics';
 vi.mock('posthog-js', () => {
   return {
     capture: vi.fn(),
-  } as any;
+  };
 });
-
-declare const window: any;
 
 beforeEach(() => {
   // Reset mocks and global state
-  (posthog.capture as any).mockReset();
+  vi.mocked(posthog.capture).mockReset();
   // Ensure analytics is not ready before each test
   setPostHogReady(false);
 });

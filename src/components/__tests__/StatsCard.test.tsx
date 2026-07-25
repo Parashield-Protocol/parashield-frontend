@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { StatsCard } from '../StatsCard';
+import { StatsCard, type StatsCardProps } from '../StatsCard';
 
 describe('StatsCard', () => {
   it('renders label, value and sublabel', () => {
@@ -11,7 +11,7 @@ describe('StatsCard', () => {
     expect(screen.getByText('Today')).toBeInTheDocument();
   });
 
-  it.each([
+  it.each<[NonNullable<StatsCardProps['trend']>, string, string]>([
     ['up', '↑', 'text-emerald-400'],
     ['down', '↓', 'text-red-400'],
     ['neutral', '→', 'text-gray-400'],
@@ -20,7 +20,7 @@ describe('StatsCard', () => {
       <StatsCard
         label="Users"
         value="42"
-        trend={trend as any}
+        trend={trend}
         trendValue="+5%"
       />,
     );
