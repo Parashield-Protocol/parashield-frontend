@@ -38,6 +38,8 @@ export const metadata: Metadata = {
   },
 };
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 const NavBarFallback = (
   <nav className="sticky top-0 z-40 border-b border-white/10 bg-gray-950/90 backdrop-blur-md">
     <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
@@ -50,7 +52,7 @@ const NavBarFallback = (
 
 const FooterFallback = (
   <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-600">
-    © 2026 Parashield · Built on Stellar · Powered by Soroban
+    © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
   </footer>
 );
 
@@ -70,7 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </ErrorBoundary>
             <ErrorBoundary fallback={FooterFallback}>
               <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-600">
-                © 2026 Parashield · Built on Stellar · Powered by Soroban
+                © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
               </footer>
             </ErrorBoundary>
             <ErrorBoundary fallback={null}>

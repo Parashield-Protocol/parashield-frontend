@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Badge } from './Badge';
 import { EmptyState } from './EmptyState';
 import { TransactionLink } from './TransactionLink';
@@ -13,7 +13,7 @@ interface ClaimHistoryTableProps {
   className?: string;
 }
 
-export function ClaimHistoryTable({ claims, className }: ClaimHistoryTableProps) {
+function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProps) {
   type SortColumn = 'submittedAt' | 'status' | 'payoutAmount' | 'triggerMet';
   type SortDirection = 'asc' | 'desc';
 
@@ -190,3 +190,5 @@ export function ClaimHistoryTable({ claims, className }: ClaimHistoryTableProps)
     </div>
   );
 }
+
+export const ClaimHistoryTable = memo(ClaimHistoryTableComponent);

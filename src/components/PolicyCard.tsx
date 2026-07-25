@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { memo } from 'react';
 import { Badge } from './Badge';
 import type { Policy } from '@/types';
 import { formatUSDC, formatDate, timeLeft } from '@/lib/format';
@@ -10,7 +11,7 @@ interface PolicyCardProps {
   policy: Policy;
 }
 
-export function PolicyCard({ policy }: PolicyCardProps) {
+function PolicyCardComponent({ policy }: PolicyCardProps) {
   const icon       = policy.product ? CATEGORY_ICONS[policy.product.category] ?? '🛡️' : '🛡️';
   const name       = policy.product?.name ?? `Policy #${policy.id.slice(0, 8)}`;
   const isActive   = policy.status === 'Active';
@@ -74,3 +75,5 @@ export function PolicyCard({ policy }: PolicyCardProps) {
     </div>
   );
 }
+
+export const PolicyCard = memo(PolicyCardComponent);

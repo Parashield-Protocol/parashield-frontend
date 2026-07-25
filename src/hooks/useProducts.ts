@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchProducts, fetchProduct } from '@/lib/api';
+import { fetchProducts } from '@/lib/api';
 import type { Product } from '@/types';
 
 export function useProducts() {
@@ -25,24 +25,4 @@ export function useProducts() {
   useEffect(() => { void load(); }, [load]);
 
   return { products, loading, error, refetch: load };
-}
-
-export function useProduct(id: string | null) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    fetchProduct(id)
-      .then((p) => { if (!cancelled) setProduct(p); })
-      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load product'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [id]);
-
-  return { product, loading, error };
 }
