@@ -20,9 +20,9 @@ export function PolicyCard({ policy }: PolicyCardProps) {
   if (isActive) {
     expiresLabel = 'Expires';
     expiresValue = timeLeft(policy.endTime);
-  } else if (policy.status === 'Cancelled' && policy.cancelledAt) {
+  } else if (policy.status === 'Cancelled') {
     expiresLabel = 'Cancelled';
-    expiresValue = formatDate(policy.cancelledAt);
+    expiresValue = policy.cancelledAt ? formatDate(policy.cancelledAt) : formatDate(policy.endTime);
   } else if (policy.status === 'Claimed') {
     expiresLabel = 'Claimed';
     expiresValue = formatDate(policy.endTime);
