@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useWallet } from '@/hooks/useWallet';
@@ -79,7 +79,7 @@ export default function PoliciesPage() {
                   isActive
                     ? 'bg-teal-500 text-white'
                     : count === 0
-                      ? 'border border-white/5 text-gray-600 cursor-default opacity-50'
+                      ? 'border border-white/5 text-gray-400 cursor-default opacity-50'
                       : 'border border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
                 }`}
               >

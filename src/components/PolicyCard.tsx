@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { memo } from 'react';
@@ -47,20 +47,20 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
 
       <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
         <div>
-          <dt className="text-gray-500">Coverage</dt>
+          <dt className="text-gray-400">Coverage</dt>
           <dd className="mt-0.5 font-semibold text-emerald-400">{formatUSDC(policy.coverage)}</dd>
         </div>
         <div>
-          <dt className="text-gray-500">Premium paid</dt>
+          <dt className="text-gray-400">Premium paid</dt>
           <dd className="mt-0.5 font-semibold">{formatUSDC(policy.premiumPaid)}</dd>
         </div>
         <div>
-          <dt className="text-gray-500">Start date</dt>
+          <dt className="text-gray-400">Start date</dt>
           <dd className="mt-0.5 text-gray-300">{formatDate(policy.startTime)}</dd>
         </div>
         <div>
-          <dt className="text-gray-500">{expiresLabel}</dt>
-          <dd className={`mt-0.5 font-semibold ${isActive ? 'text-amber-400' : 'text-gray-500'}`}>
+          <dt className="text-gray-400">{expiresLabel}</dt>
+          <dd className={`mt-0.5 font-semibold ${isActive ? 'text-amber-400' : 'text-gray-400'}`}>
             {expiresValue}
           </dd>
         </div>

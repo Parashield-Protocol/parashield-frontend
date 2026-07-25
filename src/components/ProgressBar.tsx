@@ -1,4 +1,4 @@
-interface ProgressBarProps {
+﻿interface ProgressBarProps {
   value:     number;  // 0–100
   max?:      number;
   label?:    string;
@@ -47,12 +47,12 @@ export function StepProgress({ steps, current }: { steps: string[]; current: num
             className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors ${
               i < current  ? 'bg-teal-500 text-white' :
               i === current ? 'border-2 border-teal-500 text-teal-400' :
-              'border border-white/10 text-gray-600'
+              'border border-white/10 text-gray-400'
             }`}
           >
             {i < current ? '✓' : i + 1}
           </div>
-          <span className={`text-xs ${i === current ? 'text-white' : 'text-gray-500'}`}>{step}</span>
+          <span className={`text-xs ${i === current ? 'text-white' : 'text-gray-400'}`}>{step}</span>
           {i < steps.length - 1 && <div className="h-px w-6 bg-white/10" />}
         </div>
       ))}

@@ -11,6 +11,7 @@ import { ContractError, toUserMessage } from '@/lib/errors';
 import { CATEGORY_LABELS, MIN_DEPOSIT_STROOPS } from '@/lib/constants';
 import { Modal } from './Modal';
 import { useToast } from '@/context/ToastContext';
+import { INPUT_CLASS, LABEL_CLASS } from '@/lib/styles';
 
 interface Props {
   pool:    PoolStats;
@@ -114,7 +115,7 @@ export function DepositModal({ pool, onClose }: Props) {
     <Modal open title={`Deposit — ${poolLabel} Pool`} onClose={onClose}>
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+          <label className={LABEL_CLASS}>
             Amount (USDC)
           </label>
           <input
@@ -124,7 +125,7 @@ export function DepositModal({ pool, onClose }: Props) {
             placeholder="0.00"
             min={0}
             step="0.01"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+            className={INPUT_CLASS}
           />
         </div>
 

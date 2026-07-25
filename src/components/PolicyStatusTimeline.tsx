@@ -1,4 +1,4 @@
-import type { Policy } from '@/types';
+﻿import type { Policy } from '@/types';
 import { formatDate } from '@/lib/format';
 
 interface PolicyStatusTimelineProps {
@@ -69,7 +69,7 @@ export function PolicyStatusTimeline({ policy, className }: PolicyStatusTimeline
                   ? 'bg-red-500 text-white'
                   : event.done
                     ? 'bg-teal-500 text-white'
-                    : 'border border-white/20 text-gray-600 bg-gray-950'
+                    : 'border border-white/20 text-gray-400 bg-gray-950'
               }`}
             >
               {event.done ? '✓' : i + 1}
@@ -81,12 +81,12 @@ export function PolicyStatusTimeline({ policy, className }: PolicyStatusTimeline
                     ? 'text-red-400'
                     : event.done
                       ? 'text-white'
-                      : 'text-gray-500'
+                      : 'text-gray-400'
                 }`}
               >
                 {event.label}
               </p>
-              {event.date && <p className="text-xs text-gray-500">{event.date}</p>}
+              {event.date && <p className="text-xs text-gray-400">{event.date}</p>}
             </div>
           </li>
         ))}

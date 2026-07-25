@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { memo, useState } from 'react';
 import type { Product } from '@/types';
@@ -36,13 +36,13 @@ function ProductCardComponent({ product }: ProductCardProps) {
 
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-xl bg-white/5 p-3">
-            <dt className="text-[10px] uppercase tracking-widest text-gray-500">Premium</dt>
+            <dt className="text-[10px] uppercase tracking-widest text-gray-400">Premium</dt>
             <dd className="mt-0.5 font-semibold text-teal-400">
               {basisPointsToPercent(product.premiumRate)}
             </dd>
           </div>
           <div className="rounded-xl bg-white/5 p-3">
-            <dt className="text-[10px] uppercase tracking-widest text-gray-500">Max Coverage</dt>
+            <dt className="text-[10px] uppercase tracking-widest text-gray-400">Max Coverage</dt>
             <dd className="mt-0.5 font-semibold text-white">{formatUSDC(product.coverageMax)}</dd>
           </div>
         </dl>

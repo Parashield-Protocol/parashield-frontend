@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import './globals.css';
 import { NavBar } from '@/components/NavBar';
 import { ToastContainer } from '@/components/Toast';
@@ -54,7 +54,7 @@ const NavBarFallback = (
 );
 
 const FooterFallback = (
-  <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-600">
+  <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-400">
     © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
   </footer>
 );
@@ -74,7 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </ErrorBoundary>
             <ErrorBoundary fallback={FooterFallback}>
-              <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-600">
+              <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-400">
                 © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
               </footer>
             </ErrorBoundary>
