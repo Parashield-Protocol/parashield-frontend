@@ -27,7 +27,9 @@ export default function ClaimsPage() {
       setLastFetched(new Date());
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load claims');
+      if (!silent) {
+        setError(err instanceof Error ? err.message : 'Failed to load claims');
+      }
     } finally {
       if (!silent) setLoading(false);
     }

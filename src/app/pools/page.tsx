@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { PoolStats } from '@/types';
 import { formatUSDC } from '@/lib/format';
 import { Badge } from '@/components/Badge';
@@ -16,6 +16,12 @@ export default function PoolsPage() {
   const { connected } = useWallet();
   const { pools, loading, error, refetch } = usePools();
   const [depositPool,  setDepositPool]  = useState<PoolStats | null>(null);
+
+  useEffect(() => {
+    if (!connected) {
+      setDepositPool(null);
+    }
+  }, [connected]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">

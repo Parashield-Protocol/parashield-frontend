@@ -25,8 +25,27 @@ function StatValue({ loading, failed, children }: { loading: boolean; failed: bo
 export default function HomePage() {
   const { products, loading, error, refetch } = useProducts();
   const [searchQuery, setSearchQuery]   = useState('');
-  const [category, setCategory]         = useLocalStorage<CategoryFilterValue>('ps_category_filter', 'all');
+  const [category, setCategory]         = useState<CategoryFilterValue>('all');
   const debouncedQuery                  = useDebounce(searchQuery, 250);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('ps_category_filter');
+      if (stored) {
+        setCategory(JSON.parse(stored) as CategoryFilterValue);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ps_category_filter', JSON.stringify(category));
+    } catch {
+      // ignore
+    }
+  }, [category]);
 
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError,   setStatsError]   = useState(false);
