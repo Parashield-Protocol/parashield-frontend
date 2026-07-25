@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchOracleReading, fetchAllOracleReadings } from '@/lib/api';
 import type { OracleReading } from '@/types';
 import { ORACLE_REFRESH_INTERVAL_MS } from '@/lib/constants';
@@ -9,24 +9,42 @@ export function useOracleReading(key: string | null) {
   const [reading,  setReading]  = useState<OracleReading | null>(null);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<string | null>(null);
+  const isFirstLoad = useRef(true);
+  const currentKeyRef = useRef(key);
 
   const load = useCallback(async () => {
     if (!key) return;
-    setLoading(true);
+    currentKeyRef.current = key;
+    const isFirst = isFirstLoad.current;
+    if (isFirst) {
+      setLoading(true);
+      isFirstLoad.current = false;
+    }
     setError(null);
     try {
       const data = await fetchOracleReading(key);
-      setReading(data);
+      if (currentKeyRef.current === key) {
+        setReading(data);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch oracle reading');
+      if (currentKeyRef.current === key) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch oracle reading');
+      }
     } finally {
-      setLoading(false);
+      if (isFirst && currentKeyRef.current === key) {
+        setLoading(false);
+      }
     }
   }, [key]);
 
   useEffect(() => {
+    currentKeyRef.current = key;
+    if (!key) {
+      setReading(null);
+      isFirstLoad.current = true;
+      return;
+    }
     void load();
-    if (!key) return;
     const interval = setInterval(() => { if (!document.hidden) void load(); }, ORACLE_REFRESH_INTERVAL_MS);
     const onVisible = () => { if (!document.hidden) void load(); };
     document.addEventListener('visibilitychange', onVisible);
@@ -43,9 +61,14 @@ export function useAllOracleReadings() {
   const [readings, setReadings] = useState<OracleReading[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
+  const isFirstLoad = useRef(true);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const isFirst = isFirstLoad.current;
+    if (isFirst) {
+      setLoading(true);
+      isFirstLoad.current = false;
+    }
     setError(null);
     try {
       const data = await fetchAllOracleReadings();
@@ -53,7 +76,9 @@ export function useAllOracleReadings() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch oracle readings');
     } finally {
-      setLoading(false);
+      if (isFirst) {
+        setLoading(false);
+      }
     }
   }, []);
 

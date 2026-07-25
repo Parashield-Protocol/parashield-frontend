@@ -4,9 +4,6 @@ import { API_URL, AUTH_TOKEN_STORAGE_KEY } from './constants';
 import storage from './storage';
 import type { Product, Policy, Claim, OracleReading, PoolStats, PoolShareInfo, ProtocolStats, ApiResponse, PaginatedResponse } from '@/types';
 
-// Re-export for backward compat with existing imports
-export type { Product, Policy };
-
 let onAuthError: (() => void) | null = null;
 
 export function setAuthErrorHandler(handler: () => void): void {

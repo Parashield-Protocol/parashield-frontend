@@ -18,9 +18,18 @@ interface EventProperties {
 }
 
 let posthogReady = false;
+let bufferedPageview: { name: string; properties?: EventProperties } | null = null;
 
 export function setPostHogReady(ready: boolean): void {
   posthogReady = ready;
+  if (ready && bufferedPageview) {
+    const { name, properties } = bufferedPageview;
+    posthog.capture('$pageview', {
+      $current_url: window.location.href,
+      ...properties
+    });
+    bufferedPageview = null;
+  }
 }
 
 function truncateWalletAddress(address?: string): string | undefined {
@@ -55,5 +64,7 @@ export function page(name: string, properties?: EventProperties): void {
       $current_url: window.location.href,
       ...properties 
     });
+  } else {
+    bufferedPageview = { name, properties };
   }
 }

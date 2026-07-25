@@ -8,7 +8,8 @@ interface TriggerConditionBadgeProps {
 function comparisonSymbol(c: string): string {
   if (c === 'LessThan')    return '<';
   if (c === 'GreaterThan') return '>';
-  return '=';
+  if (c === 'Equal')       return '=';
+  return `? ${c}`;
 }
 
 export function TriggerConditionBadge({ product, className }: TriggerConditionBadgeProps) {

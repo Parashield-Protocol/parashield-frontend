@@ -6,6 +6,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { displayToStroops, stroopsToDisplay, estimatePremium, basisPointsToPercent } from '@/lib/format';
 import { toUserMessage } from '@/lib/errors';
 import { invokeBuyPolicy } from '@/lib/contract';
+import { buyPolicy as recordPolicyPurchase } from '@/lib/api';
 import { buildRainfallKey, buildFlightKey } from '@/lib/oracle';
 import { Modal } from './Modal';
 import { StepProgress } from './ProgressBar';
@@ -17,6 +18,17 @@ interface Props {
 }
 
 const STEPS = ['Configure', 'Review', 'Sign'];
+
+// estimatePremium throws on anything displayToStroops rejects (empty, negative,
+// partially-typed numbers). It runs on every keystroke — outside validate() —
+// so a single '-' used to blow up the whole modal (issue #197).
+function safeEstimatePremium(coverageDisplay: string, premiumRateBps: number): string {
+  try {
+    return estimatePremium(coverageDisplay, premiumRateBps);
+  } catch {
+    return '—';
+  }
+}
 
 export function BuyPolicyModal({ product, onClose }: Props) {
   const { address, connect, connecting, error: walletError } = useWallet();
@@ -42,7 +54,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
   const minDisplay = stroopsToDisplay(product.coverageMin, 2);
   const maxDisplay = stroopsToDisplay(product.coverageMax, 2);
   const coverageNum   = parseFloat(coverage) || 0;
-  const estimatedPrem = estimatePremium(coverage, product.premiumRate);
+  const estimatedPrem = safeEstimatePremium(coverage, product.premiumRate);
 
   // Automatically build oracle key based on inputs
   useEffect(() => {
@@ -97,13 +109,35 @@ export function BuyPolicyModal({ product, onClose }: Props) {
     setBusy(true);
     setError('');
     try {
-      const txHash = await invokeBuyPolicy(
+      const trimmedKey = oracleKey.trim();
+      const { txHash, signedXdr } = await invokeBuyPolicy(
         address,
         product.id,
         BigInt(displayToStroops(coverage)),
-        oracleKey.trim(),
+        trimmedKey,
         parseInt(duration, 10),
       );
+
+      // The purchase is already final on-chain at this point; the backend still
+      // needs to be told about it or the policy never shows up in the UI, which
+      // reads from the API (issue #195). A failure here is not a failed
+      // purchase, so surface it as a warning rather than an error.
+      try {
+        await recordPolicyPurchase({
+          productId: product.id,
+          coverage:  displayToStroops(coverage).toString(),
+          oracleKey: trimmedKey,
+          duration:  parseInt(duration, 10),
+          wallet:    address,
+          signedXdr,
+        });
+      } catch (syncErr) {
+        showToast(
+          `Policy purchased on-chain (${txHash.slice(0, 8)}…) but could not be recorded: ${toUserMessage(syncErr)}`,
+          'warning',
+        );
+      }
+
       showToast(`Policy activation transaction ${txHash.slice(0, 8)}… submitted`, 'success');
       onClose();
     } catch (err) {
@@ -272,26 +306,12 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                   maxLength={32}
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
                 />
-                <p className="mt-1 text-[10px] text-gray-500">Max 32 chars (Soroban Symbol)</p>
+                <p className="mt-1 text-[10px] text-gray-500">Max 32 chars</p>
                 <div className="mt-2 text-xs text-gray-400">
                   Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
                 </div>
               </div>
             )}
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
-                Oracle Key
-              </label>
-              <input
-                type="text"
-                value={oracleKey}
-                onChange={(e) => { setOracleKey(e.target.value); setError(''); }}
-                placeholder='e.g. "rainfall:0.09,34.77:2026-06"'
-                maxLength={9}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
-              />
-              <p className="mt-1 text-[10px] text-gray-500">Max 9 chars (Soroban Symbol)</p>
-            </div>
           </>
         )}
 

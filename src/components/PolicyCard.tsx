@@ -13,8 +13,23 @@ interface PolicyCardProps {
 export function PolicyCard({ policy }: PolicyCardProps) {
   const icon       = policy.product ? CATEGORY_ICONS[policy.product.category] ?? '🛡️' : '🛡️';
   const name       = policy.product?.name ?? `Policy #${policy.id.slice(0, 8)}`;
-  const remaining  = timeLeft(policy.endTime);
   const isActive   = policy.status === 'Active';
+
+  let expiresLabel: string;
+  let expiresValue: string;
+  if (isActive) {
+    expiresLabel = 'Expires';
+    expiresValue = timeLeft(policy.endTime);
+  } else if (policy.status === 'Cancelled' && policy.cancelledAt) {
+    expiresLabel = 'Cancelled';
+    expiresValue = formatDate(policy.cancelledAt);
+  } else if (policy.status === 'Claimed') {
+    expiresLabel = 'Claimed';
+    expiresValue = formatDate(policy.endTime);
+  } else {
+    expiresLabel = 'Expired';
+    expiresValue = formatDate(policy.endTime);
+  }
 
   return (
     <div className={`flex flex-col rounded-2xl border p-5 transition-all ${
@@ -43,9 +58,9 @@ export function PolicyCard({ policy }: PolicyCardProps) {
           <dd className="mt-0.5 text-gray-300">{formatDate(policy.startTime)}</dd>
         </div>
         <div>
-          <dt className="text-gray-500">Expires</dt>
+          <dt className="text-gray-500">{expiresLabel}</dt>
           <dd className={`mt-0.5 font-semibold ${isActive ? 'text-amber-400' : 'text-gray-500'}`}>
-            {remaining}
+            {expiresValue}
           </dd>
         </div>
       </dl>
