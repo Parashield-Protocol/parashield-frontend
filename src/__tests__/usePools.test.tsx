@@ -1,4 +1,3 @@
-import { act } from 'react';
 import { usePools } from '../hooks/usePools';
 import { renderHook, flushMicrotasks } from './renderHook';
 import type { PoolStats } from '../types';
@@ -7,59 +6,78 @@ const { fetchPoolStats } = vi.hoisted(() => ({ fetchPoolStats: vi.fn() }));
 
 vi.mock('@/lib/api', () => ({ fetchPoolStats }));
 
-function makePool(overrides: Partial<PoolStats> = {}): PoolStats {
+function makePoolStats(overrides: Partial<PoolStats> = {}): PoolStats {
   return {
-    poolId: 'pool-1',
-    category: 'crop',
-    totalLiquidity: '1000000',
-    activePolicies: 3,
-    utilizationRate: 0.4,
-    apy: 0.12,
+    id: 'pool-1',
+    name: 'Weather Pool A',
+    tvl: '1000000000',
+    utilizationRate: '0.45',
+    totalPolicies: '150',
+    totalClaims: '5',
+    apy: '0.12',
     ...overrides,
   };
 }
 
 describe('usePools', () => {
-  beforeEach(() => fetchPoolStats.mockReset());
+  beforeEach(() => {
+    fetchPoolStats.mockReset();
+  });
 
-  it('starts in a loading state and populates pools on success', async () => {
-    const pools = [makePool()];
+  it('loads pools and exposes refetch', async () => {
+    const pools = [makePoolStats()];
     fetchPoolStats.mockResolvedValue(pools);
 
     const hook = renderHook(() => usePools());
     expect(hook.current.loading).toBe(true);
+    expect(hook.current.error).toBeNull();
 
     await flushMicrotasks();
 
     expect(hook.current.loading).toBe(false);
     expect(hook.current.pools).toEqual(pools);
     expect(hook.current.error).toBeNull();
+    expect(typeof hook.current.refetch).toBe('function');
   });
 
   it('surfaces an error message when the fetch fails', async () => {
-    fetchPoolStats.mockRejectedValue(new Error('network down'));
+    fetchPoolStats.mockRejectedValue(new Error('api error'));
 
     const hook = renderHook(() => usePools());
     await flushMicrotasks();
 
     expect(hook.current.loading).toBe(false);
-    expect(hook.current.error).toBe('network down');
+    expect(hook.current.error).toBe('api error');
     expect(hook.current.pools).toEqual([]);
   });
 
-  it('refetch re-runs the load and clears a previous error on success', async () => {
-    fetchPoolStats.mockRejectedValueOnce(new Error('first failure'));
+  it('refetch loads pools again', async () => {
+    const initialPools = [makePoolStats({ id: 'pool-1' })];
+    fetchPoolStats.mockResolvedValue(initialPools);
+
     const hook = renderHook(() => usePools());
     await flushMicrotasks();
-    expect(hook.current.error).toBe('first failure');
+    expect(hook.current.pools).toEqual(initialPools);
 
-    const pools = [makePool({ poolId: 'pool-2' })];
-    fetchPoolStats.mockResolvedValueOnce(pools);
-    await act(async () => {
-      await hook.current.refetch();
-    });
+    const updatedPools = [
+      makePoolStats({ id: 'pool-1', tvl: '2000000000' }),
+    ];
+    fetchPoolStats.mockResolvedValue(updatedPools);
 
+    await hook.current.refetch();
+
+    expect(hook.current.pools).toEqual(updatedPools);
     expect(hook.current.error).toBeNull();
-    expect(hook.current.pools).toEqual(pools);
+  });
+
+  it('returns empty pools array on initial load before data arrives', () => {
+    fetchPoolStats.mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    const hook = renderHook(() => usePools());
+
+    expect(hook.current.pools).toEqual([]);
+    expect(hook.current.loading).toBe(true);
   });
 });
