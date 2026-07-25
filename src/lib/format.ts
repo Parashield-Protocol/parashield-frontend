@@ -75,27 +75,40 @@ export function basisPointsToPercent(bps: number, decimals = 2): string {
   return `${(bps / 100).toFixed(decimals)}%`;
 }
 
+// Formats a fixed-point (1e7) BigInt as a decimal string entirely in
+// BigInt/string space — converting through Number loses precision once
+// `whole` exceeds Number.MAX_SAFE_INTEGER (issue #201).
+function fixedPointToFixed(raw: bigint, decimals: number): string {
+  const negative = raw < 0n;
+  const abs = negative ? -raw : raw;
+  const whole = abs / 10_000_000n;
+  const frac = abs % 10_000_000n;
+  const fracStr = frac.toString().padStart(7, '0').slice(0, decimals);
+  return `${negative ? '-' : ''}${whole}.${fracStr}`;
+}
+
 export function formatOracleValue(value: string, dataType: string): string {
   const raw = BigInt(value);
-  const whole = raw / 10_000_000n;
-  const frac = raw % 10_000_000n;
-  const n = Number(whole) + Number(frac) / 1e7;
   switch (dataType) {
     case 'weather':
     case 'rainfall':
-      return `${n.toFixed(2)} mm`;
+      return `${fixedPointToFixed(raw, 2)} mm`;
     case 'temperature':
-      return `${n.toFixed(2)} °C`;
-    case 'flight':
+      return `${fixedPointToFixed(raw, 2)} °C`;
+    case 'flight': {
+      const n = Number(raw) / 1e7;
       return `${Math.round(n)} min delay`;
-    case 'defi':
+    }
+    case 'defi': {
+      const n = Number(raw) / 1e7;
       if (n === 1) return 'Exploit detected';
       if (n === 0) return 'No exploit';
       return `Unknown (${n.toFixed(0)})`;
+    }
     case 'unknown':
-      return n.toFixed(4);
+      return fixedPointToFixed(raw, 4);
     default:
-      return n.toFixed(4);
+      return fixedPointToFixed(raw, 4);
   }
 }
 

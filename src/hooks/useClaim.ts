@@ -15,7 +15,7 @@ export function useClaim(policyId?: string) {
   const [claimId, setClaimId] = useState<string | null>(null);
   const [claim,   setClaim]   = useState<Claim | null>(null);
   const [error,   setError]   = useState<string | null>(null);
-  
+
   const cancelledRef = useRef(false);
 
   useEffect(() => {
@@ -75,9 +75,10 @@ export function useClaim(policyId?: string) {
     let count = 0;
 
     async function poll() {
+      if (cancelledRef.current) return;
       try {
         const result = await fetchClaim(currentClaimId);
-        if (!active) return;
+        if (!active || cancelledRef.current) return;
         if (result) {
           setClaim(result);
           if (result.status === 'Paid' || result.status === 'Rejected') {
@@ -106,10 +107,12 @@ export function useClaim(policyId?: string) {
   }, [step, claimId]);
 
   const submit = useCallback(async (claimant: string, policyId: string) => {
+    cancelledRef.current = false;
     setStep('submitting');
     setError(null);
     try {
       const txHash = await invokeSubmitClaim(claimant, policyId);
+      if (cancelledRef.current) return { error: null };
       setClaimId(txHash);
       setStep('polling');
       return { error: null };

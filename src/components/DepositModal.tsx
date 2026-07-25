@@ -23,7 +23,12 @@ function estimateShares(depositStroops: bigint, totalLiquidity: bigint, shareSup
 }
 
 function depositErrorMessage(err: unknown): string {
-  const raw = err instanceof ContractError ? err.message : toUserMessage(err);
+  // Pattern-match against the raw diagnostic text (simulation error / result
+  // XDR), not the sanitized `.message`, since that's now a generic string
+  // safe for direct display (issue #199).
+  const raw = err instanceof ContractError
+    ? String(err.details ?? err.message)
+    : toUserMessage(err);
   const lower = raw.toLowerCase();
   if (lower.includes('insufficient') || lower.includes('balance')) {
     return 'Insufficient USDC balance to complete this deposit.';
@@ -65,7 +70,15 @@ export function DepositModal({ pool, onClose }: Props) {
   }, [pool.poolId]);
 
   const amountNum     = parseFloat(amount) || 0;
-  const depositStroops = amount ? displayToStroops(amount) : 0n;
+  let   depositStroops = 0n;
+  try {
+    depositStroops = amount ? displayToStroops(amount) : 0n;
+  } catch {
+    // Negative or otherwise invalid input — keep depositStroops at 0n so
+    // the render doesn't throw. handleDeposit surfaces the user-facing
+    // validation error below via amountNum <= 0.
+    depositStroops = 0n;
+  }
   const sharesAvailable = shareSupply !== null && totalLiquidity !== null;
   const estimatedShares = sharesAvailable
     ? estimateShares(depositStroops, totalLiquidity, shareSupply)

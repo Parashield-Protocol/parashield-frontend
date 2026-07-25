@@ -41,7 +41,7 @@ export default function OraclePage() {
           <p>{error}</p>
           {isStale && lastSuccessRef.current && (
             <p className="mt-2 text-xs text-red-300">
-              Showing data last updated {formatDateTime(lastSuccessRef.current.toISOString())} — refresh failed.
+              Showing data last updated {formatDateTime(Math.floor(lastSuccessRef.current.getTime() / 1000))} — refresh failed.
             </p>
           )}
         </div>
@@ -53,7 +53,7 @@ export default function OraclePage() {
         </div>
       )}
 
-      {readings.length > 0 && !isStale && (
+      {readings.length > 0 && (
         <div className={`mt-8 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] transition-opacity ${loading ? 'opacity-50' : ''}`}>
           <table className="w-full text-sm">
             <thead>
