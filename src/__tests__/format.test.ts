@@ -45,6 +45,11 @@ describe('stroopsToDisplay', () => {
     expect(stroopsToDisplay('N/A')).toBe('—');
     expect(stroopsToDisplay('abc')).toBe('—');
   });
+
+  it('truncates rather than rounds at a decimal boundary', () => {
+    // 19999999 stroops = 1.9999999 — truncated to 2 decimals should be 1.99, not 2.00
+    expect(stroopsToDisplay('19999999')).toBe('1.99');
+  });
 });
 
 describe('displayToStroops', () => {
@@ -125,6 +130,20 @@ describe('formatOracleValue', () => {
     // 9,007,199,254,740,991.4740991 mm rainfall
     const result = formatOracleValue('90071992547409914740991', 'weather');
     expect(result).toContain('9007199254740991.47');
+  });
+
+  it('formats defi exploit detected (n === 1)', () => {
+    // 1 * 1e7 = 10000000
+    expect(formatOracleValue('10000000', 'defi')).toBe('Exploit detected');
+  });
+
+  it('formats defi no exploit (n === 0)', () => {
+    expect(formatOracleValue('0', 'defi')).toBe('No exploit');
+  });
+
+  it('formats defi unknown value', () => {
+    // 42 * 1e7 = 420000000
+    expect(formatOracleValue('420000000', 'defi')).toBe('Unknown (42)');
   });
 });
 
