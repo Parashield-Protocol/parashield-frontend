@@ -94,6 +94,10 @@ describe('shortenAddress', () => {
   it('returns short addresses unchanged', () => {
     expect(shortenAddress('GABC')).toBe('GABC');
   });
+
+  it('uses symmetric leading and trailing truncation by default', () => {
+    expect(shortenAddress(ADDR)).toBe(`${ADDR.slice(0, 4)}…${ADDR.slice(-4)}`);
+  });
 });
 
 describe('basisPointsToPercent', () => {

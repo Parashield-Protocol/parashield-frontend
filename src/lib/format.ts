@@ -18,7 +18,7 @@ export function stroopsToDisplay(stroops: string | bigint | null | undefined, de
   const negative = n < 0n;
   const abs = negative ? -n : n;
   const whole = abs / STROOPS_PER_UNIT;
-  const frac  = abs % STROOPS_PER_UNIT;
+  const frac = abs % STROOPS_PER_UNIT;
   const fracStr = frac.toString().padStart(7, '0').slice(0, decimals);
   return `${negative ? '-' : ''}${whole.toLocaleString()}.${fracStr}`;
 }
@@ -43,23 +43,23 @@ export function formatUSDC(stroops: string | bigint, showSymbol = true): string 
 
 export function shortenAddress(address: string, chars = 4): string {
   if (!address || address.length < chars * 2 + 3) return address;
-  return `${address.slice(0, chars + 1)}…${address.slice(-chars)}`;
+  return `${address.slice(0, chars)}…${address.slice(-chars)}`;
 }
 
 export function formatDate(epochSeconds: number): string {
   return new Date(epochSeconds * 1000).toLocaleDateString('en-GB', {
-    day:   '2-digit',
+    day: '2-digit',
     month: 'short',
-    year:  'numeric',
+    year: 'numeric',
   });
 }
 
 export function formatDateTime(epochSeconds: number): string {
   return new Date(epochSeconds * 1000).toLocaleString('en-GB', {
-    day:    '2-digit',
-    month:  'short',
-    year:   'numeric',
-    hour:   '2-digit',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
     minute: '2-digit',
   });
 }
@@ -115,13 +115,13 @@ export function formatOracleValue(value: string, dataType: string): string {
 export function timeLeft(endEpochSeconds: number): string {
   const diff = endEpochSeconds - Math.floor(Date.now() / 1000);
   if (diff > 0) {
-    if (diff < 3600)  return `${Math.floor(diff / 60)}m left`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m left`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h left`;
     return `${Math.floor(diff / 86400)}d left`;
   }
   const elapsed = -diff;
-  if (elapsed < 3600)   return `Expired ${Math.floor(elapsed / 60)}m ago`;
-  if (elapsed < 86400)  return `Expired ${Math.floor(elapsed / 3600)}h ago`;
+  if (elapsed < 3600) return `Expired ${Math.floor(elapsed / 60)}m ago`;
+  if (elapsed < 86400) return `Expired ${Math.floor(elapsed / 3600)}h ago`;
   if (elapsed < 2592000) return `Expired ${Math.floor(elapsed / 86400)}d ago`;
   return `Expired ${formatDate(endEpochSeconds)}`;
 }
