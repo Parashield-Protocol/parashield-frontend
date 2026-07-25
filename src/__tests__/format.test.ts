@@ -1,4 +1,5 @@
 import {
+  safeBigInt,
   stroopsToDisplay,
   displayToStroops,
   formatUSDC,
@@ -137,5 +138,39 @@ describe('estimatePremium', () => {
   it('matches on-chain integer calculation for edge case 3', () => {
     // 0.05 coverage, 100 bps (1%)
     expect(estimatePremium('0.05', 100)).toBe('0.00');
+  });
+});
+
+describe('safeBigInt', () => {
+  it('converts valid numeric strings', () => {
+    expect(safeBigInt('10000000')).toBe(10000000n);
+    expect(safeBigInt('0')).toBe(0n);
+    expect(safeBigInt('-42')).toBe(-42n);
+  });
+
+  it('passes through bigint values', () => {
+    expect(safeBigInt(123n)).toBe(123n);
+  });
+
+  it('returns 0n for empty string', () => {
+    expect(safeBigInt('')).toBe(0n);
+  });
+
+  it('returns 0n for whitespace', () => {
+    expect(safeBigInt('   ')).toBe(0n);
+  });
+
+  it('returns 0n for null', () => {
+    expect(safeBigInt(null)).toBe(0n);
+  });
+
+  it('returns 0n for undefined', () => {
+    expect(safeBigInt(undefined)).toBe(0n);
+  });
+
+  it('returns 0n for non-numeric strings', () => {
+    expect(safeBigInt('N/A')).toBe(0n);
+    expect(safeBigInt('abc')).toBe(0n);
+    expect(safeBigInt('12.5')).toBe(0n);
   });
 });

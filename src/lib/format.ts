@@ -1,5 +1,13 @@
 import { STROOPS_PER_UNIT } from './constants';
 
+export function safeBigInt(value: string | bigint | null | undefined): bigint {
+  if (value === null || value === undefined) return 0n;
+  if (typeof value === 'bigint') return value;
+  const trimmed = value.trim();
+  if (trimmed === '' || !/^-?\d+$/.test(trimmed)) return 0n;
+  return BigInt(trimmed);
+}
+
 export function stroopsToDisplay(stroops: string | bigint | null | undefined, decimals = 2): string {
   if (stroops === null || stroops === undefined) return '—';
   if (typeof stroops === 'string') {

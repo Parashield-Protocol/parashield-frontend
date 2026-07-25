@@ -38,7 +38,9 @@ export const ORACLE_CONTRACT_ID =
 export const CLAIMS_CONTRACT_ID =
   process.env.NEXT_PUBLIC_CLAIMS_CONTRACT_ID ?? '';
 
-export const CATEGORY_LABELS: Record<string, string> = {
+import type { Category, PolicyStatus, ClaimStatus } from '@/types';
+
+export const CATEGORY_LABELS: Record<Category, string> = {
   crop:     'Crop Insurance',
   flight:   'Flight Delay',
   disaster: 'Natural Disaster',
@@ -46,7 +48,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   defi:     'DeFi Cover',
 };
 
-export const CATEGORY_ICONS: Record<string, string> = {
+export const CATEGORY_ICONS: Record<Category, string> = {
   crop:     '🌾',
   flight:   '✈️',
   disaster: '🌪️',
@@ -54,7 +56,7 @@ export const CATEGORY_ICONS: Record<string, string> = {
   defi:     '🔐',
 };
 
-export const STATUS_COLOURS: Record<string, string> = {
+export const STATUS_COLOURS: Record<PolicyStatus | ClaimStatus, string> = {
   Active:     'emerald',
   Expired:    'gray',
   Claimed:    'sky',

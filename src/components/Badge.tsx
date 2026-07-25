@@ -1,12 +1,17 @@
+import type { PolicyStatus, ClaimStatus } from '@/types';
 import { STATUS_COLOURS } from '@/lib/constants';
 
+type BadgeLabel = PolicyStatus | ClaimStatus | string;
+
 interface BadgeProps {
-  label:     string;
-  variant?:  string;
+  label:     BadgeLabel;
+  variant?:  ColourName;
   className?: string;
 }
 
-const COLOUR_CLASSES: Record<string, string> = {
+type ColourName = 'emerald' | 'sky' | 'amber' | 'red' | 'gray' | 'purple' | 'teal';
+
+const COLOUR_CLASSES: Record<ColourName, string> = {
   emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   sky:     'bg-sky-500/10     text-sky-400     border-sky-500/20',
   amber:   'bg-amber-500/10   text-amber-400   border-amber-500/20',
@@ -16,9 +21,13 @@ const COLOUR_CLASSES: Record<string, string> = {
   teal:    'bg-teal-500/10    text-teal-400    border-teal-500/20',
 };
 
+function isStatusKey(key: string): key is PolicyStatus | ClaimStatus {
+  return key in STATUS_COLOURS;
+}
+
 export function Badge({ label, variant, className }: BadgeProps) {
-  const colour      = variant ?? STATUS_COLOURS[label] ?? 'gray';
-  const colourClass = COLOUR_CLASSES[colour] ?? COLOUR_CLASSES.gray;
+  const colour: ColourName = (variant ?? (isStatusKey(label) ? STATUS_COLOURS[label] : undefined) ?? 'gray') as ColourName;
+  const colourClass = COLOUR_CLASSES[colour];
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${colourClass} ${className ?? ''}`}
