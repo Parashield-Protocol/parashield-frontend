@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://parashield.app'),
   title:       'Parashield — Parametric Insurance on Stellar',
   description: 'Automatic payouts triggered by real-world data. No claims adjuster. Powered by Soroban smart contracts.',
+  manifest:    '/manifest.webmanifest',
   icons: {
     icon: '/assets/parashield-logo-dark.png',
   },
