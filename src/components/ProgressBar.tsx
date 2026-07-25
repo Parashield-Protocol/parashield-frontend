@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 interface ProgressBarProps {
   value:     number;  // 0–100
   max?:      number;
@@ -16,11 +18,12 @@ const COLOUR_CLASSES = {
 
 export function ProgressBar({ value, max = 100, label, colour = 'teal', className }: ProgressBarProps) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
+  const labelId = useId();
   return (
     <div className={className}>
       {label && (
         <div className="mb-1 flex justify-between text-xs text-gray-400">
-          <span>{label}</span>
+          <span id={labelId}>{label}</span>
           <span>{pct.toFixed(0)}%</span>
         </div>
       )}
@@ -32,6 +35,8 @@ export function ProgressBar({ value, max = 100, label, colour = 'teal', classNam
           aria-valuenow={pct}
           aria-valuemin={0}
           aria-valuemax={100}
+          aria-label={label ? undefined : 'Progress'}
+          aria-labelledby={label ? labelId : undefined}
         />
       </div>
     </div>
