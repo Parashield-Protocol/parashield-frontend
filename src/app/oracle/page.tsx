@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef } from 'react';
 import { useAllOracleReadings } from '@/hooks/useOracle';
@@ -41,23 +41,23 @@ export default function OraclePage() {
           <p>{error}</p>
           {isStale && lastSuccessRef.current && (
             <p className="mt-2 text-xs text-red-300">
-              Showing data last updated {formatDateTime(lastSuccessRef.current.toISOString())} — refresh failed.
+              Showing data last updated {formatDateTime(Math.floor(lastSuccessRef.current.getTime() / 1000))} — refresh failed.
             </p>
           )}
         </div>
       )}
 
       {!loading && !error && readings.length === 0 && (
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-12 text-center text-gray-500">
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-12 text-center text-gray-400">
           No oracle readings available. The oracle worker may not have run yet.
         </div>
       )}
 
-      {readings.length > 0 && !isStale && (
+      {readings.length > 0 && (
         <div className={`mt-8 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] transition-opacity ${loading ? 'opacity-50' : ''}`}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-500">
+              <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
                 <th className="p-4">Key</th>
                 <th className="p-4">Type</th>
                 <th className="p-4">Value</th>
@@ -82,7 +82,7 @@ export default function OraclePage() {
                     {r.confidence}% · {confidenceLabel(r.confidence)}
                   </td>
                   <td className="p-4 text-xs text-gray-400">{r.source}</td>
-                  <td className="p-4 text-xs text-gray-500">{formatDateTime(r.timestamp)}</td>
+                  <td className="p-4 text-xs text-gray-400">{formatDateTime(r.timestamp)}</td>
                 </tr>
               ))}
             </tbody>

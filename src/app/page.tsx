@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useProducts } from '@/hooks/useProducts';
@@ -25,8 +25,27 @@ function StatValue({ loading, failed, children }: { loading: boolean; failed: bo
 export default function HomePage() {
   const { products, loading, error, refetch } = useProducts();
   const [searchQuery, setSearchQuery]   = useState('');
-  const [category, setCategory]         = useLocalStorage<CategoryFilterValue>('ps_category_filter', 'all');
+  const [category, setCategory]         = useState<CategoryFilterValue>('all');
   const debouncedQuery                  = useDebounce(searchQuery, 250);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('ps_category_filter');
+      if (stored) {
+        setCategory(JSON.parse(stored) as CategoryFilterValue);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ps_category_filter', JSON.stringify(category));
+    } catch {
+      // ignore
+    }
+  }, [category]);
 
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError,   setStatsError]   = useState(false);
@@ -89,7 +108,7 @@ export default function HomePage() {
             the smart contract pays you in USDC within seconds.
             No claims form. No adjuster. No waiting.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-500">
+          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-400">
             <span>⚡ Seconds, not weeks</span>
             <span>·</span>
             <span>🌍 MoneyGram cash-out globally</span>
@@ -105,7 +124,7 @@ export default function HomePage() {
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-6">
           <h2 className="text-2xl font-bold">Insurance Products</h2>
-          <p className="mt-1 text-sm text-gray-500">Live on Stellar testnet · Payouts in USDC</p>
+          <p className="mt-1 text-sm text-gray-400">Live on Stellar testnet · Payouts in USDC</p>
         </div>
 
         <CategoryFilter value={category} onChange={setCategory} className="mb-4" />
@@ -172,23 +191,23 @@ export default function HomePage() {
             <StatValue loading={statsLoading} failed={statsError}>
               {totalCoverage !== null ? formatUSDC(totalCoverage, false) : null}
             </StatValue>
-            <p className="mt-1 text-sm text-gray-500">Total coverage issued</p>
+            <p className="mt-1 text-sm text-gray-400">Total coverage issued</p>
           </div>
           <div>
             <StatValue loading={loading} failed={!!error}>
               {activeProductCount}
             </StatValue>
-            <p className="mt-1 text-sm text-gray-500">Active products</p>
+            <p className="mt-1 text-sm text-gray-400">Active products</p>
           </div>
           <div>
             <StatValue loading={statsLoading} failed={statsError}>
               {totalPayouts !== null ? formatUSDC(totalPayouts, false) : null}
             </StatValue>
-            <p className="mt-1 text-sm text-gray-500">Total payouts</p>
+            <p className="mt-1 text-sm text-gray-400">Total payouts</p>
           </div>
           <div>
             <p className="text-3xl font-black text-teal-400">$0.00001</p>
-            <p className="mt-1 text-sm text-gray-500">Per transaction</p>
+            <p className="mt-1 text-sm text-gray-400">Per transaction</p>
           </div>
         </div>
       </section>

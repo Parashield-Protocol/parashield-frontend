@@ -85,28 +85,35 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // briefly exposing a false "connected" state that the 401 interceptor would
   // revoke milliseconds later on the first API call.
   useEffect(() => {
+    let cancelled = false;
+
     async function initWallet() {
       const stored = getStoredAddress();
       if (!stored) return;
 
       const hasSession = !!storage.getSession(AUTH_TOKEN_STORAGE_KEY);
       if (!hasSession) {
-        disconnect();
+        if (!cancelled) disconnect();
         return;
       }
 
       try {
         const liveAddress = await getConnectedAddress();
+        if (cancelled) return;
         if (liveAddress && liveAddress === stored) {
           setAddress(stored);
         } else {
           disconnect();
         }
       } catch {
-        disconnect();
+        if (!cancelled) disconnect();
       }
     }
-    initWallet();
+
+    void initWallet();
+    return () => {
+      cancelled = true;
+    };
   }, [disconnect]);
 
   useEffect(() => {

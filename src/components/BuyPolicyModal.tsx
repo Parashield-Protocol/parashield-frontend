@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import type { Product } from '@/types';
@@ -11,6 +11,7 @@ import { buildRainfallKey, buildFlightKey } from '@/lib/oracle';
 import { Modal } from './Modal';
 import { StepProgress } from './ProgressBar';
 import { useToast } from '@/context/ToastContext';
+import { INPUT_CLASS, SELECT_CLASS, LABEL_CLASS } from '@/lib/styles';
 
 interface Props {
   product: Product;
@@ -155,7 +156,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
         {step === 0 && (
           <>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+              <label className={LABEL_CLASS}>
                 Coverage Amount (USDC)
               </label>
               <input
@@ -164,11 +165,11 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 value={coverage}
                 onChange={(e) => { setCoverage(e.target.value); setError(''); }}
                 placeholder={`${minDisplay} – ${maxDisplay}`}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                className={INPUT_CLASS}
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+              <label className={LABEL_CLASS}>
                 Duration (days, max {product.maxDuration})
               </label>
               <input
@@ -177,7 +178,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 onChange={(e) => { setDuration(e.target.value); setError(''); }}
                 min={1}
                 max={product.maxDuration}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                className={INPUT_CLASS}
               />
             </div>
 
@@ -185,7 +186,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    <label className={LABEL_CLASS}>
                       Latitude
                     </label>
                     <input
@@ -194,11 +195,11 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       value={lat}
                       onChange={(e) => setLat(e.target.value)}
                       placeholder="e.g. -0.0917"
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                      className={INPUT_CLASS}
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    <label className={LABEL_CLASS}>
                       Longitude
                     </label>
                     <input
@@ -207,19 +208,19 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       value={lng}
                       onChange={(e) => setLng(e.target.value)}
                       placeholder="e.g. 34.7679"
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                      className={INPUT_CLASS}
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    <label className={LABEL_CLASS}>
                       Month
                     </label>
                     <select
                       value={month}
                       onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none text-white appearance-none"
+                      className={SELECT_CLASS}
                     >
                       {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                         <option key={m} value={m} className="bg-gray-900 text-white">
@@ -229,13 +230,13 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    <label className={LABEL_CLASS}>
                       Year
                     </label>
                     <select
                       value={year}
                       onChange={(e) => setYear(parseInt(e.target.value, 10))}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none text-white appearance-none"
+                      className={SELECT_CLASS}
                     >
                       {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((y) => (
                         <option key={y} value={y} className="bg-gray-900 text-white">
@@ -254,7 +255,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
             {product.category === 'flight' && (
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  <label className={LABEL_CLASS}>
                     Flight Number
                   </label>
                   <input
@@ -262,18 +263,18 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                     value={flightNumber}
                     onChange={(e) => setFlightNumber(e.target.value)}
                     placeholder="e.g. KQ100"
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                    className={INPUT_CLASS}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  <label className={LABEL_CLASS}>
                     Date
                   </label>
                   <input
                     type="date"
                     value={flightDate}
                     onChange={(e) => setFlightDate(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                    className={INPUT_CLASS}
                   />
                 </div>
                 <div className="mt-2 text-xs text-gray-400">
@@ -284,10 +285,10 @@ export function BuyPolicyModal({ product, onClose }: Props) {
 
             {product.category === 'defi' && (
               <div className="space-y-2">
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                <label className={LABEL_CLASS}>
                   Oracle Key (Fixed)
                 </label>
-                <div className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-mono text-gray-400 select-all">
+                <div className={`${INPUT_CLASS} font-mono text-gray-400 select-all`}>
                   defi
                 </div>
               </div>
@@ -295,7 +296,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
 
             {(product.category !== 'crop' && product.category !== 'flight' && product.category !== 'defi') && (
               <div className="space-y-2">
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400">
+                <label className={LABEL_CLASS}>
                   Oracle Key
                 </label>
                 <input
@@ -304,9 +305,9 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                   onChange={(e) => { setOracleKey(e.target.value); setError(''); }}
                   placeholder='e.g. rainfall:1.5,36.8:2026-06'
                   maxLength={32}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
+                  className={INPUT_CLASS}
                 />
-                <p className="mt-1 text-[10px] text-gray-500">Max 32 chars</p>
+                <p className="mt-1 text-[10px] text-gray-400">Max 32 chars</p>
                 <div className="mt-2 text-xs text-gray-400">
                   Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
                 </div>

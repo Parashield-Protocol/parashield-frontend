@@ -13,7 +13,7 @@ export function ConnectWalletPrompt({ message = 'Connect your wallet to continue
       <span className="text-5xl">🔒</span>
       <h3 className="mt-4 text-lg font-semibold text-white">{message}</h3>
       <p className="mt-2 text-sm text-gray-400">
-        Use Freighter, xBull, LOBSTR, or any Stellar-compatible wallet.
+        Any Stellar-compatible wallet is supported — Freighter, xBull, LOBSTR, and more.
       </p>
       <button
         onClick={connect}

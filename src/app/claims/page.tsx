@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@/hooks/useWallet';
@@ -27,7 +27,9 @@ export default function ClaimsPage() {
       setLastFetched(new Date());
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load claims');
+      if (!silent) {
+        setError(err instanceof Error ? err.message : 'Failed to load claims');
+      }
     } finally {
       if (!silent) setLoading(false);
     }
@@ -82,7 +84,7 @@ export default function ClaimsPage() {
             Refresh
           </button>
           {lastFetched && (
-            <span className="text-[10px] text-gray-500">
+            <span className="text-[10px] text-gray-400">
               Updated {lastFetched.toLocaleTimeString()}
             </span>
           )}
