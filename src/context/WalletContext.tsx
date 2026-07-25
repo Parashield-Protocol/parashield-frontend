@@ -66,8 +66,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         storage.setSession(AUTH_TOKEN_STORAGE_KEY, token);
       } catch (authErr) {
         const msg = toUserMessage(authErr);
-        setError(`Auth failed: ${msg}`);
+        // disconnect() ends with setError(null), so it must run BEFORE we set
+        // the auth-failure message — otherwise the message is wiped immediately.
+        // This mirrors the network-mismatch branch above (disconnect(); setError(...)).
         disconnect();
+        setError(`Auth failed: ${msg}`);
         return;
       }
       setAddress(addr);
