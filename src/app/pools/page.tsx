@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { PoolStats } from '@/types';
-import { formatUSDC } from '@/lib/format';
+import { formatUSDC, getUtilizationColorName } from '@/lib/format';
 import { Badge } from '@/components/Badge';
 import { ProgressBar } from '@/components/ProgressBar';
 import { EmptyState } from '@/components/EmptyState';
@@ -104,7 +104,7 @@ export default function PoolsPage() {
                 <ProgressBar
                   value={pool.utilizationRate * 100}
                   label="Utilization"
-                  colour={pool.utilizationRate > 0.8 ? 'red' : pool.utilizationRate > 0.5 ? 'amber' : 'teal'}
+                  colour={getUtilizationColorName(pool.utilizationRate)}
                 />
               </div>
 
