@@ -34,7 +34,7 @@ export function SearchBar({
 
   return (
     <div className={`relative ${className ?? ''}`}>
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+      <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
         🔍
       </span>
       <input
@@ -42,6 +42,7 @@ export function SearchBar({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-gray-600 focus:border-teal-500 focus:outline-none"
       />
       {query && (
