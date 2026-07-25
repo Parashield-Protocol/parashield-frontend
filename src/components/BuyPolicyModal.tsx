@@ -266,7 +266,11 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                   <input
                     type="text"
                     value={flightNumber}
-                    onChange={(e) => setFlightNumber(e.target.value)}
+                    // Strip colons at the source: a ':' is the oracle-key delimiter,
+                    // so one inside the flight number would break key parsing (#223).
+                    onChange={(e) => setFlightNumber(e.target.value.replace(/:/g, ''))}
+                    maxLength={16}
+                    pattern="[^:]*"
                     placeholder="e.g. KQ100"
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none"
                   />

@@ -17,8 +17,19 @@ export function parseOracleKey(key: string): OracleKey {
     return { dataType: 'temperature', location: coords, period };
   }
   if (key.startsWith('flight:')) {
-    const [, flightNumber, date] = key.split(':');
-    return { dataType: 'flight', flightNumber, period: date };
+    // The date is always the final segment. Splitting on every ':' would drop it
+    // if the flight number itself contains a colon (e.g. "AB:12"), so isolate the
+    // date from the last ':' and treat everything before it as the flight number.
+    const rest = key.slice('flight:'.length);
+    const lastColon = rest.lastIndexOf(':');
+    if (lastColon === -1) {
+      return { dataType: 'flight', flightNumber: rest };
+    }
+    return {
+      dataType: 'flight',
+      flightNumber: rest.slice(0, lastColon),
+      period: rest.slice(lastColon + 1),
+    };
   }
   if (key === 'defi') {
     return { dataType: 'defi' };
