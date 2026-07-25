@@ -41,7 +41,7 @@ export default function OraclePage() {
           <p>{error}</p>
           {isStale && lastSuccessRef.current && (
             <p className="mt-2 text-xs text-red-300">
-              Showing data last updated {formatDateTime(lastSuccessRef.current.toISOString())} — refresh failed.
+              Showing data last updated {formatDateTime(Math.floor(lastSuccessRef.current.getTime() / 1000))} — refresh failed.
             </p>
           )}
         </div>

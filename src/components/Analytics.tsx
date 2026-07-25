@@ -15,7 +15,8 @@ export function Analytics() {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com';
 
     // Check if PostHog is already initialized via 'capture' method existence
-    if (posthogKey && typeof posthog.capture === 'function' && !posthog.__initialized) {
+    const ph = posthog as typeof posthog & { __initialized?: boolean };
+    if (posthogKey && typeof posthog.capture === 'function' && !ph.__initialized) {
       posthog.init(posthogKey, {
         api_host: posthogHost,
         capture_pageview: false,
@@ -25,7 +26,7 @@ export function Analytics() {
         },
       });
       // Mark as initialized to avoid redundant init calls
-      Object.defineProperty(posthog, '__initialized', { value: true, configurable: false });
+      Object.defineProperty(ph, '__initialized', { value: true, configurable: false });
     } else if (posthogKey) {
       // PostHog is already initialized
       setPostHogReady(true);

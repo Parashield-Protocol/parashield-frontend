@@ -23,7 +23,12 @@ function estimateShares(depositStroops: bigint, totalLiquidity: bigint, shareSup
 }
 
 function depositErrorMessage(err: unknown): string {
-  const raw = err instanceof ContractError ? err.message : toUserMessage(err);
+  // Pattern-match against the raw diagnostic text (simulation error / result
+  // XDR), not the sanitized `.message`, since that's now a generic string
+  // safe for direct display (issue #199).
+  const raw = err instanceof ContractError
+    ? String(err.details ?? err.message)
+    : toUserMessage(err);
   const lower = raw.toLowerCase();
   if (lower.includes('insufficient') || lower.includes('balance')) {
     return 'Insufficient USDC balance to complete this deposit.';

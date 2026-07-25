@@ -16,8 +16,11 @@ export function usePolicies(walletAddress: string | null) {
     if (!walletAddress) {
       setPolicies([]);
       isFirstLoad.current = true;
-      return;
     }
+  }, [walletAddress]);
+
+  const load = useCallback(async (signal?: AbortSignal) => {
+    if (!walletAddress) return;
     if (isFirstLoad.current) setLoading(true);
     setError(null);
     try {

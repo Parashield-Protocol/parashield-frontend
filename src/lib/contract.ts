@@ -46,7 +46,7 @@ export async function simulateContractCall(
 
   const result = await rpc.simulateTransaction(tx);
   if (StellarRpc.Api.isSimulationError(result)) {
-    throw new ContractError(`Simulation failed: ${result.error}`);
+    throw new ContractError('Simulation failed. The transaction could not be processed.', undefined, result.error);
   }
   if (!result.result?.retval) return null;
   return result.result.retval;
@@ -82,7 +82,7 @@ export async function buildBuyPolicyTx(
 
   const simResult = await rpc.simulateTransaction(tx);
   if (StellarRpc.Api.isSimulationError(simResult)) {
-    throw new ContractError(`buy_policy simulation failed: ${simResult.error}`);
+    throw new ContractError('Unable to prepare this policy purchase. Please try again.', undefined, simResult.error);
   }
 
   const assembled = StellarRpc.assembleTransaction(tx, simResult).build();
@@ -99,7 +99,7 @@ async function waitForConfirmation(hash: string): Promise<string> {
     const status = await rpc.getTransaction(hash);
     if (status.status === 'SUCCESS') return hash;
     if (status.status === 'FAILED') {
-      throw new ContractError(`Transaction failed on-chain: ${JSON.stringify((status as any).resultXdr ?? status)}`);
+      throw new ContractError('Transaction failed on-chain.', hash, (status as any).resultXdr ?? status);
     }
   }
   throw new ContractError(`Transaction not confirmed after ${TX_POLL_MAX_ATTEMPTS * TX_POLL_INTERVAL_MS / 1000}s — hash: ${hash}`);
@@ -121,7 +121,7 @@ export async function invokeBuyPolicy(
   const submitResult = await getRpc().sendTransaction(signedTx);
 
   if (submitResult.status === 'ERROR') {
-    throw new ContractError(`Transaction rejected: ${JSON.stringify(submitResult.errorResult)}`);
+    throw new ContractError('Transaction rejected by the network.', submitResult.hash, submitResult.errorResult);
   }
   return waitForConfirmation(submitResult.hash);
 }
@@ -150,7 +150,7 @@ export async function invokeSubmitClaim(
 
   const simResult = await rpc.simulateTransaction(tx);
   if (StellarRpc.Api.isSimulationError(simResult)) {
-    throw new ContractError(`submit_claim simulation failed: ${simResult.error}`);
+    throw new ContractError('Unable to prepare claim submission. Please try again.', undefined, simResult.error);
   }
 
   const assembled    = StellarRpc.assembleTransaction(tx, simResult).build();
@@ -159,7 +159,7 @@ export async function invokeSubmitClaim(
   const submitResult = await rpc.sendTransaction(signedTx);
 
   if (submitResult.status === 'ERROR') {
-    throw new ContractError(`Claim transaction rejected: ${JSON.stringify(submitResult.errorResult)}`);
+    throw new ContractError('Claim transaction rejected by the network.', submitResult.hash, submitResult.errorResult);
   }
   return waitForConfirmation(submitResult.hash);
 }
@@ -189,7 +189,7 @@ export async function buildDepositTx(
 
   const simResult = await rpc.simulateTransaction(tx);
   if (StellarRpc.Api.isSimulationError(simResult)) {
-    throw new ContractError(`deposit simulation failed: ${simResult.error}`);
+    throw new ContractError('Unable to prepare this deposit. Please try again.', undefined, simResult.error);
   }
 
   return StellarRpc.assembleTransaction(tx, simResult).build().toXDR();
@@ -201,7 +201,7 @@ export async function submitSignedTransaction(signedXdr: string, confirmTimeoutM
   const submitResult = await rpc.sendTransaction(signedTx);
 
   if (submitResult.status === 'ERROR') {
-    throw new ContractError(`Transaction rejected: ${JSON.stringify(submitResult.errorResult)}`);
+    throw new ContractError('Transaction rejected by the network.', submitResult.hash, submitResult.errorResult);
   }
 
   const hash     = submitResult.hash;

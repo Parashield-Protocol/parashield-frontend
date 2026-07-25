@@ -49,10 +49,22 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   throw lastErr;
 }
 
+// A 2xx HTTP status only means the request reached the server — the backend
+// can still report a logical failure via { success: false, error } in the
+// body (e.g. invalid signature). Without this check, callers destructure
+// `data.data` as if it were the real payload and get a TypeError instead of
+// the actual backend error (issue #198).
+function unwrap<T>(data: ApiResponse<T>, status: number): T {
+  if (!data.success) {
+    throw new ApiError(data.error ?? 'Request failed', status);
+  }
+  return data.data;
+}
+
 function get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
   return withRetry(async () => {
-    const { data } = await client.get<ApiResponse<T>>(url, config);
-    return data.data;
+    const res = await client.get<ApiResponse<T>>(url, config);
+    return unwrap(res.data, res.status);
   });
 }
 
@@ -60,7 +72,7 @@ function get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
 // cause duplicate side-effects (e.g. double policy purchase) if the server
 // processed the first attempt but the response was lost (issue #130).
 function post<T>(url: string, body: unknown): Promise<T> {
-  return client.post<ApiResponse<T>>(url, body).then(({ data }) => data.data);
+  return client.post<ApiResponse<T>>(url, body).then((res) => unwrap(res.data, res.status));
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
