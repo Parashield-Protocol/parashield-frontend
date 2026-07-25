@@ -7,8 +7,11 @@ import { WalletProvider } from '@/context/WalletContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { Analytics } from '@/components/Analytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { validateConfig } from '@/lib/constants';
 import Link from 'next/link';
 import { LogoWordmark } from '@/components/Logo';
+
+validateConfig();
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://parashield.app'),

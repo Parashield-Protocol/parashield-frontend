@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { fetchClaim, fetchUserClaims } from '@/lib/api';
+import { fetchClaim, fetchUserClaims, submitClaim as recordClaimSubmission } from '@/lib/api';
 import type { Claim } from '@/types';
 import { toUserMessage } from '@/lib/errors';
 import { invokeSubmitClaim } from '@/lib/contract';
 import { useWallet } from '@/hooks/useWallet';
+import { useToast } from '@/context/ToastContext';
 
 type ClaimStep = 'idle' | 'submitting' | 'polling' | 'done' | 'timeout' | 'error';
 
 export function useClaim(policyId?: string) {
   const { address } = useWallet();
+  const { show: showToast }           = useToast();
   const [step,    setStep]    = useState<ClaimStep>('idle');
   const [claimId, setClaimId] = useState<string | null>(null);
   const [claim,   setClaim]   = useState<Claim | null>(null);
@@ -113,6 +115,20 @@ export function useClaim(policyId?: string) {
     try {
       const txHash = await invokeSubmitClaim(claimant, policyId);
       if (cancelledRef.current) return { error: null };
+
+      // The claim is already final on-chain at this point; the backend still
+      // needs to be told about it or the claim never shows up in the UI, which
+      // reads from the API (issue #244). A failure here is not a failed
+      // claim, so surface it as a warning rather than an error.
+      try {
+        await recordClaimSubmission(claimant, policyId);
+      } catch (syncErr) {
+        showToast(
+          `Claim submitted on-chain (${txHash.slice(0, 8)}…) but could not be recorded: ${toUserMessage(syncErr)}`,
+          'warning',
+        );
+      }
+
       setClaimId(txHash);
       setStep('polling');
       return { error: null };
