@@ -76,7 +76,18 @@ export function confidenceColour(confidence: number): string {
 
 export function buildRainfallKey(lat: number, lng: number, year: number, month: number): string {
   const monthStr = String(month).padStart(2, '0');
-  return `rainfall:${lat},${lng}:${year}-${monthStr}`;
+  // Clamp coordinate precision to 4 decimals (~11m). Without a cap, values like
+  // parseFloat('-0.09171234567') produce long keys that can blow past Soroban's
+  // 32-char limit. toFixed(4) keeps keys well within budget (issue #222).
+  const latStr = clampCoord(lat);
+  const lngStr = clampCoord(lng);
+  return `rainfall:${latStr},${lngStr}:${year}-${monthStr}`;
+}
+
+// Format a coordinate to at most 4 decimals without trailing-zero padding,
+// so whole numbers stay short ("0") and precise values are capped ("-0.0917").
+function clampCoord(value: number): string {
+  return String(Number(value.toFixed(4)));
 }
 
 export function buildFlightKey(flightNumber: string, date: string): string {

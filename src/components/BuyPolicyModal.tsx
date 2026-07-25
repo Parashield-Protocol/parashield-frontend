@@ -85,12 +85,18 @@ export function BuyPolicyModal({ product, onClose }: Props) {
       if (isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))) {
         return 'Valid latitude and longitude are required';
       }
+      if (oracleKey.trim().length > 32) {
+        return 'Generated oracle key exceeds the 32-character limit';
+      }
     } else if (product.category === 'flight') {
       if (!flightNumber.trim()) {
         return 'Flight number is required';
       }
       if (!flightDate) {
         return 'Flight date is required';
+      }
+      if (oracleKey.trim().length > 32) {
+        return 'Generated oracle key exceeds the 32-character limit';
       }
     } else if (product.category === 'disaster' || product.category === 'health') {
       if (!oracleKey.trim() || oracleKey.trim().length > 32) {

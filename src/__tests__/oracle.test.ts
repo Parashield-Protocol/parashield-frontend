@@ -47,6 +47,18 @@ describe('buildRainfallKey', () => {
     const key = buildRainfallKey(0, 0, 2026, 3);
     expect(key).toContain('2026-03');
   });
+
+  it('clamps coordinate precision so keys stay within the 32-char Soroban limit (issue #222)', () => {
+    // Raw high-precision coordinates would blow past 32 chars; clamping to 4
+    // decimals keeps the generated key comfortably within budget.
+    const key = buildRainfallKey(-0.091712345678, 34.767912345678, 2026, 12);
+    expect(key.length).toBeLessThanOrEqual(32);
+    expect(key).toBe('rainfall:-0.0917,34.7679:2026-12');
+  });
+
+  it('does not pad short coordinates with trailing zeros', () => {
+    expect(buildRainfallKey(0, 0, 2026, 6)).toBe('rainfall:0,0:2026-06');
+  });
 });
 
 describe('buildFlightKey', () => {
