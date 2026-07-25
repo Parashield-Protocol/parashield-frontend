@@ -6,6 +6,7 @@ import { toUserMessage } from '@/lib/errors';
 import { fetchChallenge, login, setAuthErrorHandler } from '@/lib/api';
 import storage from '@/lib/storage';
 import { AUTH_TOKEN_STORAGE_KEY, STELLAR_NETWORK } from '@/lib/constants';
+import type { WalletState } from '@/types';
 
 const TESTNET_PASSPHRASE = 'Test SDF Network ; September 2015';
 const PUBLIC_PASSPHRASE  = 'Public Global Stellar Network ; September 2015';
@@ -19,12 +20,13 @@ function networkLabel(passphrase: string | null): string {
 const APP_NETWORK_LABEL = STELLAR_NETWORK === 'PUBLIC' ? 'Mainnet' : 'Testnet';
 
 interface WalletContextValue {
-  address:    string | null;
-  connected:  boolean;
-  connecting: boolean;
-  error:      string | null;
-  connect:    () => Promise<void>;
-  disconnect: () => void;
+  address:     string | null;
+  connected:   boolean;
+  connecting:  boolean;
+  error:       string | null;
+  walletState: WalletState;
+  connect:     () => Promise<void>;
+  disconnect:  () => void;
 }
 
 const WalletContext = createContext<WalletContextValue | null>(null);
@@ -120,9 +122,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAuthErrorHandler(disconnect);
   }, [disconnect]);
 
+  const walletState: WalletState = connecting
+    ? { status: 'connecting' }
+    : error
+    ? { status: 'error', address: null, message: error }
+    : address
+    ? { status: 'connected', address }
+    : { status: 'disconnected' };
+
   return (
     <WalletContext.Provider
-      value={{ address, connected: !!address, connecting, error, connect, disconnect }}
+      value={{ address, connected: !!address, connecting, error, walletState, connect, disconnect }}
     >
       {children}
     </WalletContext.Provider>

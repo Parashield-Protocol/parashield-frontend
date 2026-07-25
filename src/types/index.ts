@@ -80,6 +80,12 @@ export interface ProtocolStats {
   totalPayouts:   string;  // stroops — cumulative paid claims
 }
 
+export type WalletState =
+  | { status: 'disconnected' }
+  | { status: 'connecting' }
+  | { status: 'connected'; address: string }
+  | { status: 'error'; address: null; message: string };
+
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
 export interface Toast {
