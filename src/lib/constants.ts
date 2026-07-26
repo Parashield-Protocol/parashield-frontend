@@ -100,6 +100,9 @@ export const NETWORK_STORAGE_KEY  = 'ps_wallet_network';
 export const AUTH_TOKEN_STORAGE_KEY = 'ps_auth_token';
 
 export const TOAST_DEFAULT_DURATION_MS = 4000;
+export const COPY_FEEDBACK_DURATION_MS  = 2000;
 export const POLLING_INTERVAL_MS       = 30_000;
 export const ORACLE_REFRESH_INTERVAL_MS = 60_000;
 export const CLAIMS_REFRESH_INTERVAL_MS = 15_000;
+export const CLAIM_POLL_INTERVAL_MS    = 3000;
+export const CLAIM_POLL_MAX_ATTEMPTS   = 20;

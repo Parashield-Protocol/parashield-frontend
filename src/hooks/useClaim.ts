@@ -7,6 +7,7 @@ import { toUserMessage } from '@/lib/errors';
 import { invokeSubmitClaim } from '@/lib/contract';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/context/ToastContext';
+import { CLAIM_POLL_INTERVAL_MS, CLAIM_POLL_MAX_ATTEMPTS } from '@/lib/constants';
 
 type ClaimStep = 'idle' | 'submitting' | 'polling' | 'done' | 'timeout' | 'error';
 
@@ -93,14 +94,14 @@ export function useClaim(policyId?: string) {
       }
 
       count++;
-      if (count >= 20) {
+      if (count >= CLAIM_POLL_MAX_ATTEMPTS) {
         setStep('timeout');
       } else {
-        timer = setTimeout(poll, 3000);
+        timer = setTimeout(poll, CLAIM_POLL_INTERVAL_MS);
       }
     }
 
-    timer = setTimeout(poll, 3000);
+    timer = setTimeout(poll, CLAIM_POLL_INTERVAL_MS);
 
     return () => {
       active = false;
@@ -139,7 +140,7 @@ export function useClaim(policyId?: string) {
       setStep('error');
       return { error: errorMsg };
     }
-  }, []);
+  }, [showToast]);
 
   const reset = useCallback(() => {
     cancelledRef.current = true;
