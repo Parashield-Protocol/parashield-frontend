@@ -1,15 +1,14 @@
-import type { Product } from '@/types';
+﻿import type { Product, Comparison } from '@/types';
 
 interface TriggerConditionBadgeProps {
   product:  Product;
   className?: string;
 }
 
-function comparisonSymbol(c: string): string {
+function comparisonSymbol(c: Comparison): string {
   if (c === 'LessThan')    return '<';
   if (c === 'GreaterThan') return '>';
-  if (c === 'Equal')       return '=';
-  return `? ${c}`;
+  return '=';
 }
 
 export function TriggerConditionBadge({ product, className }: TriggerConditionBadgeProps) {
@@ -19,7 +18,7 @@ export function TriggerConditionBadge({ product, className }: TriggerConditionBa
       className={`inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-xs text-gray-300 ${className ?? ''}`}
     >
       <span className="text-teal-400">{product.triggerType}</span>
-      <span className="text-gray-600">·</span>
+      <span className="text-gray-400">·</span>
       <span>{symbol} {product.threshold}</span>
     </span>
   );

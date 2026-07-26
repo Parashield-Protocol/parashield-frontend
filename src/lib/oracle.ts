@@ -65,14 +65,6 @@ export function oracleKeyLabel(key: string): string {
   }
 }
 
-export function oracleValueUnit(dataType: string): string {
-  if (dataType === 'rainfall')    return 'mm';
-  if (dataType === 'temperature') return '°C';
-  if (dataType === 'flight')      return 'min';
-  if (dataType === 'unknown')     return '';
-  return '';
-}
-
 export function confidenceLabel(confidence: number): string {
   if (confidence >= 90) return 'High';
   if (confidence >= 70) return 'Medium';

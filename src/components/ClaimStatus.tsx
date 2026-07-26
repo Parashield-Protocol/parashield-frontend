@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useClaim } from '@/hooks/useClaim';
 import { useWallet } from '@/hooks/useWallet';
@@ -80,9 +80,9 @@ export function ClaimStatus({ policyId }: ClaimStatusProps) {
           )}
         </div>
         {claim.processedAt && (
-          <p className="text-xs text-gray-500">Processed {formatDateTime(claim.processedAt)}</p>
+          <p className="text-xs text-gray-400">Processed {formatDateTime(claim.processedAt)}</p>
         )}
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-400">
           Trigger:{' '}
           <span className={claim.triggerMet ? 'text-emerald-400' : 'text-red-400'}>
             {claim.triggerMet ? 'Met' : 'Not met'}

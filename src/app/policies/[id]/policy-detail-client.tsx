@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { use } from "react";
 import { usePolicy } from "@/hooks/usePolicies";
@@ -99,7 +99,7 @@ export default function PolicyDetailClient({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <p className="text-xs uppercase tracking-widest text-gray-500">
+          <p className="text-xs uppercase tracking-widest text-gray-400">
             Policy holder
           </p>
           <div className="mt-1.5 flex items-center gap-2">
@@ -118,7 +118,7 @@ export default function PolicyDetailClient({
             key={label}
             className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
           >
-            <p className="text-xs uppercase tracking-widest text-gray-500">
+            <p className="text-xs uppercase tracking-widest text-gray-400">
               {label}
             </p>
             <p className="mt-1.5 font-mono text-sm text-white break-all">
@@ -128,7 +128,7 @@ export default function PolicyDetailClient({
         ))}
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <p className="text-xs uppercase tracking-widest text-gray-500">
+          <p className="text-xs uppercase tracking-widest text-gray-400">
             Oracle key
           </p>
           <div className="mt-1.5 flex items-center gap-2">
@@ -150,7 +150,7 @@ export default function PolicyDetailClient({
             key={label}
             className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
           >
-            <p className="text-xs uppercase tracking-widest text-gray-500">
+            <p className="text-xs uppercase tracking-widest text-gray-400">
               {label}
             </p>
             <p className="mt-1.5 font-mono text-sm text-white break-all">
@@ -162,7 +162,7 @@ export default function PolicyDetailClient({
 
       {policy.contractTxHash && (
         <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <p className="text-xs uppercase tracking-widest text-gray-500">
+          <p className="text-xs uppercase tracking-widest text-gray-400">
             Purchase transaction
           </p>
           <TransactionLink txHash={policy.contractTxHash} className="mt-1.5" />

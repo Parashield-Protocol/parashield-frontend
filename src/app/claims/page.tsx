@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@/hooks/useWallet';
@@ -84,7 +84,7 @@ export default function ClaimsPage() {
             Refresh
           </button>
           {lastFetched && (
-            <span className="text-[10px] text-gray-500">
+            <span className="text-[10px] text-gray-400">
               Updated {lastFetched.toLocaleTimeString()}
             </span>
           )}

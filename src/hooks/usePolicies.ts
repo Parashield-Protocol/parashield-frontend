@@ -10,6 +10,7 @@ export function usePolicies(walletAddress: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isFirstLoad = useRef(true);
+  const refetchController = useRef<AbortController | null>(null);
 
   const load = useCallback(async (signal: AbortSignal) => {
     if (!walletAddress) return;
@@ -59,7 +60,9 @@ export function usePolicies(walletAddress: string | null) {
   }, [load, walletAddress]);
 
   const refetch = useCallback(() => {
+    refetchController.current?.abort();
     const controller = new AbortController();
+    refetchController.current = controller;
     return load(controller.signal);
   }, [load]);
 

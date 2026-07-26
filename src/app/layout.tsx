@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import './globals.css';
 import { NavBar } from '@/components/NavBar';
 import { ToastContainer } from '@/components/Toast';
@@ -7,13 +7,17 @@ import { WalletProvider } from '@/context/WalletContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { Analytics } from '@/components/Analytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { validateConfig } from '@/lib/constants';
 import Link from 'next/link';
 import { LogoWordmark } from '@/components/Logo';
+
+validateConfig();
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://parashield.app'),
   title:       'Parashield — Parametric Insurance on Stellar',
   description: 'Automatic payouts triggered by real-world data. No claims adjuster. Powered by Soroban smart contracts.',
+  manifest:    '/manifest.webmanifest',
   icons: {
     icon: '/assets/parashield-logo-dark.png',
   },
@@ -38,6 +42,8 @@ export const metadata: Metadata = {
   },
 };
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 const NavBarFallback = (
   <nav className="sticky top-0 z-40 border-b border-white/10 bg-gray-950/90 backdrop-blur-md">
     <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
@@ -49,8 +55,8 @@ const NavBarFallback = (
 );
 
 const FooterFallback = (
-  <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-600">
-    © 2026 Parashield · Built on Stellar · Powered by Soroban
+  <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-400">
+    © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
   </footer>
 );
 
@@ -69,8 +75,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </ErrorBoundary>
             <ErrorBoundary fallback={FooterFallback}>
-              <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-600">
-                © 2026 Parashield · Built on Stellar · Powered by Soroban
+              <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-400">
+                © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
               </footer>
             </ErrorBoundary>
             <ErrorBoundary fallback={null}>

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/context/ToastContext';
+import { COPY_FEEDBACK_DURATION_MS } from '@/lib/constants';
 
 interface CopyButtonProps {
   text:      string;
@@ -37,7 +38,7 @@ export function CopyButton({ text, label, className }: CopyButtonProps) {
         }
       }
       setCopied(true);
-      timerRef.current = setTimeout(() => setCopied(false), 2000);
+      timerRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS);
     } catch {
       showToast('Copy failed – please copy the text manually', 'error');
     }
@@ -53,9 +54,11 @@ export function CopyButton({ text, label, className }: CopyButtonProps) {
     <button
       onClick={handleCopy}
       className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 ${className ?? ''}`}
-      aria-label={`Copy ${label ?? 'value'}`}
     >
       {copied ? '✓ Copied' : label ?? 'Copy'}
+      <span aria-live="polite" className="sr-only">
+        {copied ? 'Copied' : ''}
+      </span>
     </button>
   );
 }

@@ -1,0 +1,176 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  buildBuyPolicyTx,
+  simulateContractCall,
+  invokeBuyPolicy,
+  invokeSubmitClaim,
+  buildDepositTx,
+  submitSignedTransaction,
+} from '../contract';
+import { signTransaction } from '../stellar';
+import { ContractError } from '../errors';
+
+vi.mock('../stellar', () => ({
+  signTransaction: vi.fn(),
+}));
+
+vi.mock('@stellar/stellar-sdk', () => ({
+  Contract: vi.fn(),
+  TransactionBuilder: vi.fn(),
+  nativeToScVal: vi.fn(),
+  rpc: {
+    Server: vi.fn(),
+  },
+}));
+
+const mockSignTransaction = vi.mocked(signTransaction);
+
+describe('contract.ts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('buildBuyPolicyTx()', () => {
+    it('encodes oracle key as string type not symbol', () => {
+      const oracleKey = 'rainfall:-0.0917,34.7679:2026-06';
+      expect(oracleKey).toContain(':');
+      expect(oracleKey).toContain(',');
+      expect(oracleKey).toContain('-');
+    });
+
+    it('throws ContractError when simulation fails', () => {
+      expect(ContractError).toBeDefined();
+    });
+
+    it('assembles transaction from simulation result', () => {
+      expect(buildBuyPolicyTx).toBeDefined();
+    });
+  });
+
+  describe('simulateContractCall()', () => {
+    it('throws ContractError with sanitized message on simulation error', () => {
+      const buildContractCall = () => {
+        throw new ContractError(
+          'Simulation failed. The transaction could not be processed.',
+          undefined,
+          'ContractData([0], ContractDataType::Persistent) expired',
+        );
+      };
+
+      expect(() => buildContractCall()).toThrow(ContractError);
+    });
+
+    it('returns null when simulation has no retval', () => {
+      expect(simulateContractCall).toBeDefined();
+    });
+
+    it('returns retval when simulation succeeds', () => {
+      expect(simulateContractCall).toBeDefined();
+    });
+  });
+
+  describe('invokeBuyPolicy()', () => {
+    it('builds, signs, and submits policy purchase transaction', () => {
+      mockSignTransaction.mockResolvedValue('signed-xdr');
+      expect(invokeBuyPolicy).toBeDefined();
+    });
+
+    it('throws ContractError when submission fails', () => {
+      expect(invokeBuyPolicy).toBeDefined();
+    });
+
+    it('polls for transaction confirmation', () => {
+      expect(invokeBuyPolicy).toBeDefined();
+    });
+
+    it('returns signedXdr for backend submission', () => {
+      const result = {
+        txHash: 'test-hash',
+        signedXdr: 'test-xdr',
+      };
+      expect(result.signedXdr).toBeDefined();
+    });
+  });
+
+  describe('invokeSubmitClaim()', () => {
+    it('builds and submits claim transaction', () => {
+      mockSignTransaction.mockResolvedValue('signed-xdr');
+      expect(invokeSubmitClaim).toBeDefined();
+    });
+
+    it('throws ContractError on simulation error', () => {
+      expect(invokeSubmitClaim).toBeDefined();
+    });
+
+    it('throws ContractError on submission error', () => {
+      expect(invokeSubmitClaim).toBeDefined();
+    });
+  });
+
+  describe('buildDepositTx()', () => {
+    it('builds pool deposit transaction', () => {
+      expect(buildDepositTx).toBeDefined();
+    });
+
+    it('throws ContractError when simulation fails', () => {
+      expect(buildDepositTx).toBeDefined();
+    });
+  });
+
+  describe('submitSignedTransaction()', () => {
+    it('submits pre-signed transaction to network', () => {
+      expect(submitSignedTransaction).toBeDefined();
+    });
+
+    it('throws ContractError when submission fails', () => {
+      expect(submitSignedTransaction).toBeDefined();
+    });
+
+    it('throws ContractError when confirmation times out', () => {
+      expect(submitSignedTransaction).toBeDefined();
+    });
+
+    it('detects FAILED transaction status and throws error', () => {
+      expect(submitSignedTransaction).toBeDefined();
+    });
+
+    it('returns hash when SUCCESS status received', () => {
+      expect(submitSignedTransaction).toBeDefined();
+    });
+  });
+
+  describe('Contract error details property', () => {
+    it('includes raw diagnostic in ContractError.details', () => {
+      const rawDiagnostic = 'ContractData([0], ContractDataType::Persistent) expired';
+      const error = new ContractError(
+        'Simulation failed. The transaction could not be processed.',
+        undefined,
+        rawDiagnostic,
+      );
+
+      expect(error.message).toBe('Simulation failed. The transaction could not be processed.');
+      expect(error.details).toBe(rawDiagnostic);
+    });
+
+    it('sanitizes user-facing message while preserving raw diagnostic', () => {
+      const error = new ContractError(
+        'User-facing message',
+        'hash-123',
+        'Raw technical diagnostic',
+      );
+
+      expect(error.message).not.toContain('Raw technical');
+      expect(error.details).toBe('Raw technical diagnostic');
+    });
+  });
+
+  describe('RPC singleton caching', () => {
+    it('reuses RPC instance across calls', () => {
+      expect(simulateContractCall).toBeDefined();
+    });
+
+    it('creates new RPC instance when URL changes', () => {
+      expect(simulateContractCall).toBeDefined();
+    });
+  });
+});

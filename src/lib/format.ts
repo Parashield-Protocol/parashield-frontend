@@ -64,13 +64,6 @@ export function formatDateTime(epochSeconds: number): string {
   });
 }
 
-export function formatDuration(days: number): string {
-  if (days === 1) return '1 day';
-  if (days < 30) return `${days} days`;
-  if (days < 365) return `${Math.round(days / 30)} mo`;
-  return `${(days / 365).toFixed(1)} yr`;
-}
-
 export function basisPointsToPercent(bps: number, decimals = 2): string {
   return `${(bps / 100).toFixed(decimals)}%`;
 }
@@ -126,10 +119,20 @@ export function timeLeft(endEpochSeconds: number): string {
   return `Expired ${formatDate(endEpochSeconds)}`;
 }
 
+export function getUtilizationColorName(rate: number): 'teal' | 'amber' | 'red' {
+  if (rate < 0.5) return 'teal';
+  if (rate < 0.8) return 'amber';
+  return 'red';
+}
+
 export function utilizationColor(rate: number): string {
-  if (rate < 0.5) return 'text-emerald-400';
-  if (rate < 0.8) return 'text-amber-400';
-  return 'text-red-400';
+  const colorName = getUtilizationColorName(rate);
+  const colorMap: Record<'teal' | 'amber' | 'red', string> = {
+    teal: 'text-emerald-400',
+    amber: 'text-amber-400',
+    red: 'text-red-400',
+  };
+  return colorMap[colorName];
 }
 
 export function estimatePremium(coverageDisplay: string, premiumRateBps: number): string {

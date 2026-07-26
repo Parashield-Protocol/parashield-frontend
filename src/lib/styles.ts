@@ -1,0 +1,7 @@
+export const INPUT_CLASS =
+  'w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none';
+
+export const SELECT_CLASS = `${INPUT_CLASS} text-white appearance-none`;
+
+export const LABEL_CLASS =
+  'mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-400';
