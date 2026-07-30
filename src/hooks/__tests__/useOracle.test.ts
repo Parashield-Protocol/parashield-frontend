@@ -123,6 +123,55 @@ describe('useOracleReading', () => {
     });
   });
 
+  it('clears stale data and shows loading when the key switches directly (issue #229)', async () => {
+    const firstReading = {
+      key: 'weather-abuja',
+      dataType: 'weather' as const,
+      value: 'first-value',
+      confidence: 95,
+      timestamp: 1000,
+      source: 'mock',
+    };
+    const secondReading = {
+      key: 'weather-lagos',
+      dataType: 'weather' as const,
+      value: 'second-value',
+      confidence: 90,
+      timestamp: 2000,
+      source: 'mock',
+    };
+
+    let resolveSecond: (v: typeof secondReading) => void;
+    const secondPromise = new Promise<typeof secondReading>((r) => { resolveSecond = r; });
+    mockFetchOracleReading
+      .mockResolvedValueOnce(firstReading)
+      .mockReturnValueOnce(secondPromise);
+
+    const { result, rerender } = renderHook(
+      ({ key }) => useOracleReading(key),
+      { initialProps: { key: 'weather-abuja' } },
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.reading?.value).toBe('first-value');
+
+    // Key changes with no intermediate null — the previous key's reading must
+    // not stay on screen unlabelled while the new fetch is in flight.
+    rerender({ key: 'weather-lagos' });
+
+    expect(result.current.reading).toBeNull();
+    expect(result.current.loading).toBe(true);
+
+    await act(async () => {
+      resolveSecond!(secondReading);
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.reading?.value).toBe('second-value');
+  });
+
   it('sets error state on fetch failure', async () => {
     mockFetchOracleReading.mockRejectedValue(new Error('Network error'));
 

@@ -10,6 +10,8 @@ export function usePolicies(walletAddress: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isFirstLoad = useRef(true);
+  // Seeded with the initial wallet: on mount there is nothing stale to clear.
+  const prevWallet = useRef(walletAddress);
   const refetchController = useRef<AbortController | null>(null);
 
   const load = useCallback(async (signal: AbortSignal) => {
@@ -34,13 +36,20 @@ export function usePolicies(walletAddress: string | null) {
     }
   }, [walletAddress]);
 
+  // Reset per-wallet state on *any* identity change, not just on disconnect.
+  // Switching accounts inside the wallet extension surfaces as address → address
+  // with no intermediate null; keying off falsiness alone left isFirstLoad false,
+  // so no loading state was shown and the previous wallet's policies stayed on
+  // screen — attributed to the newly-selected wallet (issue #229).
+  //
+  // Declared before the fetching effect so isFirstLoad is already reset by the
+  // time load() runs in the same commit.
   useEffect(() => {
-    if (!walletAddress) {
-      setPolicies([]);
-      setError(null);
-      isFirstLoad.current = true;
-      return;
-    }
+    if (prevWallet.current === walletAddress) return;
+    prevWallet.current = walletAddress;
+    setPolicies([]);
+    setError(null);
+    isFirstLoad.current = true;
   }, [walletAddress]);
 
   useEffect(() => {

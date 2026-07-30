@@ -29,15 +29,41 @@ describe('analytics page buffering', () => {
     });
   });
 
-  it('buffers only the latest pageview when multiple calls before ready', () => {
+  it('buffers every pageview queued before ready and flushes them in order', () => {
     setPostHogReady(false);
-    page('first');
-    page('second');
+    page('first',  { route: '/first'  });
+    page('second', { route: '/second' });
+    page('third',  { route: '/third'  });
+    expect(posthog.capture).not.toHaveBeenCalled();
+
     setPostHogReady(true);
-    // Should capture only once with latest page view
+
+    expect(posthog.capture).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(posthog.capture).mock.calls.map(([, props]) => (props as { route: string }).route))
+      .toEqual(['/first', '/second', '/third']);
+  });
+
+  it('does not re-send buffered pageviews on a second ready flip', () => {
+    setPostHogReady(false);
+    page('home');
+    setPostHogReady(true);
     expect(posthog.capture).toHaveBeenCalledTimes(1);
+
+    setPostHogReady(true);
+    expect(posthog.capture).toHaveBeenCalledTimes(1);
+  });
+
+  it('captures the URL at page() time, not at flush time', () => {
+    setPostHogReady(false);
+    const originalHref = window.location.href;
+    page('first');
+
+    window.history.pushState({}, '', '/later-route');
+    setPostHogReady(true);
+
     expect(posthog.capture).toHaveBeenCalledWith('$pageview', {
-      $current_url: window.location.href,
+      $current_url: originalHref,
     });
+    window.history.pushState({}, '', originalHref);
   });
 });

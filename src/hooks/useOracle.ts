@@ -11,6 +11,7 @@ export function useOracleReading(key: string | null) {
   const [error,    setError]    = useState<string | null>(null);
   const isFirstLoad = useRef(true);
   const currentKeyRef = useRef(key);
+  const prevKeyRef = useRef(key);
 
   const load = useCallback(async () => {
     if (!key) return;
@@ -39,11 +40,20 @@ export function useOracleReading(key: string | null) {
 
   useEffect(() => {
     currentKeyRef.current = key;
-    if (!key) {
+
+    // Any key change resets the per-key state, not just a change to null. An
+    // oracle key that switches straight from one value to another (e.g. the user
+    // picks a different account/product without disconnecting first) previously
+    // left isFirstLoad false, so no loading state appeared and the previous key's
+    // reading stayed rendered as if it belonged to the new key (issue #229).
+    if (prevKeyRef.current !== key) {
+      prevKeyRef.current = key;
       setReading(null);
+      setError(null);
       isFirstLoad.current = true;
-      return;
     }
+
+    if (!key) return;
     void load();
     const interval = setInterval(() => { if (!document.hidden) void load(); }, ORACLE_REFRESH_INTERVAL_MS);
     const onVisible = () => { if (!document.hidden) void load(); };

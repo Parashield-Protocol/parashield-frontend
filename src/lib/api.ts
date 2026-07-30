@@ -20,6 +20,25 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * `Retry-After` is either delta-seconds or an HTTP-date (RFC 9110 §10.2.3).
+ * Returns undefined for a missing or unparseable value so the caller falls back
+ * to its own backoff.
+ */
+function parseRetryAfter(value: unknown): number | undefined {
+  if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+  const raw = String(value).trim();
+  if (!raw) return undefined;
+
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1_000);
+
+  const dateMs = Date.parse(raw);
+  if (!Number.isNaN(dateMs)) return Math.max(0, dateMs - Date.now());
+
+  return undefined;
+}
+
 client.interceptors.response.use(
   (res) => res,
   (err: AxiosError<{ message?: string; error?: string }>) => {
@@ -29,9 +48,20 @@ client.interceptors.response.use(
       if (onAuthError) onAuthError();
     }
     const message = err.response?.data?.message ?? err.response?.data?.error ?? err.message;
-    throw new ApiError(message, status);
+    throw new ApiError(message, status, undefined, parseRetryAfter(err.response?.headers?.['retry-after']));
   },
 );
+
+// 4xx means "don't bother asking again" — except these two, which are explicitly
+// transient and are the exact statuses a backoff-retry exists for. Lumping them
+// in with 400/404 made a rate-limited poll (e.g. the 60s oracle refresh) fail on
+// the very first 429 instead of backing off (issue #231).
+const RETRYABLE_CLIENT_STATUSES = new Set([408, 429]);
+
+const RETRY_BASE_DELAY_MS = 500;
+// A hostile or misconfigured Retry-After ("3600") must not park the UI on a
+// spinner for an hour — fall back to plain backoff past this point.
+const MAX_RETRY_DELAY_MS  = 30_000;
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   let lastErr: unknown;
@@ -39,8 +69,22 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
     try { return await fn(); }
     catch (err) {
       lastErr = err;
-      if (err instanceof ApiError && err.status >= 400 && err.status < 500) throw err;
-      if (i < retries) await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+      if (
+        err instanceof ApiError &&
+        err.status >= 400 && err.status < 500 &&
+        !RETRYABLE_CLIENT_STATUSES.has(err.status)
+      ) throw err;
+
+      if (i < retries) {
+        const backoffMs    = RETRY_BASE_DELAY_MS * (i + 1);
+        const retryAfterMs = err instanceof ApiError ? err.retryAfterMs : undefined;
+        // Honour Retry-After when it asks us to wait longer than our backoff;
+        // never shorter, and never past the ceiling.
+        const delayMs = retryAfterMs === undefined
+          ? backoffMs
+          : Math.min(Math.max(retryAfterMs, backoffMs), MAX_RETRY_DELAY_MS);
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
     }
   }
   throw lastErr;

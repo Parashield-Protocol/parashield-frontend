@@ -6,9 +6,10 @@ import {
   invokeSubmitClaim,
   buildDepositTx,
   submitSignedTransaction,
+  withStateRestore,
 } from '../contract';
 import { signTransaction } from '../stellar';
-import { ContractError } from '../errors';
+import { ContractError, StateArchivedError, toUserMessage } from '../errors';
 
 vi.mock('../stellar', () => ({
   signTransaction: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock('../stellar', () => ({
 
 vi.mock('@stellar/stellar-sdk', () => ({
   Contract: vi.fn(),
+  Operation: { restoreFootprint: vi.fn() },
   TransactionBuilder: vi.fn(),
   nativeToScVal: vi.fn(),
   rpc: {
@@ -161,6 +163,55 @@ describe('contract.ts', () => {
 
       expect(error.message).not.toContain('Raw technical');
       expect(error.details).toBe('Raw technical diagnostic');
+    });
+  });
+
+  describe('archived state handling (issue #230)', () => {
+    const archived = () => new StateArchivedError('Contract data has expired', 'restore-xdr', '4321');
+
+    it('StateArchivedError carries a signable restore transaction', () => {
+      const err = archived();
+
+      expect(err).toBeInstanceOf(ContractError);
+      expect(err.name).toBe('StateArchivedError');
+      expect(err.restoreXdr).toBe('restore-xdr');
+      expect(err.minResourceFee).toBe('4321');
+    });
+
+    it('surfaces the archival message to the user without a generic prefix', () => {
+      expect(toUserMessage(archived())).toBe('Contract data has expired');
+      expect(toUserMessage(archived())).not.toContain('Contract call failed');
+    });
+
+    it('runs the operation once when no state is archived', async () => {
+      const run = vi.fn().mockResolvedValue('ok');
+
+      await expect(withStateRestore(run)).resolves.toBe('ok');
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(mockSignTransaction).not.toHaveBeenCalled();
+    });
+
+    it('passes non-archival errors straight through without a restore', async () => {
+      const run = vi.fn().mockRejectedValue(new ContractError('Simulation failed.'));
+
+      await expect(withStateRestore(run)).rejects.toThrow('Simulation failed.');
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(mockSignTransaction).not.toHaveBeenCalled();
+    });
+
+    it('sends the restore transaction from the error for signing', async () => {
+      mockSignTransaction.mockResolvedValue('signed-restore-xdr');
+      const run = vi.fn()
+        .mockRejectedValueOnce(archived())
+        .mockResolvedValueOnce('ok');
+
+      // Submission itself needs a live RPC (the SDK is mocked here), so this
+      // asserts only that the restore leg is driven off the error's XDR — and
+      // that the operation is not retried before the restore is submitted.
+      await withStateRestore(run).catch(() => {});
+
+      expect(mockSignTransaction).toHaveBeenCalledWith('restore-xdr');
+      expect(run).toHaveBeenCalledTimes(1);
     });
   });
 
