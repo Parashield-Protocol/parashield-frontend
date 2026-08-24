@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import type { Product } from '@/types';
 import { BuyPolicyModal } from './BuyPolicyModal';
 import { Badge } from './Badge';
@@ -14,7 +14,7 @@ interface ProductCardProps {
   onCompareToggle?: (product: Product) => void;
 }
 
-export function ProductCard({ product, compareSelected, onCompareToggle }: ProductCardProps) {
+function ProductCardComponent({ product, compareSelected, onCompareToggle }: ProductCardProps) {
   const [open, setOpen] = useState(false);
   const icon            = CATEGORY_ICONS[product.category] ?? '🛡️';
   const isActive        = product.status === 'Active';
@@ -25,6 +25,10 @@ export function ProductCard({ product, compareSelected, onCompareToggle }: Produ
       if (isActive) setOpen(true);
     }
   };
+
+  const handleCompareChange = useCallback(() => {
+    onCompareToggle?.(product);
+  }, [onCompareToggle, product]);
 
   return (
     <>
@@ -48,7 +52,7 @@ export function ProductCard({ product, compareSelected, onCompareToggle }: Produ
                 <input
                   type="checkbox"
                   checked={!!compareSelected}
-                  onChange={() => onCompareToggle(product)}
+                  onChange={handleCompareChange}
                   className="h-4 w-4 rounded border-white/20 bg-white/5 text-teal-500 focus:ring-teal-500"
                 />
                 Compare
@@ -103,3 +107,5 @@ export function ProductCard({ product, compareSelected, onCompareToggle }: Produ
     </>
   );
 }
+
+export const ProductCard = memo(ProductCardComponent);
