@@ -45,10 +45,13 @@ export function ProgressBar({ value, max = 100, label, colour = 'teal', classNam
 
 export function StepProgress({ steps, current }: { steps: string[]; current: number }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" role="group" aria-label="Progress">
       {steps.map((step, i) => (
         <div key={step} className="flex items-center gap-2">
           <div
+            role="img"
+            aria-label={i < current ? `${step} — completed` : i === current ? `${step} — current step` : `${step} — pending`}
+            aria-current={i === current ? 'step' : undefined}
             className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors ${
               i < current  ? 'bg-teal-500 text-white' :
               i === current ? 'border-2 border-teal-500 text-teal-400' :

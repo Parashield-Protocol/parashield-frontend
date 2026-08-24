@@ -4,7 +4,7 @@ import { useWallet } from "@/hooks/useWallet";
 import { usePolicies } from "@/hooks/usePolicies";
 import { ConnectWalletPrompt } from "@/components/ConnectWalletPrompt";
 import { PolicyCard } from "@/components/PolicyCard";
-import { SkeletonCard } from "@/components/Skeleton";
+import { Skeleton, SkeletonCard } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { formatUSDC, safeBigInt } from "@/lib/format";
 import { StatsCard } from "@/components/StatsCard";
@@ -45,13 +45,13 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatsCard label="Active policies" value={loading ? "—" : active.length.toString()} />
+          <StatsCard label="Active policies" value={loading ? <Skeleton className="h-8 w-20" /> : active.length.toString()} />
           <StatsCard
             label="Total policies"
-            value={loading ? "—" : policies.length.toString()}
+            value={loading ? <Skeleton className="h-8 w-20" /> : policies.length.toString()}
           />
-          <StatsCard label="Total coverage" value={loading ? "—" : formatUSDC(totalCov)} />
-          <StatsCard label="Total premiums" value={loading ? "—" : formatUSDC(totalPaid)} />
+          <StatsCard label="Total coverage" value={loading ? <Skeleton className="h-8 w-24" /> : formatUSDC(totalCov)} />
+          <StatsCard label="Total premiums" value={loading ? <Skeleton className="h-8 w-24" /> : formatUSDC(totalPaid)} />
         </div>
       )}
 
