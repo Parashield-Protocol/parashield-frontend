@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { memo, useState } from 'react';
+import { useState } from 'react';
 import type { Product } from '@/types';
 import { BuyPolicyModal } from './BuyPolicyModal';
 import { Badge } from './Badge';
@@ -12,7 +12,7 @@ interface ProductCardProps {
   product: Product;
 }
 
-function ProductCardComponent({ product }: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
   const [open, setOpen] = useState(false);
   const icon            = CATEGORY_ICONS[product.category] ?? '🛡️';
   const isActive        = product.status === 'Active';
@@ -78,5 +78,3 @@ function ProductCardComponent({ product }: ProductCardProps) {
     </>
   );
 }
-
-export const ProductCard = memo(ProductCardComponent);

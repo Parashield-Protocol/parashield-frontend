@@ -9,10 +9,11 @@ export function usePools() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
   const requestId = useRef(0);
+  const isFirstLoad = useRef(true);
 
   const load = useCallback(async () => {
     const id = ++requestId.current;
-    setLoading(true);
+    if (isFirstLoad.current) setLoading(true);
     setError(null);
     try {
       const data = await fetchPoolStats();
@@ -22,7 +23,10 @@ export function usePools() {
       if (id !== requestId.current) return;
       setError(err instanceof Error ? err.message : 'Failed to load pool stats');
     } finally {
-      if (id === requestId.current) setLoading(false);
+      if (id === requestId.current) {
+        isFirstLoad.current = false;
+        setLoading(false);
+      }
     }
   }, []);
 

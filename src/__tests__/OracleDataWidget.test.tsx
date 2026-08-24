@@ -31,8 +31,10 @@ vi.mock('@/lib/oracle', () => ({
   },
 }));
 
-vi.mock('@/components/LoadingSpinner', () => ({
-  LoadingSpinner: () => <div role="status">Loading</div>,
+vi.mock('@/components/Skeleton', () => ({
+  Skeleton: ({ className }: { className?: string }) => (
+    <div data-testid="skeleton" className={className} />
+  ),
 }));
 
 import { useOracleReading } from '@/hooks/useOracle';
@@ -43,7 +45,7 @@ describe('OracleDataWidget', () => {
     vi.clearAllMocks();
   });
 
-  it('shows loading spinner when loading', () => {
+  it('shows skeleton when loading', () => {
     mockUseOracleReading.mockReturnValue({
       reading: null,
       loading: true,
@@ -52,7 +54,7 @@ describe('OracleDataWidget', () => {
     });
 
     const html = renderToStaticMarkup(<OracleDataWidget oracleKey="rainfall:1,1:2025-01" />);
-    expect(html).toContain('Loading');
+    expect(html).toContain('skeleton');
   });
 
   it('shows error message when fetch fails', () => {
