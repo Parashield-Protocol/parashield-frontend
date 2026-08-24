@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useWallet } from "@/hooks/useWallet";
 import { usePolicies } from "@/hooks/usePolicies";
+import { fetchUserClaims } from "@/lib/api";
 import { ConnectWalletPrompt } from "@/components/ConnectWalletPrompt";
 import { PolicyCard } from "@/components/PolicyCard";
+import { Badge } from "@/components/Badge";
 import { Skeleton, SkeletonCard } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
-import { formatUSDC, safeBigInt } from "@/lib/format";
+import { formatUSDC, formatDateTime, safeBigInt } from "@/lib/format";
 import { StatsCard } from "@/components/StatsCard";
 import { WalletAddressDisplay } from "@/components/WalletAddressDisplay";
 import { useToast } from "@/context/ToastContext";
+import type { Claim } from "@/types";
 import Link from "next/link";
 
 const EXPIRY_WARNING_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -19,6 +22,27 @@ export default function DashboardPage() {
   const { address, connected } = useWallet();
   const { policies, loading, error, refetch } = usePolicies(address);
   const { show: showToast } = useToast();
+  const [recentClaims, setRecentClaims] = useState<Claim[]>([]);
+  const [claimsLoading, setClaimsLoading] = useState(false);
+
+  const loadRecentClaims = useCallback(async () => {
+    if (!address) return;
+    setClaimsLoading(true);
+    try {
+      const data = await fetchUserClaims(address);
+      setRecentClaims(data.slice(0, 5));
+    } catch {
+      // silently ignore — non-critical
+    } finally {
+      setClaimsLoading(false);
+    }
+  }, [address]);
+
+  useEffect(() => {
+    if (connected && !loading) {
+      void loadRecentClaims();
+    }
+  }, [connected, loading, loadRecentClaims]);
 
   // Warn about policies expiring within 24 hours
   useEffect(() => {
@@ -130,6 +154,63 @@ export default function DashboardPage() {
             {active.slice(0, 6).map((p) => (
               <PolicyCard key={p.id} policy={p} />
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Recent claims */}
+      <div className="mt-10">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-lg font-bold">Recent Claims</h2>
+          <Link
+            href="/claims"
+            className="text-sm text-teal-400 hover:text-teal-300 transition-colors"
+          >
+            View all →
+          </Link>
+        </div>
+
+        {claimsLoading ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <Skeleton className="h-40 w-full" />
+          </div>
+        ) : recentClaims.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center text-sm text-gray-400">
+            No claims submitted yet.
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
+                  <th className="px-6 py-3">Claim ID</th>
+                  <th className="px-6 py-3">Submitted</th>
+                  <th className="px-6 py-3">Payout</th>
+                  <th className="px-6 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentClaims.map((claim) => (
+                  <tr
+                    key={claim.id}
+                    className="border-b border-white/5 transition-colors hover:bg-white/[0.02]"
+                  >
+                    <td className="px-6 py-4 font-mono text-xs text-gray-400">
+                      {claim.id.slice(0, 8)}…
+                    </td>
+                    <td className="px-6 py-4 text-xs text-gray-400">
+                      {formatDateTime(claim.submittedAt)}
+                    </td>
+                    <td className="px-6 py-4 text-xs font-semibold text-emerald-400">
+                      {claim.payoutAmount ? formatUSDC(claim.payoutAmount) : '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge label={claim.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
