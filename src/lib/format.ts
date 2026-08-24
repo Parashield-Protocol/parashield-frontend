@@ -46,7 +46,8 @@ export function shortenAddress(address: string, chars = 4): string {
   return `${address.slice(0, chars)}…${address.slice(-chars)}`;
 }
 
-export function formatDate(epochSeconds: number): string {
+export function formatDate(epochSeconds: number | null | undefined): string {
+  if (epochSeconds == null) return '—';
   return new Date(epochSeconds * 1000).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -54,7 +55,8 @@ export function formatDate(epochSeconds: number): string {
   });
 }
 
-export function formatDateTime(epochSeconds: number): string {
+export function formatDateTime(epochSeconds: number | null | undefined): string {
+  if (epochSeconds == null) return '—';
   return new Date(epochSeconds * 1000).toLocaleString('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -80,7 +82,8 @@ function fixedPointToFixed(raw: bigint, decimals: number): string {
   return `${negative ? '-' : ''}${whole}.${fracStr}`;
 }
 
-export function formatOracleValue(value: string, dataType: string): string {
+export function formatOracleValue(value: string | null | undefined, dataType: string): string {
+  if (value == null) return '—';
   const raw = BigInt(value);
   switch (dataType) {
     case 'weather':

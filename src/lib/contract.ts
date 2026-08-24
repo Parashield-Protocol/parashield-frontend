@@ -288,6 +288,33 @@ export async function buildDepositTx(
   return assembled.toXDR();
 }
 
+export async function buildWithdrawTx(
+  poolId: string,
+  shares: bigint,
+  wallet: string,
+): Promise<string> {
+  const rpc      = getRpc();
+  const account  = await rpc.getAccount(wallet);
+  const contract = new Contract(poolId);
+
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      contract.call(
+        'withdraw',
+        nativeToScVal(shares, { type: 'i128' }),
+        nativeToScVal(wallet, { type: 'address' }),
+      ),
+    )
+    .setTimeout(60)
+    .build();
+
+  const assembled = await simulateAndAssemble(tx, 'Unable to prepare this withdrawal. Please try again.');
+  return assembled.toXDR();
+}
+
 export async function submitSignedTransaction(signedXdr: string, confirmTimeoutMs = 30_000): Promise<string> {
   const rpc          = getRpc();
   const signedTx     = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);

@@ -91,4 +91,24 @@ describe('ToastContext', () => {
     });
     expect(result.current.toasts).toHaveLength(0);
   });
+
+  it('deduplicates identical messages', () => {
+    const { result } = renderHook(() => useToast(), { wrapper });
+    act(() => {
+      result.current.show('Duplicate');
+      result.current.show('Duplicate');
+      result.current.show('Duplicate');
+    });
+    expect(result.current.toasts).toHaveLength(1);
+    expect(result.current.toasts[0].message).toBe('Duplicate');
+  });
+
+  it('allows different messages', () => {
+    const { result } = renderHook(() => useToast(), { wrapper });
+    act(() => {
+      result.current.show('First');
+      result.current.show('Second');
+    });
+    expect(result.current.toasts).toHaveLength(2);
+  });
 });
