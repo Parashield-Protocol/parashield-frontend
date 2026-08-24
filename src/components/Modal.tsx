@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useModalOverflow } from '@/hooks/useModalOverflow';
 
 interface ModalProps {
@@ -20,6 +20,33 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
   const titleId = useId();
   const { lock, unlock } = useModalOverflow();
 
+  // Track mount state and animation visibility
+  const [shouldRender, setShouldRender] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  // Mount when open changes to true
+  useEffect(() => {
+    if (open) {
+      setShouldRender(true);
+      // Trigger fade-in after mount
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true));
+      });
+    } else if (shouldRender) {
+      // Start fade-out
+      setVisible(false);
+    }
+  }, [open, shouldRender]);
+
+  // Unmount after close animation finishes
+  const handleTransitionEnd = () => {
+    if (!open) {
+      setShouldRender(false);
+      setVisible(false);
+    }
+  };
+
+  // Keyboard handling (Escape, Tab trap)
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -45,12 +72,14 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
+  // Lock body scroll
   useEffect(() => {
     if (!open) return;
     lock();
     return () => unlock();
   }, [open, lock, unlock]);
 
+  // Focus management
   useEffect(() => {
     if (!open) return;
 
@@ -63,12 +92,17 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70 p-4 backdrop-blur-sm"
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ease-out ${
+        visible
+          ? 'bg-black/50 dark:bg-black/70 backdrop-blur-sm opacity-100'
+          : 'bg-black/0 dark:bg-black/0 backdrop-blur-0 opacity-0'
+      }`}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onTransitionEnd={handleTransitionEnd}
     >
       <div
         ref={dialogRef}
@@ -76,7 +110,11 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
-        className={`relative w-full ${maxWidth} rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-2xl`}
+        className={`relative w-full ${maxWidth} rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-2xl transition-all duration-300 ease-out ${
+          visible
+            ? 'opacity-100 scale-100 translate-y-0'
+            : 'opacity-0 scale-95 translate-y-2'
+        }`}
       >
         {title && (
           <div className="mb-5 flex items-center justify-between">
