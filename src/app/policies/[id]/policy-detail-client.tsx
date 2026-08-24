@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { usePolicy } from "@/hooks/usePolicies";
 import { useWallet } from "@/hooks/useWallet";
 import { OracleDataWidget } from "@/components/OracleDataWidget";
@@ -177,20 +177,7 @@ export default function PolicyDetailClient({
       </div>
 
       {policy.oracleKey && (
-        <div className="mt-6">
-          <h2 className="mb-3 text-sm font-semibold text-gray-400">
-            Live Oracle Reading
-          </h2>
-          <ErrorBoundary
-            fallback={
-              <p className="rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
-                Oracle data unavailable — unable to parse the latest reading.
-              </p>
-            }
-          >
-            <OracleDataWidget oracleKey={policy.oracleKey} />
-          </ErrorBoundary>
-        </div>
+        <OracleSection oracleKey={policy.oracleKey} />
       )}
 
       {canClaim && (
@@ -207,5 +194,32 @@ export default function PolicyDetailClient({
         </div>
       )}
     </main>
+  );
+}
+
+function OracleSection({ oracleKey }: { oracleKey: string }) {
+  const [retryKey, setRetryKey] = useState(0);
+
+  return (
+    <div className="mt-6">
+      <h2 className="mb-3 text-sm font-semibold text-gray-400">
+        Live Oracle Reading
+      </h2>
+      <ErrorBoundary
+        fallback={
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+            <p>Oracle data unavailable — unable to parse the latest reading.</p>
+            <button
+              onClick={() => setRetryKey((k) => k + 1)}
+              className="mt-3 rounded-lg bg-teal-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-400 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        }
+      >
+        <OracleDataWidget key={retryKey} oracleKey={oracleKey} />
+      </ErrorBoundary>
+    </div>
   );
 }
