@@ -4,10 +4,12 @@ import { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { useAllOracleReadings } from '@/hooks/useOracle';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Badge } from '@/components/Badge';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { formatOracleValue, formatDateTime } from '@/lib/format';
 import { oracleKeyLabel, confidenceLabel, confidenceColour, confidenceIcon } from '@/lib/oracle';
 
 const PAGE_SIZE = 50;
+const SCROLL_THRESHOLD = 200;
 
 type DataTypeFilter = 'all' | 'weather' | 'flight' | 'defi';
 type SortKey = 'timestamp' | 'confidence' | 'dataType';
@@ -20,12 +22,13 @@ export default function OraclePage() {
   if (!error && readings.length > 0) lastSuccessRef.current = new Date();
   const isStale = error !== null && readings.length > 0;
 
-  const [page, setPage] = useState(0);
+  const [displayedItems, setDisplayedItems] = useState(PAGE_SIZE);
   const [dataTypeFilter, setDataTypeFilter] = useState<DataTypeFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('timestamp');
   const [sortAsc, setSortAsc] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const tableEndRef = useRef<HTMLDivElement>(null);
-  const prevReadingsLen = useRef(readings.length);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const handleSort = useCallback((key: SortKey) => {
     if (sortKey === key) {
@@ -56,28 +59,48 @@ export default function OraclePage() {
     });
   }, [readings, dataTypeFilter, sortKey, sortAsc]);
 
-  const totalPages = Math.ceil(filteredReadings.length / PAGE_SIZE);
+  const displayedReadings = useMemo(() => {
+    return filteredReadings.slice(0, displayedItems);
+  }, [filteredReadings, displayedItems]);
 
-  const paginatedReadings = useMemo(() => {
-    const start = page * PAGE_SIZE;
-    return filteredReadings.slice(start, start + PAGE_SIZE);
-  }, [filteredReadings, page]);
+  const hasMore = displayedItems < filteredReadings.length;
 
   const sortIndicator = (key: SortKey) => {
     if (sortKey !== key) return null;
     return sortAsc ? ' ↑' : ' ↓';
   };
 
-  // Auto-scroll to newest readings when data updates
+  // Reset displayed items when filter changes
   useEffect(() => {
-    if (readings.length > prevReadingsLen.current) {
-      setPage(0);
-      if (tableEndRef.current) {
-        tableEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
+    setDisplayedItems(PAGE_SIZE);
+  }, [dataTypeFilter]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          setLoadingMore(true);
+          setTimeout(() => {
+            setDisplayedItems((prev) => Math.min(prev + PAGE_SIZE, filteredReadings.length));
+            setLoadingMore(false);
+          }, 300);
+        }
+      },
+      { rootMargin: `${SCROLL_THRESHOLD}px` }
+    );
+
+    if (tableEndRef.current) {
+      observer.observe(tableEndRef.current);
     }
-    prevReadingsLen.current = readings.length;
-  }, [readings.length]);
+
+    observerRef.current = observer;
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [hasMore, loading, loadingMore, filteredReadings.length]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -132,7 +155,7 @@ export default function OraclePage() {
             {DATA_TYPES.map((dt) => (
               <button
                 key={dt}
-                onClick={() => { setDataTypeFilter(dt); setPage(0); }}
+                onClick={() => setDataTypeFilter(dt)}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
                   dataTypeFilter === dt
                     ? 'bg-teal-500 text-white'
@@ -181,7 +204,7 @@ export default function OraclePage() {
               </tr>
             </thead>
             <tbody>
-              {paginatedReadings.map((r) => (
+              {displayedReadings.map((r) => (
                 <tr key={r.key} className="border-b border-white/5 hover:bg-white/[0.02]">
                   <td className="p-4 font-mono text-xs text-gray-300 max-w-[200px] truncate">
                     {oracleKeyLabel(r.key)}
@@ -201,29 +224,15 @@ export default function OraclePage() {
               ))}
             </tbody>
           </table>
+          {loadingMore && (
+            <div className="flex items-center justify-center border-t border-white/10 px-4 py-4">
+              <LoadingSpinner size="sm" />
+            </div>
+          )}
           <div ref={tableEndRef} />
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
-              <p className="text-xs text-gray-400">
-                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filteredReadings.length)} of {filteredReadings.length}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
+          {!hasMore && displayedReadings.length > 0 && (
+            <div className="border-t border-white/10 px-4 py-3 text-center text-xs text-gray-400">
+              Showing all {filteredReadings.length} readings
             </div>
           )}
         </div>
