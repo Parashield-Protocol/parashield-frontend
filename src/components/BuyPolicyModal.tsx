@@ -244,7 +244,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       onChange={(e) => setYear(parseInt(e.target.value, 10))}
                       className={SELECT_CLASS}
                     >
-                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((y) => (
+                      {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
                         <option key={y} value={y} className="bg-white dark:bg-gray-900 text-gray-950 dark:text-white">
                           {y}
                         </option>

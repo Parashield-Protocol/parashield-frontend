@@ -96,8 +96,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const stored = getStoredAddress();
       if (!stored) return;
 
-      const hasSession = !!storage.getSession(AUTH_TOKEN_STORAGE_KEY);
-      if (!hasSession) {
+      const token = storage.getSession(AUTH_TOKEN_STORAGE_KEY);
+      if (!token) {
+        if (!cancelled) disconnect();
+        return;
+      }
+
+      // Decode the JWT (without verification) to check expiry.
+      // An expired token would cause the first API call to 401, briefly
+      // showing a "connected" state before disconnecting (issue #369).
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp && payload.exp < Date.now() / 1000) {
+          if (!cancelled) disconnect();
+          return;
+        }
+      } catch {
+        // Malformed token — treat as expired.
         if (!cancelled) disconnect();
         return;
       }
