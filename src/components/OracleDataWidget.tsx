@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useOracleReading } from '@/hooks/useOracle';
-import { LoadingSpinner } from './LoadingSpinner';
+import { Skeleton } from './Skeleton';
 import { formatOracleValue, formatDateTime } from '@/lib/format';
 import { oracleKeyLabel, confidenceLabel, confidenceColour, parseOracleKey } from '@/lib/oracle';
 
@@ -15,8 +15,15 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
 
   if (loading) {
     return (
-      <div className={`flex h-28 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] ${className ?? ''}`}>
-        <LoadingSpinner size="sm" />
+      <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${className ?? ''}`}>
+        <Skeleton className="h-2 w-24 rounded-full" />
+        <Skeleton className="mt-1 h-2 w-32 rounded-full" />
+        <Skeleton className="mt-3 h-7 w-20 rounded-lg" />
+        <div className="mt-3 flex items-center justify-between">
+          <Skeleton className="h-2 w-28 rounded-full" />
+          <Skeleton className="h-2 w-16 rounded-full" />
+        </div>
+        <Skeleton className="mt-1 h-2 w-36 rounded-full" />
       </div>
     );
   }

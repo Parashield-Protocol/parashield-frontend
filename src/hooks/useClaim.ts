@@ -83,6 +83,7 @@ export function useClaim(policyId?: string) {
         const result = await fetchClaim(currentClaimId);
         if (!active || cancelledRef.current) return;
         if (result) {
+          if (cancelledRef.current) return;
           setClaim(result);
           if (result.status === 'Paid' || result.status === 'Rejected') {
             setStep('done');
@@ -90,6 +91,7 @@ export function useClaim(policyId?: string) {
           }
         }
       } catch (err) {
+        if (cancelledRef.current) return;
         console.error('Error polling claim:', err);
       }
 
