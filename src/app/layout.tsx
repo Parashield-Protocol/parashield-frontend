@@ -5,6 +5,7 @@ import { ToastContainer } from '@/components/Toast';
 import { NetworkBanner } from '@/components/NetworkBanner';
 import { WalletProvider } from '@/context/WalletContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 import { Analytics } from '@/components/Analytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { validateConfig } from '@/lib/constants';
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
 const CURRENT_YEAR = new Date().getFullYear();
 
 const NavBarFallback = (
-  <nav className="sticky top-0 z-40 border-b border-white/10 bg-gray-950/90 backdrop-blur-md">
+  <nav className="sticky top-0 z-40 border-b border-gray-200 dark:border-white/10 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
     <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
       <Link href="/">
         <LogoWordmark size={28} />
@@ -55,16 +56,17 @@ const NavBarFallback = (
 );
 
 const FooterFallback = (
-  <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-400">
+  <footer className="border-t border-gray-200 dark:border-white/10 py-8 text-center text-xs text-gray-500 dark:text-gray-400">
     © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
   </footer>
 );
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-950 text-white antialiased">
+    <html lang="en" className="dark">
+      <body className="bg-gray-950 text-white dark:bg-gray-950 dark:text-white bg-white text-gray-950 antialiased">
         <Analytics />
+        <ThemeProvider>
         <WalletProvider>
           <ToastProvider>
             <NetworkBanner />
@@ -79,8 +81,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </ErrorBoundary>
           </ToastProvider>
         </WalletProvider>
+        </ThemeProvider>
         <ErrorBoundary fallback={FooterFallback}>
-          <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-400">
+          <footer className="border-t border-gray-200 dark:border-white/10 py-8 text-center text-xs text-gray-500 dark:text-gray-400">
             © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
           </footer>
         </ErrorBoundary>

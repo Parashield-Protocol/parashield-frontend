@@ -11,6 +11,7 @@ import { LogoWordmark } from '@/components/Logo';
 import { SearchBar } from '@/components/SearchBar';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { EmptyState } from '@/components/EmptyState';
+import { CompareModal } from '@/components/CompareModal';
 import { CATEGORY_LABELS } from '@/lib/constants';
 import type { Category, Product } from '@/types';
 
@@ -26,6 +27,25 @@ export default function HomePage() {
   const { products, loading, error, refetch } = useProducts();
   const [searchQuery, setSearchQuery]   = useState('');
   const [category, setCategory]         = useState<CategoryFilterValue>('all');
+  const [compareIds, setCompareIds]     = useState<Set<string>>(new Set());
+  const [compareOpen, setCompareOpen]   = useState(false);
+
+  const toggleCompare = (product: Product) => {
+    setCompareIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(product.id)) {
+        next.delete(product.id);
+      } else if (next.size < 3) {
+        next.add(product.id);
+      }
+      return next;
+    });
+  };
+
+  const compareProducts = useMemo(
+    () => products.filter((p) => compareIds.has(p.id)),
+    [products, compareIds],
+  );
 
   useEffect(() => {
     try {
@@ -88,7 +108,7 @@ export default function HomePage() {
   }, [products, category, searchQuery]);
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white">
+    <main className="min-h-screen bg-gray-950 dark:bg-gray-950 bg-white dark:text-white text-gray-950">
       {/* JSON-LD structured data for SEO */}
       <script
         type="application/ld+json"
@@ -120,7 +140,7 @@ export default function HomePage() {
         }}
       />
       {/* Hero */}
-      <section className="border-b border-white/10 px-6 py-20 text-center">
+      <section className="border-b border-gray-200 dark:border-white/10 px-6 py-20 text-center">
         <div className="mx-auto max-w-3xl">
           <div className="mb-6 flex justify-center">
             <LogoWordmark size={40} />
@@ -132,12 +152,12 @@ export default function HomePage() {
             Insurance that pays out{' '}
             <span className="text-teal-400">automatically</span>
           </h1>
-          <p className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto">
+          <p className="mt-6 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
             When the trigger condition is met — drought, flight delay, storm, DeFi exploit —
             the smart contract pays you in USDC within seconds.
             No claims form. No adjuster. No waiting.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-400">
+          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             <span>⚡ Seconds, not weeks</span>
             <span>·</span>
             <span>🌍 MoneyGram cash-out globally</span>
@@ -153,7 +173,7 @@ export default function HomePage() {
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-6">
           <h2 className="text-2xl font-bold">Insurance Products</h2>
-          <p className="mt-1 text-sm text-gray-400">Live on Stellar testnet · Payouts in USDC</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Live on Stellar testnet · Payouts in USDC</p>
         </div>
 
         <CategoryFilter value={category} onChange={setCategory} className="mb-4" />
@@ -187,13 +207,50 @@ export default function HomePage() {
           />
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {filteredProducts.map((p) => <ProductCard key={p.id} product={p} />)}
+            {filteredProducts.map((p) => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                compareSelected={compareIds.has(p.id)}
+                onCompareToggle={toggleCompare}
+              />
+            ))}
           </div>
+        )}
+
+        {compareIds.size > 0 && (
+          <div className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/10 bg-gray-900/95 px-6 py-3 shadow-2xl backdrop-blur-md">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-300">
+                {compareIds.size} of 3 selected
+              </span>
+              <button
+                onClick={() => setCompareOpen(true)}
+                disabled={compareIds.size < 2}
+                className="rounded-xl bg-teal-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Compare
+              </button>
+              <button
+                onClick={() => setCompareIds(new Set())}
+                className="text-xs text-gray-400 hover:text-white transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
+        {compareOpen && compareProducts.length >= 2 && (
+          <CompareModal
+            products={compareProducts}
+            onClose={() => setCompareOpen(false)}
+          />
         )}
       </section>
 
       {/* How it works */}
-      <section className="border-t border-white/10 bg-white/[0.02] px-6 py-16">
+      <section className="border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] px-6 py-16">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-10 text-center text-2xl font-bold">How it works</h2>
           <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -203,10 +260,10 @@ export default function HomePage() {
               { n: '03', title: 'Oracle monitors', desc: 'NOAA, AviationStack, and on-chain monitors feed verified data to the Oracle Verifier contract every hour.' },
               { n: '04', title: 'Automatic payout', desc: 'Trigger confirmed → contract transfers your coverage to your wallet. No form, no adjuster, no delay.' },
             ].map((step) => (
-              <li key={step.n} className="rounded-2xl border border-white/10 bg-white/5 p-6">
+              <li key={step.n} className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-6">
                 <span className="text-3xl font-black text-teal-500/30">{step.n}</span>
-                <p className="mt-3 font-semibold text-white">{step.title}</p>
-                <p className="mt-2 text-sm text-gray-400 leading-relaxed">{step.desc}</p>
+                <p className="mt-3 font-semibold text-gray-950 dark:text-white">{step.title}</p>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{step.desc}</p>
               </li>
             ))}
           </ol>
@@ -214,29 +271,29 @@ export default function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="border-t border-white/10 px-6 py-12">
+      <section className="border-t border-gray-200 dark:border-white/10 px-6 py-12">
         <div className="mx-auto grid max-w-4xl grid-cols-2 gap-6 text-center sm:grid-cols-4">
           <div>
             <StatValue loading={statsLoading} failed={statsError}>
               {totalCoverage !== null ? formatUSDC(totalCoverage, false) : null}
             </StatValue>
-            <p className="mt-1 text-sm text-gray-400">Total coverage issued</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total coverage issued</p>
           </div>
           <div>
             <StatValue loading={loading} failed={!!error}>
               {activeProductCount}
             </StatValue>
-            <p className="mt-1 text-sm text-gray-400">Active products</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Active products</p>
           </div>
           <div>
             <StatValue loading={statsLoading} failed={statsError}>
               {totalPayouts !== null ? formatUSDC(totalPayouts, false) : null}
             </StatValue>
-            <p className="mt-1 text-sm text-gray-400">Total payouts</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total payouts</p>
           </div>
           <div>
             <p className="text-3xl font-black text-teal-400">$0.00001</p>
-            <p className="mt-1 text-sm text-gray-400">Per transaction</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Per transaction</p>
           </div>
         </div>
       </section>

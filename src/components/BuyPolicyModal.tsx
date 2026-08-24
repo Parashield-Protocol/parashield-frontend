@@ -229,7 +229,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       className={SELECT_CLASS}
                     >
                       {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                        <option key={m} value={m} className="bg-gray-900 text-white">
+                        <option key={m} value={m} className="bg-white dark:bg-gray-900 text-gray-950 dark:text-white">
                           {new Date(2026, m - 1).toLocaleString('en-US', { month: 'long' })}
                         </option>
                       ))}
@@ -245,7 +245,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       className={SELECT_CLASS}
                     >
                       {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((y) => (
-                        <option key={y} value={y} className="bg-gray-900 text-white">
+                        <option key={y} value={y} className="bg-white dark:bg-gray-900 text-gray-950 dark:text-white">
                           {y}
                         </option>
                       ))}
@@ -298,7 +298,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 <label className={LABEL_CLASS}>
                   Oracle Key (Fixed)
                 </label>
-                <div className={`${INPUT_CLASS} font-mono text-gray-400 select-all`}>
+                <div className={`${INPUT_CLASS} font-mono text-gray-500 dark:text-gray-400 select-all`}>
                   defi
                 </div>
               </div>
@@ -328,35 +328,35 @@ export function BuyPolicyModal({ product, onClose }: Props) {
 
         {step === 1 && (
           <div className={CARD_PANEL}>
-            <h4 className="font-semibold text-white">Review your policy</h4>
-            <div className="flex justify-between text-gray-400">
+            <h4 className="font-semibold text-gray-950 dark:text-white">Review your policy</h4>
+            <div className="flex justify-between text-gray-500 dark:text-gray-400">
               <span>Product</span>
-              <span className="text-white font-medium">{product.name}</span>
+              <span className="text-gray-950 dark:text-white font-medium">{product.name}</span>
             </div>
-            <div className="flex justify-between text-gray-400">
+            <div className="flex justify-between text-gray-500 dark:text-gray-400">
               <span>Coverage</span>
               <span className="text-emerald-400 font-semibold">{coverageNum.toFixed(2)} USDC</span>
             </div>
-            <div className="flex justify-between text-gray-400">
+            <div className="flex justify-between text-gray-500 dark:text-gray-400">
               <span>Duration</span>
-              <span className="text-white">{duration} days</span>
+              <span className="text-gray-950 dark:text-white">{duration} days</span>
             </div>
-            <div className="flex justify-between text-gray-400">
+            <div className="flex justify-between text-gray-500 dark:text-gray-400">
               <span>Oracle key</span>
-              <span className="font-mono text-xs text-white">{oracleKey}</span>
+              <span className="font-mono text-xs text-gray-950 dark:text-white">{oracleKey}</span>
             </div>
-            <div className="flex justify-between border-t border-white/10 pt-3 text-gray-400">
+            <div className="flex justify-between border-t border-gray-200 dark:border-white/10 pt-3 text-gray-500 dark:text-gray-400">
               <span>Premium ({basisPointsToPercent(product.premiumRate)})</span>
-              <span className="font-bold text-white">{estimatedPrem} USDC</span>
+              <span className="font-bold text-gray-950 dark:text-white">{estimatedPrem} USDC</span>
             </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="space-y-3 text-sm text-gray-400">
+          <div className="space-y-3 text-sm text-gray-500 dark:text-gray-400">
             <p>Your Stellar wallet will prompt you to sign the policy transaction.</p>
             <p className="text-xs">
-              Premium of <strong className="text-white">{estimatedPrem} USDC</strong> will be deducted from your wallet balance.
+              Premium of <strong className="text-gray-950 dark:text-white">{estimatedPrem} USDC</strong> will be deducted from your wallet balance.
             </p>
           </div>
         )}
@@ -368,7 +368,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
         <button
           onClick={onClose}
           disabled={busy}
-          className="rounded-xl border border-white/10 px-4 py-2.5 font-semibold text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
+          className="rounded-xl border border-gray-200 dark:border-white/10 px-4 py-2.5 font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-950 dark:hover:text-white disabled:opacity-60 transition-colors"
         >
           Cancel
         </button>
@@ -376,7 +376,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
           <button
             onClick={() => setStep((s) => s - 1)}
             disabled={busy}
-            className="rounded-xl border border-white/10 px-4 py-2.5 font-semibold text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
+            className="rounded-xl border border-gray-200 dark:border-white/10 px-4 py-2.5 font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-950 dark:hover:text-white disabled:opacity-60 transition-colors"
           >
             Back
           </button>
@@ -394,7 +394,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
            'Next'}
         </button>
         {walletError && !address && (
-          <p className="mt-2 text-sm text-red-400">{walletError}</p>
+          <p className="mt-2 text-sm text-red-500 dark:text-red-400">{walletError}</p>
         )}
       </div>
     </Modal>

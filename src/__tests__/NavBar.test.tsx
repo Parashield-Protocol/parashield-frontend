@@ -50,6 +50,15 @@ vi.mock('@/components/WalletButton', () => ({
   WalletButton: () => <span>Wallet</span>,
 }));
 
+vi.mock('@/components/KeyboardShortcutHelpModal', () => ({
+  KeyboardShortcutHelpModal: () => <div data-testid="shortcut-modal" />,
+}));
+
+vi.mock('@/context/ThemeContext', () => ({
+  useTheme: vi.fn(() => ({ theme: 'dark', toggle: vi.fn() })),
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 describe('NavBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -97,5 +106,11 @@ describe('NavBar', () => {
     const html = renderToStaticMarkup(<NavBar />);
     expect(html).toContain('sticky');
     expect(html).toContain('nav');
+  });
+
+  it('renders the keyboard shortcut help modal', () => {
+    mockUsePathname.mockReturnValue('/');
+    const html = renderToStaticMarkup(<NavBar />);
+    expect(html).toContain('shortcut-modal');
   });
 });
