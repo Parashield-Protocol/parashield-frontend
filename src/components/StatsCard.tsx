@@ -1,6 +1,8 @@
-﻿export interface StatsCardProps {
+﻿import type { ReactNode } from 'react';
+
+export interface StatsCardProps {
   label:      string;
-  value:      string;
+  value:      ReactNode;
   sublabel?:  string;
   trend?:     'up' | 'down' | 'neutral';
   trendValue?: string;

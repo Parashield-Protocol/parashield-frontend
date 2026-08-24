@@ -117,14 +117,20 @@ export default function PoolsPage() {
                     Deposit
                   </button>
                 )}
-                <button
-                  disabled
-                  aria-label="Withdraw — coming soon"
-                  title="Withdrawals are not yet available"
-                  className={`${connected ? 'flex-1' : 'w-full'} rounded-xl border border-white/10 py-2 text-xs font-semibold text-gray-400 cursor-not-allowed`}
-                >
-                  Withdraw (coming soon)
-                </button>
+                <div className={`relative group ${connected ? 'flex-1' : 'w-full'}`}>
+                  <button
+                    disabled
+                    aria-label="Withdraw — coming soon"
+                    title="Withdrawals are not yet available"
+                    className="w-full rounded-xl border border-white/10 py-2 text-xs font-semibold text-gray-400 cursor-not-allowed"
+                  >
+                    Withdraw (coming soon)
+                  </button>
+                  <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 rounded-lg bg-gray-800 px-3 py-2 text-xs text-gray-200 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 shadow-lg z-10">
+                    Coming soon — withdrawals will be available in a future update.
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-gray-800 rotate-45" />
+                  </div>
+                </div>
               </div>
             </div>
           ))}
