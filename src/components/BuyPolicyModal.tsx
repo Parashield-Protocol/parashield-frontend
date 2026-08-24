@@ -365,11 +365,18 @@ export function BuyPolicyModal({ product, onClose }: Props) {
       </div>
 
       <div className="mt-6 flex gap-3">
+        <button
+          onClick={onClose}
+          disabled={busy}
+          className="rounded-xl border border-white/10 px-4 py-2.5 font-semibold text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
+        >
+          Cancel
+        </button>
         {step > 0 && (
           <button
             onClick={() => setStep((s) => s - 1)}
             disabled={busy}
-            className="w-1/3 rounded-xl border border-white/10 py-2.5 font-semibold text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
+            className="rounded-xl border border-white/10 px-4 py-2.5 font-semibold text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
           >
             Back
           </button>

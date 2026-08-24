@@ -10,9 +10,9 @@ import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/Badge';
 import Link from 'next/link';
 
-type Filter = 'All' | 'Active' | 'Expired' | 'Claimed' | 'Cancelled';
+type Filter = 'All' | 'Active' | 'Pending' | 'Processing' | 'Expired' | 'Claimed' | 'Cancelled';
 
-const FILTERS: Filter[] = ['All', 'Active', 'Expired', 'Claimed', 'Cancelled'];
+const FILTERS: Filter[] = ['All', 'Active', 'Pending', 'Processing', 'Expired', 'Claimed', 'Cancelled'];
 
 export default function PoliciesPage() {
   const { address, connected } = useWallet();
@@ -33,11 +33,13 @@ export default function PoliciesPage() {
   }, {});
 
   const filterCounts: Record<Filter, number> = {
-    All:       policies.length,
-    Active:    statusCounts['Active']    ?? 0,
-    Expired:   statusCounts['Expired']   ?? 0,
-    Claimed:   statusCounts['Claimed']   ?? 0,
-    Cancelled: statusCounts['Cancelled'] ?? 0,
+    All:        policies.length,
+    Active:     statusCounts['Active']     ?? 0,
+    Pending:    statusCounts['Pending']    ?? 0,
+    Processing: statusCounts['Processing'] ?? 0,
+    Expired:    statusCounts['Expired']    ?? 0,
+    Claimed:    statusCounts['Claimed']    ?? 0,
+    Cancelled:  statusCounts['Cancelled']  ?? 0,
   };
 
   const filteredPolicies = filter === 'All'
