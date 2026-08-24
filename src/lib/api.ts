@@ -219,6 +219,10 @@ export function fetchPoolShares(poolId: string): Promise<PoolShareInfo> {
   return get<PoolShareInfo>(`/pools/${poolId}/shares`);
 }
 
+export function fetchPoolUserShares(poolId: string, wallet: string): Promise<{ shares: string }> {
+  return get<{ shares: string }>(`/pools/${poolId}/shares/${encodeURIComponent(wallet)}`);
+}
+
 // ── Protocol stats ────────────────────────────────────────────────────────────
 
 export function fetchProtocolStats(): Promise<ProtocolStats> {

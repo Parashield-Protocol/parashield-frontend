@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useWallet } from "@/hooks/useWallet";
 import { usePolicies } from "@/hooks/usePolicies";
 import { ConnectWalletPrompt } from "@/components/ConnectWalletPrompt";
@@ -9,11 +10,46 @@ import { EmptyState } from "@/components/EmptyState";
 import { formatUSDC, safeBigInt } from "@/lib/format";
 import { StatsCard } from "@/components/StatsCard";
 import { WalletAddressDisplay } from "@/components/WalletAddressDisplay";
+import { useToast } from "@/context/ToastContext";
 import Link from "next/link";
+
+const EXPIRY_WARNING_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export default function DashboardPage() {
   const { address, connected } = useWallet();
   const { policies, loading, error, refetch } = usePolicies(address);
+  const { show: showToast } = useToast();
+
+  // Warn about policies expiring within 24 hours
+  useEffect(() => {
+    if (loading || !connected) return;
+
+    const now = Date.now();
+    const notifiedKey = `ps_expiry_notified_${address}`;
+
+    try {
+      const raw = sessionStorage.getItem(notifiedKey);
+      const alreadyNotified: Set<string> = raw ? new Set(JSON.parse(raw)) : new Set();
+
+      const expiring = policies.filter(
+        (p) => p.status === "Active" && p.endTime * 1000 - now < EXPIRY_WARNING_MS && p.endTime * 1000 > now
+      );
+
+      for (const policy of expiring) {
+        if (!alreadyNotified.has(policy.id)) {
+          const name = policy.product?.name ?? `Policy #${policy.id.slice(0, 8)}`;
+          showToast(`${name} expires within 24 hours`, "warning", 6000);
+          alreadyNotified.add(policy.id);
+        }
+      }
+
+      if (expiring.length > 0) {
+        sessionStorage.setItem(notifiedKey, JSON.stringify([...alreadyNotified]));
+      }
+    } catch {
+      // sessionStorage may be unavailable — silently skip
+    }
+  }, [policies, loading, connected, address, showToast]);
 
   if (!connected) {
     return (
