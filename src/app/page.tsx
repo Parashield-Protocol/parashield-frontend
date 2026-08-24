@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { useDebounce } from '@/hooks/useDebounce';
 import { fetchProtocolStats } from '@/lib/api';
 import { formatUSDC } from '@/lib/format';
 import { ProductCard } from '@/components/ProductCard';
@@ -26,7 +25,6 @@ export default function HomePage() {
   const { products, loading, error, refetch } = useProducts();
   const [searchQuery, setSearchQuery]   = useState('');
   const [category, setCategory]         = useState<CategoryFilterValue>('all');
-  const debouncedQuery                  = useDebounce(searchQuery, 250);
 
   useEffect(() => {
     try {
@@ -77,7 +75,7 @@ export default function HomePage() {
     if (category !== 'all') {
       result = result.filter((p) => p.category === category);
     }
-    const q = debouncedQuery.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     if (q) {
       result = result.filter((p) =>
         p.name.toLowerCase().includes(q) ||
@@ -86,7 +84,7 @@ export default function HomePage() {
       );
     }
     return result;
-  }, [products, category, debouncedQuery]);
+  }, [products, category, searchQuery]);
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -152,8 +150,8 @@ export default function HomePage() {
           <EmptyState
             icon="🔍"
             title="No products found"
-            description={debouncedQuery
-              ? `No products match "${debouncedQuery}". Try a different search or category.`
+            description={searchQuery
+              ? `No products match "${searchQuery}". Try a different search or category.`
               : 'No products in this category yet.'}
           />
         ) : (
