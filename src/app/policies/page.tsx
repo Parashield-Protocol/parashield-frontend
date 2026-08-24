@@ -18,6 +18,8 @@ export default function PoliciesPage() {
   const { address, connected } = useWallet();
   const { policies, loading, error, refetch } = usePolicies(address);
   const [filter, setFilter]    = useState<Filter>('All');
+  const [page, setPage]        = useState(0);
+  const POLICIES_PER_PAGE = 12;
 
   if (!connected) {
     return (
@@ -45,6 +47,9 @@ export default function PoliciesPage() {
   const filteredPolicies = filter === 'All'
     ? policies
     : policies.filter((p) => p.status === filter);
+
+  const totalPages = Math.ceil(filteredPolicies.length / POLICIES_PER_PAGE);
+  const paginatedPolicies = filteredPolicies.slice(page * POLICIES_PER_PAGE, (page + 1) * POLICIES_PER_PAGE);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -76,7 +81,7 @@ export default function PoliciesPage() {
             return (
               <button
                 key={tab}
-                onClick={() => setFilter(tab)}
+                onClick={() => { setFilter(tab); setPage(0); }}
                 className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                   isActive
                     ? 'bg-teal-500 text-white'
@@ -129,9 +134,35 @@ export default function PoliciesPage() {
           description="Try a different filter to see your other policies."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredPolicies.map((p) => <PolicyCard key={p.id} policy={p} />)}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {paginatedPolicies.map((p) => <PolicyCard key={p.id} policy={p} />)}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between">
+              <p className="text-xs text-gray-400">
+                Showing {page * POLICIES_PER_PAGE + 1}–{Math.min((page + 1) * POLICIES_PER_PAGE, filteredPolicies.length)} of {filteredPolicies.length}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </main>
   );
