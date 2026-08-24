@@ -65,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark">
       <body className="bg-gray-950 text-white dark:bg-gray-950 dark:text-white bg-white text-gray-950 antialiased">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:bg-teal-500 focus:px-4 focus:py-2 focus:text-white">Skip to main content</a>
         <Analytics />
         <ThemeProvider>
         <WalletProvider>
@@ -74,7 +75,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <NavBar />
             </ErrorBoundary>
             <ErrorBoundary>
-              {children}
+              <main id="main-content">
+                {children}
+              </main>
             </ErrorBoundary>
             <ErrorBoundary fallback={null}>
               <ToastContainer />
