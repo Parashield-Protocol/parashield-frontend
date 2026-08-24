@@ -174,7 +174,7 @@ function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProp
                 {formatDateTime(claim.submittedAt)}
               </td>
               <td className="py-4 pr-4">
-                {claim.txHash && claim.status === 'Paid' ? (
+                {claim.txHash ? (
                   <TransactionLink txHash={claim.txHash} />
                 ) : (
                   <span className="text-xs text-gray-400">—</span>

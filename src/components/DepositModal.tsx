@@ -105,6 +105,7 @@ export function DepositModal({ pool, onClose }: Props) {
         await submitSignedTransaction(signedXdr);
       });
       showToast(`Deposited — ${stroopsToDisplay(estimatedShares.toString(), 4)} LP shares minted`, 'success');
+      setAmount('');
       onClose();
     } catch (err) {
       setError(depositErrorMessage(err));
