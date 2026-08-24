@@ -37,11 +37,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     variant: ToastVariant = 'info',
     duration = TOAST_DEFAULT_DURATION_MS,
   ) => {
-    const id = crypto.randomUUID();
-    setToasts((prev: Toast[]) => [...prev, { id, message, variant, duration }]);
-    if (duration > 0) {
-      timers.current.set(id, setTimeout(() => dismiss(id), duration));
-    }
+    setToasts((prev: Toast[]) => {
+      if (prev.some((t) => t.message === message)) return prev;
+      const id = crypto.randomUUID();
+      if (duration > 0) {
+        timers.current.set(id, setTimeout(() => dismiss(id), duration));
+      }
+      return [...prev, { id, message, variant, duration }];
+    });
   }, [dismiss]);
 
   return (

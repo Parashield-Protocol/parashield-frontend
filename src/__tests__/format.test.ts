@@ -4,6 +4,8 @@ import {
   displayToStroops,
   formatUSDC,
   shortenAddress,
+  formatDate,
+  formatDateTime,
   basisPointsToPercent,
   formatOracleValue,
   timeLeft,
@@ -113,6 +115,30 @@ describe('basisPointsToPercent', () => {
   });
 });
 
+describe('formatDate', () => {
+  it('formats a valid epoch', () => {
+    expect(formatDate(1700000000)).toMatch(/Nov 2023/);
+  });
+
+  it('returns — for null', () => {
+    expect(formatDate(null as unknown as number)).toBe('—');
+  });
+
+  it('returns — for undefined', () => {
+    expect(formatDate(undefined as unknown as number)).toBe('—');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('returns — for null', () => {
+    expect(formatDateTime(null as unknown as number)).toBe('—');
+  });
+
+  it('returns — for undefined', () => {
+    expect(formatDateTime(undefined as unknown as number)).toBe('—');
+  });
+});
+
 describe('formatOracleValue', () => {
   it('formats rainfall in mm', () => {
     const result = formatOracleValue('324000000', 'weather');
@@ -144,6 +170,14 @@ describe('formatOracleValue', () => {
   it('formats defi unknown value', () => {
     // 42 * 1e7 = 420000000
     expect(formatOracleValue('420000000', 'defi')).toBe('Unknown (42)');
+  });
+
+  it('returns — for null', () => {
+    expect(formatOracleValue(null as unknown as string, 'weather')).toBe('—');
+  });
+
+  it('returns — for undefined', () => {
+    expect(formatOracleValue(undefined as unknown as string, 'weather')).toBe('—');
   });
 });
 
