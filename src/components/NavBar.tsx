@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 import { LogoWordmark } from './Logo';
 import { WalletButton } from './WalletButton';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 const NAV_LINKS = [
   { href: '/',          label: 'Products'  },
@@ -24,6 +25,7 @@ function isActive(pathname: string, href: string): boolean {
 export function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const mobileMenuRef = useFocusTrap(mobileMenuOpen);
 
   useKeyboardShortcut('Escape', () => setMobileMenuOpen(false));
 
@@ -66,7 +68,7 @@ export function NavBar() {
       </div>
 
       {mobileMenuOpen && (
-        <div id="mobile-nav" className="md:hidden border-t border-white/10 bg-gray-950">
+        <div id="mobile-nav" ref={mobileMenuRef} className="md:hidden border-t border-white/10 bg-gray-950">
           <div className="px-6 py-4 space-y-3">
             {NAV_LINKS.map(({ href, label }) => (
               <Link

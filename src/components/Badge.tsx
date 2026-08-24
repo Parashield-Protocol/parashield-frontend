@@ -21,6 +21,16 @@ const COLOUR_CLASSES: Record<ColourName, string> = {
   teal:    'bg-teal-500/10    text-teal-400    border-teal-500/20',
 };
 
+const STATUS_ICONS: Record<string, string> = {
+  Active:    '●',
+  Expired:   '○',
+  Claimed:   '◆',
+  Cancelled: '✕',
+  Pending:   '◐',
+  Paid:      '✓',
+  Rejected:  '✕',
+};
+
 function isStatusKey(key: string): key is PolicyStatus | ClaimStatus {
   return key in STATUS_COLOURS;
 }
@@ -28,10 +38,13 @@ function isStatusKey(key: string): key is PolicyStatus | ClaimStatus {
 export function Badge({ label, variant, className }: BadgeProps) {
   const colour: ColourName = (variant ?? (isStatusKey(label) ? STATUS_COLOURS[label] : undefined) ?? 'gray') as ColourName;
   const colourClass = COLOUR_CLASSES[colour];
+  const icon = isStatusKey(label) ? STATUS_ICONS[label] : undefined;
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${colourClass} ${className ?? ''}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${colourClass} ${className ?? ''}`}
+      aria-label={label}
     >
+      {icon && <span aria-hidden="true">{icon}</span>}
       {label}
     </span>
   );
