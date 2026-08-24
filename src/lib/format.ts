@@ -91,10 +91,8 @@ export function formatOracleValue(value: string | null | undefined, dataType: st
       return `${fixedPointToFixed(raw, 2)} mm`;
     case 'temperature':
       return `${fixedPointToFixed(raw, 2)} °C`;
-    case 'flight': {
-      const n = Number(raw) / 1e7;
-      return `${Math.round(n)} min delay`;
-    }
+    case 'flight':
+      return `${fixedPointToFixed(raw, 0)} min delay`;
     case 'defi': {
       const n = Number(raw) / 1e7;
       if (n === 1) return 'Exploit detected';
