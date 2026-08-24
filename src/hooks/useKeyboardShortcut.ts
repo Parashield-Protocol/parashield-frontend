@@ -21,6 +21,7 @@ export function useKeyboardShortcut(
       if (modifiers.alt   && !e.altKey)   return;
       if (modifiers.meta  && !e.metaKey)  return;
       e.preventDefault();
+      e.stopPropagation();
       handlerRef.current();
     }
     window.addEventListener('keydown', onKeyDown);

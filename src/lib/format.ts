@@ -94,10 +94,10 @@ export function formatOracleValue(value: string | null | undefined, dataType: st
     case 'flight':
       return `${fixedPointToFixed(raw, 0)} min delay`;
     case 'defi': {
-      const n = Number(raw) / 1e7;
-      if (n === 1) return 'Exploit detected';
-      if (n === 0) return 'No exploit';
-      return `Unknown (${n.toFixed(0)})`;
+      const fixed = fixedPointToFixed(raw, 0);
+      if (fixed === '1') return 'Exploit detected';
+      if (fixed === '0') return 'No exploit';
+      return `Unknown (${fixed})`;
     }
     case 'unknown':
       return fixedPointToFixed(raw, 4);

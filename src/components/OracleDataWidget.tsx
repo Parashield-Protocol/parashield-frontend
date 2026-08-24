@@ -74,9 +74,9 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
         <span className={`font-semibold ${confColour}`}>{confLabel} confidence</span>
       </div>
 
-      <p className="mt-1 text-[10px] text-gray-400">
+      <time dateTime={new Date(reading.timestamp * 1000).toISOString()} className="mt-1 block text-[10px] text-gray-400">
         {formatDateTime(reading.timestamp)}
-      </p>
+      </time>
     </div>
   );
 }
