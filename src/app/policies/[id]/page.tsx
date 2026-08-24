@@ -15,6 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
       title: `${productName} — Policy ${statusLabel}`,
       description: `${productName} parametric insurance policy. Status: ${statusLabel}. Coverage on Parashield.`,
+      robots: { index: false, follow: false },
       openGraph: {
         title: `${productName} — Policy ${statusLabel}`,
         description: `${productName} parametric insurance policy on Parashield.`,
@@ -28,6 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
       title: 'Policy Details — Parashield',
       description: 'View parametric insurance policy details on Parashield.',
+      robots: { index: false, follow: false },
     };
   }
 }

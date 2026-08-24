@@ -1,17 +1,27 @@
-﻿'use client';
+'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useAllOracleReadings } from '@/hooks/useOracle';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Badge } from '@/components/Badge';
 import { formatOracleValue, formatDateTime } from '@/lib/format';
 import { oracleKeyLabel, confidenceLabel, confidenceColour, confidenceIcon } from '@/lib/oracle';
 
+const PAGE_SIZE = 50;
+
 export default function OraclePage() {
   const { readings, loading, error, refetch } = useAllOracleReadings();
   const lastSuccessRef = useRef<Date | null>(null);
   if (!error && readings.length > 0) lastSuccessRef.current = new Date();
   const isStale = error !== null && readings.length > 0;
+
+  const [page, setPage] = useState(0);
+  const totalPages = Math.ceil(readings.length / PAGE_SIZE);
+
+  const paginatedReadings = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return readings.slice(start, start + PAGE_SIZE);
+  }, [readings, page]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -67,7 +77,7 @@ export default function OraclePage() {
               </tr>
             </thead>
             <tbody>
-              {readings.map((r) => (
+              {paginatedReadings.map((r) => (
                 <tr key={r.key} className="border-b border-white/5 hover:bg-white/[0.02]">
                   <td className="p-4 font-mono text-xs text-gray-300 max-w-[200px] truncate">
                     {oracleKeyLabel(r.key)}
@@ -87,6 +97,30 @@ export default function OraclePage() {
               ))}
             </tbody>
           </table>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
+              <p className="text-xs text-gray-400">
+                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, readings.length)} of {readings.length}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

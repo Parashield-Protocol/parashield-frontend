@@ -64,9 +64,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="bg-gray-950 text-white antialiased">
+        <Analytics />
         <WalletProvider>
           <ToastProvider>
-            <Analytics />
             <NetworkBanner />
             <ErrorBoundary fallback={NavBarFallback}>
               <NavBar />
@@ -74,16 +74,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
-            <ErrorBoundary fallback={FooterFallback}>
-              <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-400">
-                © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
-              </footer>
-            </ErrorBoundary>
             <ErrorBoundary fallback={null}>
               <ToastContainer />
             </ErrorBoundary>
           </ToastProvider>
         </WalletProvider>
+        <ErrorBoundary fallback={FooterFallback}>
+          <footer className="border-t border-white/10 py-8 text-center text-xs text-gray-400">
+            © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
+          </footer>
+        </ErrorBoundary>
       </body>
     </html>
   );
