@@ -1,9 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useId, useRef, type ReactNode } from 'react';
-
-let activeModals = 0;
-let originalOverflow = '';
+import { useModalOverflow } from '@/hooks/useModalOverflow';
 
 interface ModalProps {
   open:     boolean;
@@ -20,6 +18,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+  const { lock, unlock } = useModalOverflow();
 
   useEffect(() => {
     if (!open) return;
@@ -48,20 +47,9 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
 
   useEffect(() => {
     if (!open) return;
-
-    if (activeModals === 0) {
-      originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-    }
-    activeModals++;
-
-    return () => {
-      activeModals = Math.max(0, activeModals - 1);
-      if (activeModals === 0) {
-        document.body.style.overflow = originalOverflow;
-      }
-    };
-  }, [open]);
+    lock();
+    return () => unlock();
+  }, [open, lock, unlock]);
 
   useEffect(() => {
     if (!open) return;

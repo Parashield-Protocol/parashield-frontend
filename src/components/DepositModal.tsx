@@ -11,7 +11,7 @@ import { ContractError, toUserMessage } from '@/lib/errors';
 import { CATEGORY_LABELS, MIN_DEPOSIT_STROOPS } from '@/lib/constants';
 import { Modal } from './Modal';
 import { useToast } from '@/context/ToastContext';
-import { INPUT_CLASS, LABEL_CLASS } from '@/lib/styles';
+import { INPUT_CLASS, LABEL_CLASS, ERROR_TEXT, WARNING_TEXT, CARD_PANEL } from '@/lib/styles';
 
 interface Props {
   pool:    PoolStats;
@@ -159,9 +159,9 @@ export function DepositModal({ pool, onClose }: Props) {
         </div>
 
         {paused && (
-          <p className="text-sm text-amber-400">This pool is paused. Deposits are temporarily disabled.</p>
+          <p className={WARNING_TEXT}>This pool is paused. Deposits are temporarily disabled.</p>
         )}
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className={ERROR_TEXT}>{error}</p>}
       </div>
 
       <button

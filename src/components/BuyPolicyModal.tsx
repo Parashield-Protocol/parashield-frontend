@@ -11,7 +11,7 @@ import { buildRainfallKey, buildFlightKey } from '@/lib/oracle';
 import { Modal } from './Modal';
 import { StepProgress } from './ProgressBar';
 import { useToast } from '@/context/ToastContext';
-import { INPUT_CLASS, SELECT_CLASS, LABEL_CLASS } from '@/lib/styles';
+import { INPUT_CLASS, SELECT_CLASS, LABEL_CLASS, ERROR_TEXT, INFO_TEXT, CARD_PANEL } from '@/lib/styles';
 
 interface Props {
   product: Product;
@@ -252,7 +252,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                     </select>
                   </div>
                 </div>
-                <div className="mt-2 text-xs text-gray-400">
+                <div className={`mt-2 ${INFO_TEXT}`}>
                   Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
                 </div>
               </div>
@@ -287,7 +287,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                     className={INPUT_CLASS}
                   />
                 </div>
-                <div className="mt-2 text-xs text-gray-400">
+                <div className={`mt-2 ${INFO_TEXT}`}>
                   Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
                 </div>
               </div>
@@ -318,7 +318,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                   className={INPUT_CLASS}
                 />
                 <p className="mt-1 text-[10px] text-gray-400">Max 32 chars</p>
-                <div className="mt-2 text-xs text-gray-400">
+                <div className={`mt-2 ${INFO_TEXT}`}>
                   Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
                 </div>
               </div>
@@ -327,7 +327,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
         )}
 
         {step === 1 && (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-3 text-sm">
+          <div className={CARD_PANEL}>
             <h4 className="font-semibold text-white">Review your policy</h4>
             <div className="flex justify-between text-gray-400">
               <span>Product</span>
@@ -361,7 +361,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
           </div>
         )}
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className={ERROR_TEXT}>{error}</p>}
       </div>
 
       <div className="mt-6 flex gap-3">
