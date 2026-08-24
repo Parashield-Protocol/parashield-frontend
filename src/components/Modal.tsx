@@ -67,7 +67,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70 p-4 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
@@ -76,14 +76,14 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
-        className={`relative w-full ${maxWidth} rounded-2xl border border-white/10 bg-gray-900 p-6 shadow-2xl`}
+        className={`relative w-full ${maxWidth} rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-2xl`}
       >
         {title && (
           <div className="mb-5 flex items-center justify-between">
-            <h2 id={titleId} className="text-lg font-bold text-white">{title}</h2>
+            <h2 id={titleId} className="text-lg font-bold text-gray-950 dark:text-white">{title}</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 transition-colors hover:text-white"
+              className="text-gray-500 dark:text-gray-400 transition-colors hover:text-gray-950 dark:hover:text-white"
               aria-label="Close modal"
             >
               ✕
@@ -93,7 +93,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
         {!title && (
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 text-gray-400 transition-colors hover:text-white"
+            className="absolute right-4 top-4 text-gray-500 dark:text-gray-400 transition-colors hover:text-gray-950 dark:hover:text-white"
             aria-label="Close modal"
           >
             ✕

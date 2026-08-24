@@ -13,12 +13,12 @@ export function WalletButton({ className }: WalletButtonProps) {
   if (connected && address) {
     return (
       <div className={`flex items-center gap-2 ${className ?? ''}`}>
-        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-gray-300">
+        <span className="rounded-full border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 px-3 py-1.5 font-mono text-xs text-gray-600 dark:text-gray-300">
           {shortenAddress(address)}
         </span>
         <button
           onClick={disconnect}
-          className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 transition-all"
+          className="rounded-full border border-gray-200 dark:border-white/10 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 transition-all"
         >
           Disconnect
         </button>
@@ -36,7 +36,7 @@ export function WalletButton({ className }: WalletButtonProps) {
         {connecting ? 'Connecting…' : 'Connect Wallet'}
       </button>
       {error && !connecting && (
-        <p className="text-xs text-red-400">{error}</p>
+        <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
       )}
     </div>
   );
