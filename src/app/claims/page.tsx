@@ -1,64 +1,26 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useWallet } from '@/hooks/useWallet';
-import { fetchUserClaims } from '@/lib/api';
+import { useClaims } from '@/hooks/useClaims';
 import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
 import { ClaimHistoryTable } from '@/components/ClaimHistoryTable';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { downloadClaimsCSV, downloadClaimsJSON } from '@/lib/claimsExport';
-import type { Claim } from '@/types';
-import { CLAIMS_REFRESH_INTERVAL_MS } from '@/lib/constants';
 
 export default function ClaimsPage() {
   const { address, connected } = useWallet();
-  const [claims,      setClaims]      = useState<Claim[]>([]);
-  const [loading,     setLoading]     = useState(false);
-  const [refreshing,  setRefreshing]  = useState(false);
-  const [error,       setError]       = useState<string | null>(null);
-  const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const { claims, loading, error, refetch } = useClaims(address);
+  const [refreshing, setRefreshing] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-
-  const loadClaims = useCallback(async (silent = false) => {
-    if (!address) return;
-    if (!silent) setLoading(true);
-    try {
-      const data = await fetchUserClaims(address);
-      setClaims(data);
-      setLastFetched(new Date());
-      setError(null);
-    } catch (err) {
-      if (!silent) {
-        setError(err instanceof Error ? err.message : 'Failed to load claims');
-      }
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [address]);
-
-  useEffect(() => {
-    void loadClaims();
-    if (!address) return;
-    const interval = setInterval(() => {
-      if (!document.hidden) void loadClaims(true);
-    }, CLAIMS_REFRESH_INTERVAL_MS);
-    const onVisible = () => {
-      if (!document.hidden) void loadClaims(true);
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  }, [loadClaims, address]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadClaims();
+    await refetch();
     setRefreshing(false);
-  }, [loadClaims]);
+  }, [refetch]);
 
   if (!connected) {
     return (
@@ -124,15 +86,10 @@ export default function ClaimsPage() {
               Refresh
             </button>
           </div>
-          {lastFetched && (
-            <span className="text-[10px] text-gray-400">
-              Updated {lastFetched.toLocaleTimeString()}
-            </span>
-          )}
         </div>
       </div>
 
-      {loading && !refreshing ? (
+      {loading ? (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <SkeletonTable rows={5} />
         </div>

@@ -100,7 +100,10 @@ function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProp
             <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
               <th className="pb-3 pr-4">Claim ID</th>
               <th className="pb-3 pr-4">Policy</th>
-              <th className="pb-3 pr-4">
+              <th
+                className="pb-3 pr-4"
+                aria-sort={sort.column === 'triggerMet' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
                 <button
                   type="button"
                   onClick={() => toggleSort('triggerMet')}
@@ -111,7 +114,10 @@ function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProp
                   Trigger {sortIndicator('triggerMet')}
                 </button>
               </th>
-              <th className="pb-3 pr-4">
+              <th
+                className="pb-3 pr-4"
+                aria-sort={sort.column === 'payoutAmount' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
                 <button
                   type="button"
                   onClick={() => toggleSort('payoutAmount')}
@@ -122,7 +128,10 @@ function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProp
                   Payout {sortIndicator('payoutAmount')}
                 </button>
               </th>
-              <th className="pb-3 pr-4">
+              <th
+                className="pb-3 pr-4"
+                aria-sort={sort.column === 'submittedAt' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
                 <button
                   type="button"
                   onClick={() => toggleSort('submittedAt')}
@@ -134,7 +143,10 @@ function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProp
                 </button>
               </th>
               <th className="pb-3 pr-4">Tx</th>
-              <th className="pb-3">
+              <th
+                className="pb-3"
+                aria-sort={sort.column === 'status' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
                 <button
                   type="button"
                   onClick={() => toggleSort('status')}
