@@ -48,6 +48,14 @@ export function BuyPolicyModal({ product, onClose }: Props) {
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
 
+  const [coverageError, setCoverageError] = useState('');
+  const [durationError, setDurationError] = useState('');
+  const [latError, setLatError] = useState('');
+  const [lngError, setLngError] = useState('');
+  const [flightNumberError, setFlightNumberError] = useState('');
+  const [flightDateError, setFlightDateError] = useState('');
+  const [oracleKeyError, setOracleKeyError] = useState('');
+
   // Crop builder state
   const [lat, setLat] = useState('-0.0917');
   const [lng, setLng] = useState('34.7679');
@@ -76,47 +84,81 @@ export function BuyPolicyModal({ product, onClose }: Props) {
     }
   }, [product.category, lat, lng, year, month, flightNumber, flightDate]);
 
-  function validate(): string {
+  function validateFields(): boolean {
+    let isValid = true;
+
     const cov = parseFloat(coverage);
     if (isNaN(cov) || cov <= 0) {
-      return 'Coverage must be a positive amount';
+      setCoverageError('Coverage must be a positive amount');
+      isValid = false;
+    } else if (cov < parseFloat(minDisplay) || cov > parseFloat(maxDisplay)) {
+      setCoverageError(`Coverage must be between ${minDisplay} and ${maxDisplay} USDC`);
+      isValid = false;
+    } else {
+      setCoverageError('');
     }
-    if (cov < parseFloat(minDisplay) || cov > parseFloat(maxDisplay)) {
-      return `Coverage must be between ${minDisplay} and ${maxDisplay} USDC`;
-    }
+
     const dur = parseInt(duration, 10);
     if (isNaN(dur) || dur < 1 || dur > product.maxDuration) {
-      return `Duration must be between 1 and ${product.maxDuration} days`;
+      setDurationError(`Duration must be between 1 and ${product.maxDuration} days`);
+      isValid = false;
+    } else {
+      setDurationError('');
     }
+
     if (product.category === 'crop') {
-      if (isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))) {
-        return 'Valid latitude and longitude are required';
+      if (isNaN(parseFloat(lat))) {
+        setLatError('Valid latitude is required');
+        isValid = false;
+      } else {
+        setLatError('');
+      }
+      if (isNaN(parseFloat(lng))) {
+        setLngError('Valid longitude is required');
+        isValid = false;
+      } else {
+        setLngError('');
       }
       if (oracleKey.trim().length > 32) {
-        return 'Generated oracle key exceeds the 32-character limit';
+        setOracleKeyError('Generated oracle key exceeds the 32-character limit');
+        isValid = false;
+      } else {
+        setOracleKeyError('');
       }
     } else if (product.category === 'flight') {
       if (!flightNumber.trim()) {
-        return 'Flight number is required';
+        setFlightNumberError('Flight number is required');
+        isValid = false;
+      } else {
+        setFlightNumberError('');
       }
       if (!flightDate) {
-        return 'Flight date is required';
+        setFlightDateError('Flight date is required');
+        isValid = false;
+      } else {
+        setFlightDateError('');
       }
       if (oracleKey.trim().length > 32) {
-        return 'Generated oracle key exceeds the 32-character limit';
+        setOracleKeyError('Generated oracle key exceeds the 32-character limit');
+        isValid = false;
+      } else {
+        setOracleKeyError('');
       }
     } else if (product.category === 'disaster' || product.category === 'health') {
       if (!oracleKey.trim() || oracleKey.trim().length > 32) {
-        return 'Oracle key is required and must be at most 32 characters';
+        setOracleKeyError('Oracle key is required and must be at most 32 characters');
+        isValid = false;
+      } else {
+        setOracleKeyError('');
       }
     }
-    return '';
+
+    return isValid;
   }
 
   async function handleBuy() {
     if (!address) { await connect(); return; }
-    const validationError = validate();
-    if (validationError) { setError(validationError); return; }
+    if (!validateFields()) { return; }
     if (step < 2) { setStep((s) => s + 1); return; }
 
     setBusy(true);
@@ -175,10 +217,11 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 type="number"
                 min={0}
                 value={coverage}
-                onChange={(e) => { setCoverage(e.target.value); setError(''); }}
+                onChange={(e) => { setCoverage(e.target.value); setCoverageError(''); }}
                 placeholder={`${minDisplay} – ${maxDisplay}`}
-                className={INPUT_CLASS}
+                className={`${INPUT_CLASS} ${coverageError ? 'border-red-500' : ''}`}
               />
+              {coverageError && <p className="mt-1 text-xs text-red-400">{coverageError}</p>}
             </div>
             <div>
               <label className={LABEL_CLASS}>
@@ -187,11 +230,12 @@ export function BuyPolicyModal({ product, onClose }: Props) {
               <input
                 type="number"
                 value={duration}
-                onChange={(e) => { setDuration(e.target.value); setError(''); }}
+                onChange={(e) => { setDuration(e.target.value); setDurationError(''); }}
                 min={1}
                 max={product.maxDuration}
-                className={INPUT_CLASS}
+                className={`${INPUT_CLASS} ${durationError ? 'border-red-500' : ''}`}
               />
+              {durationError && <p className="mt-1 text-xs text-red-400">{durationError}</p>}
             </div>
 
             {product.category === 'crop' && (
@@ -205,10 +249,11 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       type="number"
                       step="0.0001"
                       value={lat}
-                      onChange={(e) => setLat(e.target.value)}
+                      onChange={(e) => { setLat(e.target.value); setLatError(''); }}
                       placeholder="e.g. -0.0917"
-                      className={INPUT_CLASS}
+                      className={`${INPUT_CLASS} ${latError ? 'border-red-500' : ''}`}
                     />
+                    {latError && <p className="mt-1 text-xs text-red-400">{latError}</p>}
                   </div>
                   <div>
                     <label className={LABEL_CLASS}>
@@ -218,10 +263,11 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       type="number"
                       step="0.0001"
                       value={lng}
-                      onChange={(e) => setLng(e.target.value)}
+                      onChange={(e) => { setLng(e.target.value); setLngError(''); }}
                       placeholder="e.g. 34.7679"
-                      className={INPUT_CLASS}
+                      className={`${INPUT_CLASS} ${lngError ? 'border-red-500' : ''}`}
                     />
+                    {lngError && <p className="mt-1 text-xs text-red-400">{lngError}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -261,6 +307,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 <div className={`mt-2 ${INFO_TEXT}`}>
                   Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
                 </div>
+                {oracleKeyError && <p className="mt-1 text-xs text-red-400">{oracleKeyError}</p>}
               </div>
             )}
 
@@ -275,12 +322,13 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                     value={flightNumber}
                     // Strip colons at the source: a ':' is the oracle-key delimiter,
                     // so one inside the flight number would break key parsing (#223).
-                    onChange={(e) => setFlightNumber(e.target.value.replace(/:/g, ''))}
+                    onChange={(e) => { setFlightNumber(e.target.value.replace(/:/g, '')); setFlightNumberError(''); }}
                     maxLength={16}
                     pattern="[^:]*"
                     placeholder="e.g. KQ100"
-                    className={INPUT_CLASS}
+                    className={`${INPUT_CLASS} ${flightNumberError ? 'border-red-500' : ''}`}
                   />
+                  {flightNumberError && <p className="mt-1 text-xs text-red-400">{flightNumberError}</p>}
                 </div>
                 <div>
                   <label className={LABEL_CLASS}>
@@ -289,13 +337,15 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                   <input
                     type="date"
                     value={flightDate}
-                    onChange={(e) => setFlightDate(e.target.value)}
-                    className={INPUT_CLASS}
+                    onChange={(e) => { setFlightDate(e.target.value); setFlightDateError(''); }}
+                    className={`${INPUT_CLASS} ${flightDateError ? 'border-red-500' : ''}`}
                   />
+                  {flightDateError && <p className="mt-1 text-xs text-red-400">{flightDateError}</p>}
                 </div>
                 <div className={`mt-2 ${INFO_TEXT}`}>
                   Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
                 </div>
+                {oracleKeyError && <p className="mt-1 text-xs text-red-400">{oracleKeyError}</p>}
               </div>
             )}
 
@@ -318,12 +368,13 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 <input
                   type="text"
                   value={oracleKey}
-                  onChange={(e) => { setOracleKey(e.target.value); setError(''); }}
+                  onChange={(e) => { setOracleKey(e.target.value); setOracleKeyError(''); }}
                   placeholder='e.g. rainfall:1.5,36.8:2026-06'
                   maxLength={32}
-                  className={INPUT_CLASS}
+                  className={`${INPUT_CLASS} ${oracleKeyError ? 'border-red-500' : ''}`}
                 />
                 <p className="mt-1 text-[10px] text-gray-400">Max 32 chars</p>
+                {oracleKeyError && <p className="mt-1 text-xs text-red-400">{oracleKeyError}</p>}
                 <div className={`mt-2 ${INFO_TEXT}`}>
                   Computed Key: <span className="font-mono text-teal-400">{oracleKey}</span>
                 </div>
