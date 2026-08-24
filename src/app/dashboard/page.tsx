@@ -89,8 +89,23 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-      <WalletAddressDisplay full className="mt-1" />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <WalletAddressDisplay full className="mt-1" />
+        </div>
+        <button
+          onClick={() => {
+            void refetch();
+            void loadRecentClaims();
+          }}
+          disabled={loading}
+          className="rounded-lg bg-teal-500 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors flex items-center gap-2"
+        >
+          {loading && <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-300 border-t-teal-100" />}
+          Refresh
+        </button>
+      </div>
 
       {/* Stats */}
       {error ? (
