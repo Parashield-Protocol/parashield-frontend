@@ -20,13 +20,14 @@ function networkLabel(passphrase: string | null): string {
 const APP_NETWORK_LABEL = STELLAR_NETWORK === 'PUBLIC' ? 'Mainnet' : 'Testnet';
 
 interface WalletContextValue {
-  address:     string | null;
-  connected:   boolean;
-  connecting:  boolean;
-  error:       string | null;
-  walletState: WalletState;
-  connect:     () => Promise<void>;
-  disconnect:  () => void;
+  address:           string | null;
+  connected:         boolean;
+  connecting:        boolean;
+  error:             string | null;
+  walletState:       WalletState;
+  networkPassphrase: string | null;
+  connect:           () => Promise<void>;
+  disconnect:        () => void;
 }
 
 const WalletContext = createContext<WalletContextValue | null>(null);
@@ -35,12 +36,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address,    setAddress]    = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [error,      setError]      = useState<string | null>(null);
+  const [networkPassphrase, setNetworkPassphrase] = useState<string | null>(null);
 
   const disconnect = useCallback(() => {
     disconnectWallet();
     storage.removeSession(AUTH_TOKEN_STORAGE_KEY);
     setAddress(null);
     setError(null);
+    setNetworkPassphrase(null);
   }, []);
 
   const connect = useCallback(async () => {
@@ -76,6 +79,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         return;
       }
       setAddress(addr);
+      if (networkPassphrase) setNetworkPassphrase(networkPassphrase);
     } catch (err) {
       const msg = toUserMessage(err);
       if (!msg.includes('Wallet modal closed')) setError(msg);
@@ -135,7 +139,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   return (
     <WalletContext.Provider
-      value={{ address, connected: !!address, connecting, error, walletState, connect, disconnect }}
+      value={{ address, connected: !!address, connecting, error, walletState, networkPassphrase, connect, disconnect }}
     >
       {children}
     </WalletContext.Provider>

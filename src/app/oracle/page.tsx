@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import { useAllOracleReadings } from '@/hooks/useOracle';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Badge } from '@/components/Badge';
@@ -17,11 +17,30 @@ export default function OraclePage() {
 
   const [page, setPage] = useState(0);
   const totalPages = Math.ceil(readings.length / PAGE_SIZE);
+  const tableEndRef = useRef<HTMLDivElement>(null);
+  const prevReadingsLen = useRef(readings.length);
+
+  // Sort by timestamp descending (newest first)
+  const sortedReadings = useMemo(
+    () => [...readings].sort((a, b) => b.timestamp - a.timestamp),
+    [readings],
+  );
 
   const paginatedReadings = useMemo(() => {
     const start = page * PAGE_SIZE;
-    return readings.slice(start, start + PAGE_SIZE);
-  }, [readings, page]);
+    return sortedReadings.slice(start, start + PAGE_SIZE);
+  }, [sortedReadings, page]);
+
+  // Auto-scroll to newest readings when data updates
+  useEffect(() => {
+    if (readings.length > prevReadingsLen.current) {
+      setPage(0);
+      if (tableEndRef.current) {
+        tableEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+    prevReadingsLen.current = readings.length;
+  }, [readings.length]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -97,6 +116,7 @@ export default function OraclePage() {
               ))}
             </tbody>
           </table>
+          <div ref={tableEndRef} />
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
