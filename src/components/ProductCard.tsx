@@ -87,6 +87,8 @@ export function ProductCard({ product, compareSelected, onCompareToggle }: Produ
         <button
           onClick={() => setOpen(true)}
           disabled={!isActive}
+          aria-disabled={!isActive}
+          aria-label={isActive ? 'Buy Policy' : `Buy Policy — ${product.status === 'Paused' ? 'temporarily unavailable' : 'no longer available'}`}
           className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-colors ${
             isActive
               ? 'bg-teal-500 text-white hover:bg-teal-400'

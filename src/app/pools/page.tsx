@@ -7,6 +7,7 @@ import { Badge } from '@/components/Badge';
 import { ProgressBar } from '@/components/ProgressBar';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/Skeleton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DepositModal } from '@/components/DepositModal';
 import { WithdrawModal } from '@/components/WithdrawModal';
 import { useWallet } from '@/hooks/useWallet';
@@ -40,7 +41,7 @@ export default function PoolsPage() {
           disabled={loading}
           className="rounded-lg bg-teal-500 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors flex items-center gap-2"
         >
-          {loading && <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-300 border-t-teal-100" />}
+          {loading && <LoadingSpinner size="sm" />}
           Refresh
         </button>
       </div>
@@ -60,7 +61,7 @@ export default function PoolsPage() {
               disabled={loading}
               className="shrink-0 rounded-lg bg-red-500 px-4 py-2 text-xs font-semibold text-white hover:bg-red-400 disabled:opacity-60 transition-colors flex items-center gap-2"
             >
-              {loading && <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-red-300 border-t-red-100" />}
+              {loading && <LoadingSpinner size="sm" />}
               Try again
             </button>
           </div>
