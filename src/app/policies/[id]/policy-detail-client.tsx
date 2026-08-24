@@ -7,11 +7,13 @@ import { OracleDataWidget } from "@/components/OracleDataWidget";
 import { PolicyStatusTimeline } from "@/components/PolicyStatusTimeline";
 import { TransactionLink } from "@/components/TransactionLink";
 import { Badge } from "@/components/Badge";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { formatUSDC, formatDate, timeLeft, shortenAddress } from "@/lib/format";
 import { CopyButton } from "@/components/CopyButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClaimStatus } from "@/components/ClaimStatus";
 import { Skeleton, SkeletonText } from "@/components/Skeleton";
+import { CATEGORY_ICONS } from "@/lib/constants";
 
 export default function PolicyDetailClient({
   params,
@@ -88,8 +90,24 @@ export default function PolicyDetailClient({
   const canClaim =
     policy.status === "Active" && address === policy.policyholder;
 
+  const breadcrumbItems = [
+    { label: 'Products', href: '/' },
+    ...(policy.product?.category
+      ? [{
+          label: policy.product.category.charAt(0).toUpperCase() + policy.product.category.slice(1),
+          href: `/?category=${policy.product.category}`,
+          icon: CATEGORY_ICONS[policy.product.category as keyof typeof CATEGORY_ICONS],
+        }]
+      : []),
+    {
+      label: policy.product?.name ?? `Policy ${id.slice(0, 8)}…`,
+      icon: policy.product?.category ? CATEGORY_ICONS[policy.product.category as keyof typeof CATEGORY_ICONS] : undefined,
+    },
+  ];
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
+      <Breadcrumb items={breadcrumbItems} />
       <div className="mb-6 flex items-center gap-4">
         <h1 className="text-2xl font-bold flex-1">
           {policy.product?.name ?? `Policy ${id.slice(0, 8)}…`}

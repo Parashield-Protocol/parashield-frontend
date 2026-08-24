@@ -7,6 +7,7 @@ import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
 import { ClaimHistoryTable } from '@/components/ClaimHistoryTable';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { SkeletonTable } from '@/components/Skeleton';
+import { Breadcrumb } from '@/components/Breadcrumb';
 import { downloadClaimsCSV, downloadClaimsJSON } from '@/lib/claimsExport';
 import type { Claim } from '@/types';
 import { CLAIMS_REFRESH_INTERVAL_MS } from '@/lib/constants';
@@ -67,8 +68,14 @@ export default function ClaimsPage() {
     );
   }
 
+  const breadcrumbItems = [
+    { label: 'Products', href: '/' },
+    { label: 'Claim History' },
+  ];
+
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
+      <Breadcrumb items={breadcrumbItems} />
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Claim History</h1>
