@@ -5,7 +5,7 @@ import { useAllOracleReadings } from '@/hooks/useOracle';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Badge } from '@/components/Badge';
 import { formatOracleValue, formatDateTime } from '@/lib/format';
-import { oracleKeyLabel, confidenceLabel, confidenceColour } from '@/lib/oracle';
+import { oracleKeyLabel, confidenceLabel, confidenceColour, confidenceIcon } from '@/lib/oracle';
 
 export default function OraclePage() {
   const { readings, loading, error, refetch } = useAllOracleReadings();
@@ -79,7 +79,7 @@ export default function OraclePage() {
                     {formatOracleValue(r.value, r.dataType)}
                   </td>
                   <td className={`p-4 text-xs font-semibold ${confidenceColour(r.confidence)}`}>
-                    {r.confidence}% · {confidenceLabel(r.confidence)}
+                    <span aria-hidden="true">{confidenceIcon(r.confidence)}</span> {r.confidence}% · {confidenceLabel(r.confidence)}
                   </td>
                   <td className="p-4 text-xs text-gray-400">{r.source}</td>
                   <td className="p-4 text-xs text-gray-400">{formatDateTime(r.timestamp)}</td>

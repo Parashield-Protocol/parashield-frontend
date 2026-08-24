@@ -17,9 +17,23 @@ function ProductCardComponent({ product }: ProductCardProps) {
   const icon            = CATEGORY_ICONS[product.category] ?? '🛡️';
   const isActive        = product.status === 'Active';
 
+  const handleCardKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (isActive) setOpen(true);
+    }
+  };
+
   return (
     <>
-      <div className={`flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-all hover:border-white/20 hover:bg-white/[0.05] ${!isActive ? 'opacity-60' : ''}`}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => isActive && setOpen(true)}
+        onKeyDown={handleCardKeyDown}
+        aria-label={`${product.name} — ${isActive ? 'Buy Policy' : product.status}`}
+        className={`flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-all hover:border-white/20 hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 ${!isActive ? 'opacity-60' : ''}`}
+      >
         <div className="flex items-start justify-between gap-3">
           <span className="text-3xl">{icon}</span>
           <div className="flex gap-2">

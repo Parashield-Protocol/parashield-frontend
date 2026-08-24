@@ -77,6 +77,12 @@ export function confidenceColour(confidence: number): string {
   return 'text-red-400';
 }
 
+export function confidenceIcon(confidence: number): string {
+  if (confidence >= 90) return '●';
+  if (confidence >= 70) return '◐';
+  return '○';
+}
+
 export function buildRainfallKey(lat: number, lng: number, year: number, month: number): string {
   const monthStr = String(month).padStart(2, '0');
   // Clamp coordinate precision to 4 decimals (~11m). Without a cap, values like

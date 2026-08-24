@@ -16,6 +16,14 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
   const name       = policy.product?.name ?? `Policy #${policy.id.slice(0, 8)}`;
   const isActive   = policy.status === 'Active';
 
+  const handleCardKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      // Navigate to policy detail page
+      window.location.href = `/policies/${policy.id}`;
+    }
+  };
+
   let expiresLabel: string;
   let expiresValue: string;
   if (isActive) {
@@ -33,7 +41,13 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
   }
 
   return (
-    <div className={`flex flex-col rounded-2xl border p-5 transition-all ${
+    <div
+      role="link"
+      tabIndex={0}
+      onClick={() => { window.location.href = `/policies/${policy.id}`; }}
+      onKeyDown={handleCardKeyDown}
+      aria-label={`${name} — ${policy.status} — View details`}
+      className={`flex flex-col rounded-2xl border p-5 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 ${
       isActive
         ? 'border-teal-500/20 bg-teal-500/5 hover:border-teal-500/40'
         : 'border-white/10 bg-white/[0.02] hover:border-white/20'
