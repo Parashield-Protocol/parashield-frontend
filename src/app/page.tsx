@@ -5,14 +5,15 @@ import { useProducts } from '@/hooks/useProducts';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useDebounce } from '@/hooks/useDebounce';
 import { fetchProtocolStats } from '@/lib/api';
-import { formatUSDC } from '@/lib/format';
+import { formatUSDC, stroopsToDisplay } from '@/lib/format';
 import { ProductCard } from '@/components/ProductCard';
 import { Skeleton, SkeletonCard } from '@/components/Skeleton';
 import { LogoWordmark } from '@/components/Logo';
 import { SearchBar } from '@/components/SearchBar';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { EmptyState } from '@/components/EmptyState';
-import type { Category } from '@/types';
+import { CATEGORY_LABELS } from '@/lib/constants';
+import type { Category, Product } from '@/types';
 
 type CategoryFilterValue = Category | 'all';
 
@@ -90,6 +91,36 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
+      {/* JSON-LD structured data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            name: 'Parashield Insurance Products',
+            description: 'Parametric insurance products on Stellar blockchain with automatic USDC payouts',
+            itemListElement: filteredProducts.map((product: Product, index: number) => ({
+              '@type': 'ListItem',
+              position: index + 1,
+              item: {
+                '@type': 'Product',
+                name: product.name,
+                description: product.description ?? `${CATEGORY_LABELS[product.category]} insurance policy`,
+                category: CATEGORY_LABELS[product.category],
+                offers: {
+                  '@type': 'Offer',
+                  priceCurrency: 'USDC',
+                  price: stroopsToDisplay(product.coverageMax, 2),
+                  availability: product.status === 'Active'
+                    ? 'https://schema.org/InStock'
+                    : 'https://schema.org/OutOfStock',
+                },
+              },
+            })),
+          }),
+        }}
+      />
       {/* Hero */}
       <section className="border-b border-white/10 px-6 py-20 text-center">
         <div className="mx-auto max-w-3xl">
