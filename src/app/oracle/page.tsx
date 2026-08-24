@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useMemo, useEffect } from 'react';
+import { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { useAllOracleReadings } from '@/hooks/useOracle';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Badge } from '@/components/Badge';
@@ -9,6 +9,11 @@ import { oracleKeyLabel, confidenceLabel, confidenceColour, confidenceIcon } fro
 
 const PAGE_SIZE = 50;
 
+type DataTypeFilter = 'all' | 'weather' | 'flight' | 'defi';
+type SortKey = 'timestamp' | 'confidence' | 'dataType';
+
+const DATA_TYPES: DataTypeFilter[] = ['all', 'weather', 'flight', 'defi'];
+
 export default function OraclePage() {
   const { readings, loading, error, refetch } = useAllOracleReadings();
   const lastSuccessRef = useRef<Date | null>(null);
@@ -16,20 +21,52 @@ export default function OraclePage() {
   const isStale = error !== null && readings.length > 0;
 
   const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(readings.length / PAGE_SIZE);
+  const [dataTypeFilter, setDataTypeFilter] = useState<DataTypeFilter>('all');
+  const [sortKey, setSortKey] = useState<SortKey>('timestamp');
+  const [sortAsc, setSortAsc] = useState(false);
   const tableEndRef = useRef<HTMLDivElement>(null);
   const prevReadingsLen = useRef(readings.length);
 
-  // Sort by timestamp descending (newest first)
-  const sortedReadings = useMemo(
-    () => [...readings].sort((a, b) => b.timestamp - a.timestamp),
-    [readings],
-  );
+  const handleSort = useCallback((key: SortKey) => {
+    if (sortKey === key) {
+      setSortAsc((prev) => !prev);
+    } else {
+      setSortKey(key);
+      setSortAsc(false);
+    }
+  }, [sortKey]);
+
+  const filteredReadings = useMemo(() => {
+    let result = readings;
+    if (dataTypeFilter !== 'all') {
+      result = result.filter((r) => r.dataType === dataTypeFilter);
+    }
+    const dir = sortAsc ? 1 : -1;
+    return [...result].sort((a, b) => {
+      switch (sortKey) {
+        case 'timestamp':
+          return (a.timestamp - b.timestamp) * dir;
+        case 'confidence':
+          return (a.confidence - b.confidence) * dir;
+        case 'dataType':
+          return a.dataType.localeCompare(b.dataType) * dir;
+        default:
+          return 0;
+      }
+    });
+  }, [readings, dataTypeFilter, sortKey, sortAsc]);
+
+  const totalPages = Math.ceil(filteredReadings.length / PAGE_SIZE);
 
   const paginatedReadings = useMemo(() => {
     const start = page * PAGE_SIZE;
-    return sortedReadings.slice(start, start + PAGE_SIZE);
-  }, [sortedReadings, page]);
+    return filteredReadings.slice(start, start + PAGE_SIZE);
+  }, [filteredReadings, page]);
+
+  const sortIndicator = (key: SortKey) => {
+    if (sortKey !== key) return null;
+    return sortAsc ? ' ↑' : ' ↓';
+  };
 
   // Auto-scroll to newest readings when data updates
   useEffect(() => {
@@ -82,17 +119,65 @@ export default function OraclePage() {
         </div>
       )}
 
+      {!loading && !error && readings.length > 0 && filteredReadings.length === 0 && (
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-12 text-center text-gray-400">
+          No readings match the selected filter.
+        </div>
+      )}
+
       {readings.length > 0 && (
-        <div className={`mt-8 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] transition-opacity ${loading ? 'opacity-50' : ''}`}>
+        <>
+          {/* Filter pills */}
+          <div className="mt-6 flex flex-wrap gap-2">
+            {DATA_TYPES.map((dt) => (
+              <button
+                key={dt}
+                onClick={() => { setDataTypeFilter(dt); setPage(0); }}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+                  dataTypeFilter === dt
+                    ? 'bg-teal-500 text-white'
+                    : 'border border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                }`}
+              >
+                {dt === 'all' ? 'All types' : dt.charAt(0).toUpperCase() + dt.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          <div className={`mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] transition-opacity ${loading ? 'opacity-50' : ''}`}>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
                 <th className="p-4">Key</th>
-                <th className="p-4">Type</th>
+                <th className="p-4">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('dataType')}
+                    className={`inline-flex items-center gap-1 transition-colors hover:text-white ${sortKey === 'dataType' ? 'text-white' : ''}`}
+                  >
+                    Type{sortIndicator('dataType')}
+                  </button>
+                </th>
                 <th className="p-4">Value</th>
-                <th className="p-4">Confidence</th>
+                <th className="p-4">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('confidence')}
+                    className={`inline-flex items-center gap-1 transition-colors hover:text-white ${sortKey === 'confidence' ? 'text-white' : ''}`}
+                  >
+                    Confidence{sortIndicator('confidence')}
+                  </button>
+                </th>
                 <th className="p-4">Source</th>
-                <th className="p-4">Timestamp</th>
+                <th className="p-4">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('timestamp')}
+                    className={`inline-flex items-center gap-1 transition-colors hover:text-white ${sortKey === 'timestamp' ? 'text-white' : ''}`}
+                  >
+                    Timestamp{sortIndicator('timestamp')}
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -121,7 +206,7 @@ export default function OraclePage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
               <p className="text-xs text-gray-400">
-                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, readings.length)} of {readings.length}
+                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filteredReadings.length)} of {filteredReadings.length}
               </p>
               <div className="flex gap-2">
                 <button
@@ -142,6 +227,7 @@ export default function OraclePage() {
             </div>
           )}
         </div>
+        </>
       )}
 
       {/* Legend */}
