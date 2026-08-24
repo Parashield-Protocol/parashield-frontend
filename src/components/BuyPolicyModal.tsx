@@ -39,6 +39,12 @@ export function BuyPolicyModal({ product, onClose }: Props) {
   const [duration,  setDuration]  = useState(String(Math.min(30, product.maxDuration)));
   const [oracleKey, setOracleKey] = useState('');
   const [step,      setStep]      = useState(0);
+
+  // Reset to step 0 when the product changes to avoid showing stale data
+  // from a previous product's flow (issue #428).
+  useEffect(() => {
+    setStep(0);
+  }, [product.id]);
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
 

@@ -21,7 +21,7 @@ export default function PolicyDetailClient({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { policy, loading, error, refetch } = usePolicy(id);
+  const { policy, loading, refetching, error, refetch } = usePolicy(id);
   const { address } = useWallet();
 
   if (loading) {
@@ -107,6 +107,14 @@ export default function PolicyDetailClient({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
+      {refetching && (
+        <div className="fixed inset-x-0 top-0 z-50 flex justify-center">
+          <div className="mt-4 flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs text-gray-400 backdrop-blur">
+            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-300 border-t-teal-100" />
+            Refreshing…
+          </div>
+        </div>
+      )}
       <Breadcrumb items={breadcrumbItems} />
       <div className="mb-6 flex items-center gap-4">
         <h1 className="text-2xl font-bold flex-1">
