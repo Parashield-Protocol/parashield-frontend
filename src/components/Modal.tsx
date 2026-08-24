@@ -50,7 +50,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
       if (e.key !== 'Tab' || !dialogRef.current) return;
 
       const focusable = Array.from(
