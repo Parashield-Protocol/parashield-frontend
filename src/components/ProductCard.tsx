@@ -61,6 +61,12 @@ export function ProductCard({ product, compareSelected, onCompareToggle }: Produ
 
         <h3 className="mt-4 text-base font-semibold leading-snug text-gray-950 dark:text-white">{product.name}</h3>
 
+        {product.description && (
+          <p className="mt-2 line-clamp-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed" title={product.description}>
+            {product.description}
+          </p>
+        )}
+
         <div className="mt-2">
           <TriggerConditionBadge product={product} />
         </div>
