@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useProducts } from '@/hooks/useProducts';
@@ -40,7 +40,7 @@ export default function HomePage() {
   const [compareIds, setCompareIds]     = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen]   = useState(false);
 
-  const toggleCompare = (product: Product) => {
+  const toggleCompare = useCallback((product: Product) => {
     setCompareIds((prev) => {
       const next = new Set(prev);
       if (next.has(product.id)) {
@@ -50,7 +50,7 @@ export default function HomePage() {
       }
       return next;
     });
-  };
+  }, []);
 
   const compareProducts = useMemo(
     () => products.filter((p) => compareIds.has(p.id)),

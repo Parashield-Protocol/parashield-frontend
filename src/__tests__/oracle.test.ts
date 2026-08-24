@@ -39,8 +39,16 @@ describe('parseOracleKey', () => {
     expect(result.period).toBeUndefined();
   });
 
-  it('handles unknown keys as unknown', () => {
+  it('handles empty keys as unknown', () => {
+    const result = parseOracleKey('');
+    expect(result.dataType).toBe('unknown');
+    expect(result.rawKey).toBe('');
+  });
+
+  it('handles unknown and unexpected keys as unknown', () => {
     expect(parseOracleKey('unknown:key').dataType).toBe('unknown');
+    expect(parseOracleKey('rainfall').dataType).toBe('unknown');
+    expect(parseOracleKey('weather:special:value').dataType).toBe('unknown');
   });
 
   it('parses defi keys', () => {
@@ -76,11 +84,26 @@ describe('buildRainfallKey', () => {
   it('does not pad short coordinates with trailing zeros', () => {
     expect(buildRainfallKey(0, 0, 2026, 6)).toBe('rainfall:0,0:2026-06');
   });
+
+  it('handles coordinate and month boundary values', () => {
+    expect(buildRainfallKey(90, 180, 2026, 1)).toBe('rainfall:90,180:2026-01');
+    expect(buildRainfallKey(-90, -180, 2026, 12)).toBe('rainfall:-90,-180:2026-12');
+    expect(buildRainfallKey(0, 0, 2026, 0)).toBe('rainfall:0,0:2026-00');
+    expect(buildRainfallKey(0, 0, 2026, 13)).toBe('rainfall:0,0:2026-13');
+  });
 });
 
 describe('buildFlightKey', () => {
   it('builds the correct flight key', () => {
     expect(buildFlightKey('KQ100', '2026-06-01')).toBe('flight:KQ100:2026-06-01');
+  });
+
+  it('handles an empty flight number without dropping the date', () => {
+    const key = buildFlightKey('', '2026-06-01');
+    const result = parseOracleKey(key);
+    expect(result.dataType).toBe('flight');
+    expect(result.flightNumber).toBe('');
+    expect(result.period).toBe('2026-06-01');
   });
 });
 
