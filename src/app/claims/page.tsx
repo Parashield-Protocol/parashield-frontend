@@ -7,6 +7,7 @@ import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
 import { ClaimHistoryTable } from '@/components/ClaimHistoryTable';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { SkeletonTable } from '@/components/Skeleton';
+import { downloadClaimsCSV, downloadClaimsJSON } from '@/lib/claimsExport';
 import type { Claim } from '@/types';
 import { CLAIMS_REFRESH_INTERVAL_MS } from '@/lib/constants';
 
@@ -17,6 +18,7 @@ export default function ClaimsPage() {
   const [refreshing,  setRefreshing]  = useState(false);
   const [error,       setError]       = useState<string | null>(null);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const loadClaims = useCallback(async (silent = false) => {
     if (!address) return;
@@ -75,14 +77,46 @@ export default function ClaimsPage() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing || loading}
-            className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
-          >
-            {refreshing && <LoadingSpinner size="sm" className="h-3 w-3" />}
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            {claims.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setExportOpen((o) => !o)}
+                  disabled={loading}
+                  className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
+                >
+                  ↓ Export
+                </button>
+                {exportOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
+                    <div className="absolute right-0 z-20 mt-1 w-40 rounded-xl border border-white/10 bg-gray-900 py-1 shadow-xl">
+                      <button
+                        onClick={() => { downloadClaimsCSV(claims); setExportOpen(false); }}
+                        className="w-full px-4 py-2 text-left text-xs text-gray-300 hover:bg-white/[0.05] hover:text-white transition-colors"
+                      >
+                        Download CSV
+                      </button>
+                      <button
+                        onClick={() => { downloadClaimsJSON(claims); setExportOpen(false); }}
+                        className="w-full px-4 py-2 text-left text-xs text-gray-300 hover:bg-white/[0.05] hover:text-white transition-colors"
+                      >
+                        Download JSON
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
+            >
+              {refreshing && <LoadingSpinner size="sm" className="h-3 w-3" />}
+              Refresh
+            </button>
+          </div>
           {lastFetched && (
             <span className="text-[10px] text-gray-400">
               Updated {lastFetched.toLocaleTimeString()}

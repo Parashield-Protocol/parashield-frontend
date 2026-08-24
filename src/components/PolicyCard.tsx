@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { memo } from 'react';
 import { Badge } from './Badge';
 import type { Policy } from '@/types';
-import { formatUSDC, formatDate, timeLeft } from '@/lib/format';
+import { formatUSDC, formatDate, formatDateTime, timeLeft } from '@/lib/format';
 import { CATEGORY_ICONS } from '@/lib/constants';
 
 interface PolicyCardProps {
@@ -41,21 +41,22 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
   }
 
   return (
-    <div
-      role="link"
-      tabIndex={0}
-      onClick={() => { window.location.href = `/policies/${policy.id}`; }}
-      onKeyDown={handleCardKeyDown}
-      aria-label={`${name} — ${policy.status} — View details`}
-      className={`flex flex-col rounded-2xl border p-5 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 ${
-      isActive
-        ? 'border-teal-500/20 bg-teal-500/5 hover:border-teal-500/40'
-        : 'border-white/10 bg-white/[0.02] hover:border-white/20'
-    }`}>
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-2xl">{icon}</span>
-        <Badge label={policy.status} />
-      </div>
+    <div className="group relative">
+      <div
+        role="link"
+        tabIndex={0}
+        onClick={() => { window.location.href = `/policies/${policy.id}`; }}
+        onKeyDown={handleCardKeyDown}
+        aria-label={`${name} — ${policy.status} — View details`}
+        className={`flex flex-col rounded-2xl border p-5 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 ${
+        isActive
+          ? 'border-teal-500/20 bg-teal-500/5 hover:border-teal-500/40'
+          : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+      }`}>
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-2xl">{icon}</span>
+          <Badge label={policy.status} />
+        </div>
 
       <h3 className="mt-3 text-sm font-semibold leading-snug text-white">{name}</h3>
 
@@ -86,6 +87,38 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
       >
         View details →
       </Link>
+      </div>
+
+      {/* Hover tooltip */}
+      <div className="pointer-events-none absolute left-1/2 top-0 z-30 -translate-x-1/2 -translate-y-full opacity-0 transition-opacity duration-150 group-hover:opacity-100 mb-2 w-72 rounded-xl border border-white/10 bg-gray-900 p-4 shadow-2xl">
+        <p className="text-xs font-semibold text-white mb-2">Full Details</p>
+        <dl className="space-y-1.5 text-[11px]">
+          <div className="flex justify-between gap-2">
+            <dt className="text-gray-400 shrink-0">Policyholder</dt>
+            <dd className="font-mono text-gray-200 truncate" title={policy.policyholder}>{policy.policyholder}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-gray-400 shrink-0">Start</dt>
+            <dd className="text-gray-200">{formatDateTime(policy.startTime)}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-gray-400 shrink-0">End</dt>
+            <dd className="text-gray-200">{formatDateTime(policy.endTime)}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-gray-400 shrink-0">Coverage</dt>
+            <dd className="text-emerald-400 font-semibold">{formatUSDC(policy.coverage)}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-gray-400 shrink-0">Premium</dt>
+            <dd className="text-gray-200">{formatUSDC(policy.premiumPaid)}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-gray-400 shrink-0">Oracle</dt>
+            <dd className="font-mono text-gray-200 truncate" title={policy.oracleKey}>{policy.oracleKey}</dd>
+          </div>
+        </dl>
+      </div>
     </div>
   );
 }
