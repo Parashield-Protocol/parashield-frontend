@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/dashboard', '/policies', '/claims', '/oracle'],
+        disallow: ['/dashboard', '/policies', '/claims'],
       },
     ],
     sitemap: 'https://parashield.app/sitemap.xml',
