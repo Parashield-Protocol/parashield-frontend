@@ -82,6 +82,13 @@ export default function HomePage() {
   const [totalCoverage, setTotalCoverage] = useState<string | null>(null);
   const [totalPayouts,  setTotalPayouts]  = useState<string | null>(null);
   const [statsLastUpdated, setStatsLastUpdated] = useState<Date | null>(null);
+  const [, setTick] = useState(0);
+
+  // Refresh the "Updated X ago" text every 60s
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
