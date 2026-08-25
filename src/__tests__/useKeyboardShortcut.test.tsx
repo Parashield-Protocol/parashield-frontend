@@ -63,6 +63,31 @@ describe('useKeyboardShortcut', () => {
     expect(secondHandler).toHaveBeenCalledTimes(1);
   });
 
+  it('does not re-register the keydown listener on re-render when modifiers is omitted', () => {
+    // Regression test: `modifiers = {}` is a new object reference every
+    // render, so a naive [key, modifiers] dependency array tears down and
+    // re-registers the listener every render cycle.
+    const addSpy = vi.spyOn(window, 'addEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+    const handler = vi.fn();
+
+    const hook = renderHook(() => useKeyboardShortcut('k', handler));
+    const initialAddCalls = addSpy.mock.calls.filter((c) => c[0] === 'keydown').length;
+
+    hook.rerender();
+    hook.rerender();
+    hook.rerender();
+
+    const addCallsAfterRerenders = addSpy.mock.calls.filter((c) => c[0] === 'keydown').length;
+    const removeCallsAfterRerenders = removeSpy.mock.calls.filter((c) => c[0] === 'keydown').length;
+
+    expect(addCallsAfterRerenders).toBe(initialAddCalls);
+    expect(removeCallsAfterRerenders).toBe(0);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
   it('removes the listener on unmount', () => {
     const handler = vi.fn();
     const hook = renderHook(() => useKeyboardShortcut('k', handler));

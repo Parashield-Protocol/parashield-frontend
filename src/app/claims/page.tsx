@@ -12,7 +12,16 @@ import { downloadClaimsCSV, downloadClaimsJSON } from '@/lib/claimsExport';
 
 export default function ClaimsPage() {
   const { address, connected } = useWallet();
-  const { claims, loading, error, refetch } = useClaims(address);
+  const {
+    claims,
+    loading,
+    error,
+    refetch,
+    paused,
+    togglePause,
+    secondsUntilRefresh,
+    secondsSinceRefresh,
+  } = useClaims(address);
   const [refreshing, setRefreshing] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
@@ -78,6 +87,13 @@ export default function ClaimsPage() {
               </div>
             )}
             <button
+              onClick={togglePause}
+              className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 hover:border-white/20 hover:text-white transition-colors"
+              aria-label={paused ? 'Resume auto-refresh' : 'Pause auto-refresh'}
+            >
+              {paused ? '▶ Resume' : '⏸ Pause'}
+            </button>
+            <button
               onClick={handleRefresh}
               disabled={refreshing || loading}
               className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
@@ -86,6 +102,15 @@ export default function ClaimsPage() {
               Refresh
             </button>
           </div>
+          <p className="text-[11px] text-gray-500">
+            {secondsSinceRefresh !== null && (
+              <>Last refreshed {secondsSinceRefresh}s ago</>
+            )}
+            {!paused && secondsUntilRefresh !== null && (
+              <> · next in {secondsUntilRefresh}s</>
+            )}
+            {paused && <> · auto-refresh paused</>}
+          </p>
         </div>
       </div>
 

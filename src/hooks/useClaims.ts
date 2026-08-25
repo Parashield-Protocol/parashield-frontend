@@ -9,9 +9,16 @@ export function useClaims(walletAddress: string | null) {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
+  // Ticks once a second so consumers can derive a live countdown from
+  // lastRefreshedAt without the auto-refresh interval itself needing to change.
+  const [, forceTick] = useState(0);
   const isFirstLoad = useRef(true);
   const prevWallet = useRef(walletAddress);
   const refetchController = useRef<AbortController | null>(null);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   const load = useCallback(async (signal: AbortSignal) => {
     if (!walletAddress) return;
@@ -25,6 +32,7 @@ export function useClaims(walletAddress: string | null) {
       const data = await fetchUserClaims(walletAddress);
       if (signal.aborted) return;
       setClaims(data);
+      setLastRefreshedAt(Date.now());
     } catch (err) {
       if (signal.aborted) return;
       setError(err instanceof Error ? err.message : "Failed to load claims");
@@ -40,6 +48,7 @@ export function useClaims(walletAddress: string | null) {
     prevWallet.current = walletAddress;
     setClaims([]);
     setError(null);
+    setLastRefreshedAt(null);
     isFirstLoad.current = true;
   }, [walletAddress]);
 
@@ -48,9 +57,13 @@ export function useClaims(walletAddress: string | null) {
     const controller = new AbortController();
     void load(controller.signal);
     const interval = setInterval(() => {
+      if (pausedRef.current) return;
       if (!document.hidden) void load(controller.signal);
     }, CLAIMS_REFRESH_INTERVAL_MS);
-    const onVisible = () => { if (!document.hidden) void load(controller.signal); };
+    const onVisible = () => {
+      if (pausedRef.current) return;
+      if (!document.hidden) void load(controller.signal);
+    };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       controller.abort();
@@ -59,6 +72,14 @@ export function useClaims(walletAddress: string | null) {
     };
   }, [load, walletAddress]);
 
+  // Drives the countdown display; a no-op once paused since there's nothing
+  // counting down to.
+  useEffect(() => {
+    if (paused) return;
+    const tick = setInterval(() => forceTick((n) => n + 1), 1000);
+    return () => clearInterval(tick);
+  }, [paused]);
+
   const refetch = useCallback(() => {
     refetchController.current?.abort();
     const controller = new AbortController();
@@ -66,5 +87,28 @@ export function useClaims(walletAddress: string | null) {
     return load(controller.signal);
   }, [load]);
 
-  return { claims, loading, error, refetch };
+  const togglePause = useCallback(() => {
+    setPaused((p) => !p);
+  }, []);
+
+  const secondsUntilRefresh = (() => {
+    if (paused || lastRefreshedAt === null) return null;
+    const elapsedMs = Date.now() - lastRefreshedAt;
+    const remainingMs = CLAIMS_REFRESH_INTERVAL_MS - elapsedMs;
+    return Math.max(0, Math.ceil(remainingMs / 1000));
+  })();
+
+  const secondsSinceRefresh =
+    lastRefreshedAt === null ? null : Math.max(0, Math.floor((Date.now() - lastRefreshedAt) / 1000));
+
+  return {
+    claims,
+    loading,
+    error,
+    refetch,
+    paused,
+    togglePause,
+    secondsUntilRefresh,
+    secondsSinceRefresh,
+  };
 }

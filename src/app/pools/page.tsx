@@ -100,7 +100,9 @@ export default function PoolsPage() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-gray-400">APY</dt>
-                  <dd className="font-semibold text-emerald-400">{(pool.apy * 100).toFixed(1)}%</dd>
+                  <dd className="font-semibold text-emerald-400">
+                    {pool.apy != null ? `${(pool.apy * 100).toFixed(1)}%` : '—'}
+                  </dd>
                 </div>
               </dl>
 
