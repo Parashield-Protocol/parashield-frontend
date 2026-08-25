@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { BASE_FEE } from '@stellar/stellar-sdk';
 import { useProducts } from '@/hooks/useProducts';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { fetchProtocolStats } from '@/lib/api';
@@ -304,8 +305,8 @@ export default function HomePage() {
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total payouts</p>
           </div>
           <div>
-            <p className="text-3xl font-black text-teal-400">$0.00001</p>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Per transaction</p>
+            <p className="text-3xl font-black text-teal-400">{stroopsToDisplay(BASE_FEE, 5)} XLM</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Per transaction (network base fee)</p>
           </div>
         </div>
         {statsLastUpdated && !statsLoading && (
