@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useState, useCallback } from 'react';
 import { useOracleReading } from '@/hooks/useOracle';
 import { Skeleton } from './Skeleton';
 import { formatOracleValue, formatDateTime } from '@/lib/format';
@@ -12,6 +13,13 @@ interface OracleDataWidgetProps {
 
 export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps) {
   const { reading, loading, error, refetch } = useOracleReading(oracleKey);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   if (loading) {
     return (
@@ -33,10 +41,11 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
       <div className={`flex h-28 flex-col items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-white/[0.03] text-sm ${className ?? ''}`}>
         <p className="text-red-400">{error}</p>
         <button
-          onClick={refetch}
-          className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95"
+          onClick={() => void handleRefresh()}
+          disabled={refreshing}
+          className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
         >
-          Retry
+          {refreshing ? 'Retrying…' : 'Retry'}
         </button>
       </div>
     );
@@ -47,11 +56,12 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
       <div className={`flex h-28 flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] text-sm text-gray-400 ${className ?? ''}`}>
         <p>No oracle data</p>
         <button
-          onClick={refetch}
-          className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95"
+          onClick={() => void handleRefresh()}
+          disabled={refreshing}
+          className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
           aria-label="Refresh oracle data"
         >
-          ↻ Refresh
+          {refreshing ? '↻ Refreshing…' : '↻ Refresh'}
         </button>
       </div>
     );
