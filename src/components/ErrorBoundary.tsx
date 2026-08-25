@@ -30,7 +30,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error('[ErrorBoundary]', error, info);
+    // Only log to the browser console outside production (#476) -- track()
+    // below already reports the error for production monitoring; logging
+    // the raw error/component stack to the console in prod risks leaking
+    // internal details to anyone with devtools open.
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[ErrorBoundary]', error, info);
+    }
     track('app_error', {
       message:    error.message,
       stack:      error.stack?.slice(0, 200),
