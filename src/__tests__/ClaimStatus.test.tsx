@@ -157,7 +157,7 @@ describe('ClaimStatus', () => {
     expect(html).toContain('Not met');
   });
 
-  it('renders nothing when step is done but claim is null', () => {
+  it('renders a fallback rather than nothing when step is done but claim is null (#453)', () => {
     useClaim.mockReturnValue({
       step: 'done',
       claim: null,
@@ -167,6 +167,23 @@ describe('ClaimStatus', () => {
     });
 
     const html = renderToStaticMarkup(<ClaimStatus policyId="policy-1" />);
-    expect(html).toBe('');
+    expect(html).not.toBe('');
+    expect(html).toContain('Unable to display claim status');
+  });
+
+  it('renders a fallback rather than nothing for an unhandled step value (#453)', () => {
+    useClaim.mockReturnValue({
+      // Simulates a future ClaimStep value this component hasn't been
+      // updated to render yet.
+      step: 'unknown-future-step',
+      claim: null,
+      error: null,
+      submit: vi.fn(),
+      reset: vi.fn(),
+    });
+
+    const html = renderToStaticMarkup(<ClaimStatus policyId="policy-1" />);
+    expect(html).not.toBe('');
+    expect(html).toContain('Unable to display claim status');
   });
 });
