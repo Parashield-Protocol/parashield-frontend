@@ -31,9 +31,16 @@ export function NavBar() {
   const pathname = usePathname();
   const mobileMenuRef = useFocusTrap(mobileMenuOpen);
 
+  // Guards against a no-op state update on every Escape press when neither
+  // panel is open (#459) -- React 18 already bails out of re-rendering for a
+  // same-value primitive setState, but being explicit here means this stays
+  // true even if these ever become non-primitive state.
   useKeyboardShortcut('Escape', () => {
-    if (shortcutsOpen) setShortcutsOpen(false);
-    else setMobileMenuOpen(false);
+    if (shortcutsOpen) {
+      setShortcutsOpen(false);
+    } else if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
   });
   useKeyboardShortcut('?', () => setShortcutsOpen(true));
 
