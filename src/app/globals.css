@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/*
+ * Tailwind v4 config is CSS-first (#455); tailwind.config.ts's
+ * `darkMode: 'class'` was never actually loaded (no `@config` directive
+ * referenced it), so `dark:` utilities were silently falling back to v4's
+ * default `prefers-color-scheme` media query instead of the `.dark` class
+ * ThemeProvider toggles on <html> -- the manual theme toggle likely didn't
+ * visually apply `dark:` utility classes at all for a user whose OS
+ * preference disagreed with their in-app choice. This is the v4-CSS
+ * equivalent of the old `darkMode: 'class'` config.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --color-brand:     #14b8a6;
   --color-brand-dim: #0d9488;

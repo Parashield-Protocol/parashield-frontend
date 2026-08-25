@@ -49,7 +49,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * `darkMode: 'class'` in tailwind.config means styling should be done with
+ * The `@custom-variant dark (&:where(.dark, .dark *));` in globals.css (#455)
+ * means styling should be done with
  * `dark:` prefix classes everywhere, driven off the `dark`/`light` class this
  * provider sets on `<html>` (#437) -- not by reading `theme` here and
  * branching className strings in components. The one legitimate reason to
