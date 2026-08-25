@@ -12,23 +12,11 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --color-brand:     #14b8a6;
-  --color-brand-dim: #0d9488;
-  --color-success:   #10b981;
-  --color-danger:    #ef4444;
-  --color-warning:   #f59e0b;
-}
-
 .dark {
-  --color-surface: rgba(255, 255, 255, 0.03);
-  --color-border:  rgba(255, 255, 255, 0.10);
   color-scheme: dark;
 }
 
 .light {
-  --color-surface: rgba(0, 0, 0, 0.03);
-  --color-border:  rgba(0, 0, 0, 0.10);
   color-scheme: light;
 }
 
