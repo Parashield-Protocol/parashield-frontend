@@ -87,23 +87,37 @@ export function BuyPolicyModal({ product, onClose }: Props) {
   function validateFields(): boolean {
     let isValid = true;
 
-    const cov = parseFloat(coverage);
-    if (isNaN(cov) || cov <= 0) {
-      setCoverageError('Coverage must be a positive amount');
-      isValid = false;
-    } else if (cov < parseFloat(minDisplay) || cov > parseFloat(maxDisplay)) {
-      setCoverageError(`Coverage must be between ${minDisplay} and ${maxDisplay} USDC`);
+    // Reject scientific notation / non-plain-decimal input explicitly (#473,
+    // #475) rather than relying on parseFloat/parseInt's lenient parsing:
+    // parseFloat("5e8") happily returns 500000000, which could pass a naive
+    // range check with a value the user never intended to type.
+    if (!/^\d+(\.\d+)?$/.test(coverage.trim())) {
+      setCoverageError('Coverage must be a plain positive number (no scientific notation)');
       isValid = false;
     } else {
-      setCoverageError('');
+      const cov = parseFloat(coverage);
+      if (cov <= 0) {
+        setCoverageError('Coverage must be a positive amount');
+        isValid = false;
+      } else if (cov < parseFloat(minDisplay) || cov > parseFloat(maxDisplay)) {
+        setCoverageError(`Coverage must be between ${minDisplay} and ${maxDisplay} USDC`);
+        isValid = false;
+      } else {
+        setCoverageError('');
+      }
     }
 
-    const dur = parseInt(duration, 10);
-    if (isNaN(dur) || dur < 1 || dur > product.maxDuration) {
-      setDurationError(`Duration must be between 1 and ${product.maxDuration} days`);
+    if (!/^\d+$/.test(duration.trim())) {
+      setDurationError('Duration must be a whole number of days (no scientific notation or decimals)');
       isValid = false;
     } else {
-      setDurationError('');
+      const dur = parseInt(duration, 10);
+      if (dur < 1 || dur > product.maxDuration) {
+        setDurationError(`Duration must be between 1 and ${product.maxDuration} days`);
+        isValid = false;
+      } else {
+        setDurationError('');
+      }
     }
 
     if (product.category === 'crop') {
@@ -215,7 +229,8 @@ export function BuyPolicyModal({ product, onClose }: Props) {
               </label>
               <input
                 type="number"
-                min={0}
+                min={minDisplay}
+                max={maxDisplay}
                 value={coverage}
                 onChange={(e) => { setCoverage(e.target.value); setCoverageError(''); }}
                 placeholder={`${minDisplay} – ${maxDisplay}`}

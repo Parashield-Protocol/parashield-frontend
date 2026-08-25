@@ -30,20 +30,31 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
     }
   };
 
+  // Active shows a relative countdown; every other status shows an absolute
+  // date, since "time left" isn't meaningful once a policy is no longer
+  // active. Rather than forcing one format everywhere, every value carries
+  // the absolute date as a title tooltip too (#474), so the countdown case
+  // is never ambiguous about the actual date.
   let expiresLabel: string;
   let expiresValue: string;
+  let expiresTitle: string;
   if (isActive) {
     expiresLabel = 'Expires';
     expiresValue = timeLeft(policy.endTime);
+    expiresTitle = formatDateTime(policy.endTime);
   } else if (policy.status === 'Cancelled') {
     expiresLabel = 'Cancelled';
-    expiresValue = policy.cancelledAt ? formatDate(policy.cancelledAt) : formatDate(policy.endTime);
+    const cancelledOrEnd = policy.cancelledAt ?? policy.endTime;
+    expiresValue = formatDate(cancelledOrEnd);
+    expiresTitle = formatDateTime(cancelledOrEnd);
   } else if (policy.status === 'Claimed') {
     expiresLabel = 'Claimed';
     expiresValue = formatDate(policy.endTime);
+    expiresTitle = formatDateTime(policy.endTime);
   } else {
     expiresLabel = 'Expired';
     expiresValue = formatDate(policy.endTime);
+    expiresTitle = formatDateTime(policy.endTime);
   }
 
   return (
@@ -81,7 +92,10 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
         </div>
         <div>
           <dt className="text-gray-400">{expiresLabel}</dt>
-          <dd className={`mt-0.5 font-semibold ${isActive ? 'text-amber-400' : 'text-gray-400'}`}>
+          <dd
+            title={expiresTitle}
+            className={`mt-0.5 font-semibold ${isActive ? 'text-amber-400' : 'text-gray-400'}`}
+          >
             {expiresValue}
           </dd>
         </div>
