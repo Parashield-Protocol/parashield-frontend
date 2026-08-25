@@ -16,6 +16,7 @@ export default function ClaimsPage() {
     claims,
     loading,
     error,
+    pollingError,
     refetch,
     paused,
     togglePause,
@@ -131,9 +132,24 @@ export default function ClaimsPage() {
           </button>
         </div>
       ) : (
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-          <ClaimHistoryTable claims={claims} />
-        </div>
+        <>
+          {pollingError && (
+            <div className="mt-8 flex items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-400">
+              <span>Connection lost — showing last known claims. {pollingError}</span>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-amber-500/30 px-3 py-1 hover:bg-amber-500/10 disabled:opacity-60 transition-colors"
+              >
+                {refreshing && <LoadingSpinner size="sm" className="h-3 w-3 border-amber-400/30 border-t-amber-400" />}
+                Retry
+              </button>
+            </div>
+          )}
+          <div className={`rounded-2xl border border-white/10 bg-white/[0.02] p-6 ${pollingError ? 'mt-3' : 'mt-8'}`}>
+            <ClaimHistoryTable claims={claims} />
+          </div>
+        </>
       )}
     </main>
   );

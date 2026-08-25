@@ -9,6 +9,13 @@ export function useClaims(walletAddress: string | null) {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A background poll failing after the initial load already succeeded is
+  // a different situation from the initial load itself failing: the user
+  // still has valid (if now possibly stale) claims data on screen, so this
+  // is surfaced separately from `error` -- consumers can show a subtle
+  // "connection lost" indicator alongside the existing table instead of
+  // discarding it for a full blocking error state (#466).
+  const [pollingError, setPollingError] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
   // Ticks once a second so consumers can derive a live countdown from
@@ -27,15 +34,21 @@ export function useClaims(walletAddress: string | null) {
       setLoading(true);
       isFirstLoad.current = false;
     }
-    setError(null);
+    if (isFirst) setError(null);
     try {
       const data = await fetchUserClaims(walletAddress);
       if (signal.aborted) return;
       setClaims(data);
       setLastRefreshedAt(Date.now());
+      setPollingError(null);
     } catch (err) {
       if (signal.aborted) return;
-      setError(err instanceof Error ? err.message : "Failed to load claims");
+      const message = err instanceof Error ? err.message : "Failed to load claims";
+      if (isFirst) {
+        setError(message);
+      } else {
+        setPollingError(message);
+      }
     } finally {
       if (isFirst && !signal.aborted) {
         setLoading(false);
@@ -48,6 +61,7 @@ export function useClaims(walletAddress: string | null) {
     prevWallet.current = walletAddress;
     setClaims([]);
     setError(null);
+    setPollingError(null);
     setLastRefreshedAt(null);
     isFirstLoad.current = true;
   }, [walletAddress]);
@@ -105,6 +119,7 @@ export function useClaims(walletAddress: string | null) {
     claims,
     loading,
     error,
+    pollingError,
     refetch,
     paused,
     togglePause,
