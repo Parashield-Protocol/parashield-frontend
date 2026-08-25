@@ -62,7 +62,7 @@ export function CategoryFilter({ value, onChange, className }: CategoryFilterPro
           }`}
         >
           {cat !== 'all' && <span>{CATEGORY_ICONS[cat]}</span>}
-          {cat === 'all' ? 'All products' : CATEGORY_LABELS[cat]}
+          {cat === 'all' ? 'All policies' : CATEGORY_LABELS[cat]}
         </button>
       ))}
     </div>
