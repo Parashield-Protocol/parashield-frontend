@@ -188,4 +188,36 @@ describe('useOracleReading', () => {
     expect(result.current.loading).toBe(false);
     expect(result.current.error).toBeNull();
   });
+
+  // Issue #471: the visibilitychange listener registered to drive foreground
+  // polling must be removed on unmount, or it keeps firing (and re-fetching)
+  // for a component instance that's no longer mounted / no longer the
+  // active page.
+  it('removes its visibilitychange listener on unmount', () => {
+    mockFetchOracleReading.mockResolvedValue({
+      key: 'weather-abuja',
+      dataType: 'weather',
+      value: '324000000',
+      confidence: 95,
+      timestamp: Date.now() / 1000,
+      source: 'mock',
+    });
+
+    const addSpy = vi.spyOn(document, 'addEventListener');
+    const removeSpy = vi.spyOn(document, 'removeEventListener');
+
+    const { unmount } = renderHook(() => useOracleReading('weather-abuja'));
+
+    expect(addSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    const [, registeredHandler] = addSpy.mock.calls.find(
+      ([event]) => event === 'visibilitychange',
+    )!;
+
+    unmount();
+
+    expect(removeSpy).toHaveBeenCalledWith('visibilitychange', registeredHandler);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
 });
