@@ -81,6 +81,7 @@ export function useClaim(policyId?: string) {
       if (cancelledRef.current) return;
       try {
         const result = await fetchClaim(currentClaimId);
+        // Re-check after await — reset() may have fired while the fetch was in-flight
         if (!active || cancelledRef.current) return;
         if (result) {
           if (cancelledRef.current) return;
