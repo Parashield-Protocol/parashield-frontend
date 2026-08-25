@@ -55,14 +55,29 @@ export const CLAIMS_CONTRACT_ID =
   process.env.NEXT_PUBLIC_CLAIMS_CONTRACT_ID ?? '';
 
 /**
- * Validate that all required contract IDs are present and well-formed.
- * Call once at app startup (e.g. from layout.tsx) so misconfiguration
- * fails fast with a clear message instead of deep in a purchase/claim flow.
+ * Warn (never throw) if a required contract ID is missing or malformed.
+ * Call once at app startup (e.g. from layout.tsx) so misconfiguration is
+ * loudly logged instead of surfacing silently deep in a purchase/claim flow.
+ *
+ * Deliberately non-fatal (#454): `layout.tsx` evaluates this at module load,
+ * which Next.js also runs during `next build` to statically analyze routes --
+ * throwing here previously crashed the entire build (and blocked preview
+ * deployments and local dev) whenever contract-ID env vars weren't set,
+ * which is expected for those environments. Logging keeps genuine
+ * misconfiguration visible in server logs without blocking the build.
  */
 export function validateConfig(): void {
-  validateContractId('NEXT_PUBLIC_POLICY_CONTRACT_ID', 'Policy Contract ID');
-  validateContractId('NEXT_PUBLIC_ORACLE_CONTRACT_ID', 'Oracle Contract ID');
-  validateContractId('NEXT_PUBLIC_CLAIMS_CONTRACT_ID', 'Claims Contract ID');
+  for (const [envKey, label] of [
+    ['NEXT_PUBLIC_POLICY_CONTRACT_ID', 'Policy Contract ID'],
+    ['NEXT_PUBLIC_ORACLE_CONTRACT_ID', 'Oracle Contract ID'],
+    ['NEXT_PUBLIC_CLAIMS_CONTRACT_ID', 'Claims Contract ID'],
+  ] as const) {
+    try {
+      validateContractId(envKey, label);
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : err);
+    }
+  }
 }
 
 import type { Category, PolicyStatus, ClaimStatus } from '@/types';
