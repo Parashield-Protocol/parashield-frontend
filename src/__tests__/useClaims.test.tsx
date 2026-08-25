@@ -81,4 +81,57 @@ describe('useClaims', () => {
 
     expect(hook.current.secondsUntilRefresh).toBe(10);
   });
+
+  // Issue #466: a background poll failing after the initial load already
+  // succeeded must not silently disappear, and must not wipe out the
+  // already-loaded claims the way a blocking `error` would.
+  describe('background polling failures', () => {
+    it('surfaces a background poll failure via pollingError, not error, and keeps existing claims', async () => {
+      fetchUserClaims.mockResolvedValueOnce([makeClaim()]);
+      const hook = renderHook(() => useClaims('GWALLET'));
+      await flushMicrotasks();
+
+      expect(hook.current.claims).toHaveLength(1);
+      expect(hook.current.error).toBeNull();
+      expect(hook.current.pollingError).toBeNull();
+
+      fetchUserClaims.mockRejectedValueOnce(new Error('Network unreachable'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+
+      expect(hook.current.pollingError).toBe('Network unreachable');
+      expect(hook.current.error).toBeNull();
+      expect(hook.current.claims).toHaveLength(1); // stale-but-valid data preserved
+    });
+
+    it('clears pollingError once a subsequent poll succeeds', async () => {
+      fetchUserClaims.mockResolvedValueOnce([makeClaim()]);
+      const hook = renderHook(() => useClaims('GWALLET'));
+      await flushMicrotasks();
+
+      fetchUserClaims.mockRejectedValueOnce(new Error('Network unreachable'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+      expect(hook.current.pollingError).toBe('Network unreachable');
+
+      fetchUserClaims.mockResolvedValueOnce([makeClaim(), makeClaim({ id: 'claim-2' })]);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+
+      expect(hook.current.pollingError).toBeNull();
+      expect(hook.current.claims).toHaveLength(2);
+    });
+
+    it('does not set pollingError for the initial load failure (uses error instead)', async () => {
+      fetchUserClaims.mockRejectedValueOnce(new Error('Initial load failed'));
+      const hook = renderHook(() => useClaims('GWALLET'));
+      await flushMicrotasks();
+
+      expect(hook.current.error).toBe('Initial load failed');
+      expect(hook.current.pollingError).toBeNull();
+    });
+  });
 });
