@@ -8,6 +8,14 @@ export function safeBigInt(value: string | bigint | null | undefined): bigint {
   return BigInt(trimmed);
 }
 
+/**
+ * Truncates (never rounds) to `decimals` places, deliberately (#451): several
+ * callers (e.g. `estimatePremium`) need this to match the Soroban contract's
+ * own integer division exactly, and rounding up would display an amount the
+ * chain would never actually charge/return. If you need a rounded display
+ * value for a specific call site, round at that call site instead of
+ * changing this shared truncation behavior.
+ */
 export function stroopsToDisplay(stroops: string | bigint | null | undefined, decimals = 2): string {
   if (stroops === null || stroops === undefined) return '—';
   if (typeof stroops === 'string') {

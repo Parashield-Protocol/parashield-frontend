@@ -72,8 +72,12 @@ export function useAllOracleReadings() {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
   const isFirstLoad = useRef(true);
+  const refetchController = useRef<AbortController | null>(null);
 
-  const load = useCallback(async () => {
+  // Guards against a slower in-flight response overwriting a newer one's
+  // state (#450) -- mirrors usePolicies'/useClaims' AbortController pattern,
+  // the codebase's established fix for this class of stale-response race.
+  const load = useCallback(async (signal: AbortSignal) => {
     const isFirst = isFirstLoad.current;
     if (isFirst) {
       setLoading(true);
@@ -82,26 +86,39 @@ export function useAllOracleReadings() {
     setError(null);
     try {
       const data = await fetchAllOracleReadings();
+      if (signal.aborted) return;
       setReadings(data);
     } catch (err) {
+      if (signal.aborted) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch oracle readings');
     } finally {
-      if (isFirst) {
+      if (isFirst && !signal.aborted) {
         setLoading(false);
       }
     }
   }, []);
 
   useEffect(() => {
-    void load();
-    const interval = setInterval(() => { if (!document.hidden) void load(); }, ORACLE_REFRESH_INTERVAL_MS);
-    const onVisible = () => { if (!document.hidden) void load(); };
+    const controller = new AbortController();
+    void load(controller.signal);
+    const interval = setInterval(() => {
+      if (!document.hidden) void load(controller.signal);
+    }, ORACLE_REFRESH_INTERVAL_MS);
+    const onVisible = () => { if (!document.hidden) void load(controller.signal); };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
+      controller.abort();
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [load]);
 
-  return { readings, loading, error, refetch: load };
+  const refetch = useCallback(() => {
+    refetchController.current?.abort();
+    const controller = new AbortController();
+    refetchController.current = controller;
+    return load(controller.signal);
+  }, [load]);
+
+  return { readings, loading, error, refetch };
 }

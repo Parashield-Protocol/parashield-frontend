@@ -48,7 +48,7 @@ describe('stroopsToDisplay', () => {
     expect(stroopsToDisplay('abc')).toBe('—');
   });
 
-  it('truncates rather than rounds at a decimal boundary', () => {
+  it('truncates rather than rounds at a decimal boundary (#451, intentional -- see doc comment)', () => {
     // 19999999 stroops = 1.9999999 — truncated to 2 decimals should be 1.99, not 2.00
     expect(stroopsToDisplay('19999999')).toBe('1.99');
   });
