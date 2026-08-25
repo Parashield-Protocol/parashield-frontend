@@ -2,7 +2,12 @@
 
 import { useState } from 'react';
 import { useWalletContext } from '@/context/WalletContext';
+import { useDebounce } from '@/hooks/useDebounce';
 import { shortenAddress } from '@/lib/format';
+
+/** Delay before showing the connecting indicator (#486), so a connection
+ * that resolves faster than this never flashes a loading state at all. */
+const CONNECTING_INDICATOR_DELAY_MS = 200;
 
 interface WalletButtonProps {
   className?: string;
@@ -11,6 +16,7 @@ interface WalletButtonProps {
 export function WalletButton({ className }: WalletButtonProps) {
   const { address, connected, connecting, error, connect, disconnect } = useWalletContext();
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const showConnecting = useDebounce(connecting, CONNECTING_INDICATOR_DELAY_MS) && connecting;
 
   if (connected && address) {
     return (
@@ -55,7 +61,7 @@ export function WalletButton({ className }: WalletButtonProps) {
         disabled={connecting}
         className="rounded-full bg-teal-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
       >
-        {connecting ? 'Connecting…' : 'Connect Wallet'}
+        {showConnecting ? 'Connecting…' : 'Connect Wallet'}
       </button>
       {error && !connecting && (
         <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
