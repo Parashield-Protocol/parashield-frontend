@@ -20,12 +20,19 @@ export default function OraclePage() {
   const { readings, loading, error, refetch } = useAllOracleReadings();
   const lastSuccessRef = useRef<Date | null>(null);
   const isStale = error !== null && readings.length > 0;
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!error && readings.length > 0) {
       lastSuccessRef.current = new Date();
     }
   }, [readings, error]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   const [displayedItems, setDisplayedItems] = useState(PAGE_SIZE);
   const [dataTypeFilter, setDataTypeFilter] = useState<DataTypeFilter>('all');
@@ -117,9 +124,11 @@ export default function OraclePage() {
           </p>
         </div>
         <button
-          onClick={refetch}
-          className="rounded-xl border border-white/10 px-4 py-2 text-sm text-gray-400 hover:border-white/20 hover:text-white transition-colors"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="rounded-xl border border-white/10 px-4 py-2 text-sm text-gray-400 hover:border-white/20 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
+          {refreshing ? <LoadingSpinner size="sm" /> : null}
           Refresh
         </button>
       </div>
