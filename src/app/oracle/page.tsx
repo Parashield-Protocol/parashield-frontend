@@ -19,8 +19,13 @@ const DATA_TYPES: DataTypeFilter[] = ['all', 'weather', 'flight', 'defi'];
 export default function OraclePage() {
   const { readings, loading, error, refetch } = useAllOracleReadings();
   const lastSuccessRef = useRef<Date | null>(null);
-  if (!error && readings.length > 0) lastSuccessRef.current = new Date();
   const isStale = error !== null && readings.length > 0;
+
+  useEffect(() => {
+    if (!error && readings.length > 0) {
+      lastSuccessRef.current = new Date();
+    }
+  }, [readings, error]);
 
   const [displayedItems, setDisplayedItems] = useState(PAGE_SIZE);
   const [dataTypeFilter, setDataTypeFilter] = useState<DataTypeFilter>('all');
