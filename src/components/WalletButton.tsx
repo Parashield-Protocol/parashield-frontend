@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useWalletContext } from '@/context/WalletContext';
 import { shortenAddress } from '@/lib/format';
 
@@ -9,6 +10,7 @@ interface WalletButtonProps {
 
 export function WalletButton({ className }: WalletButtonProps) {
   const { address, connected, connecting, error, connect, disconnect } = useWalletContext();
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   if (connected && address) {
     return (
@@ -16,12 +18,32 @@ export function WalletButton({ className }: WalletButtonProps) {
         <span className="rounded-full border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 px-3 py-1.5 font-mono text-xs text-gray-600 dark:text-gray-300">
           {shortenAddress(address)}
         </span>
-        <button
-          onClick={disconnect}
-          className="rounded-full border border-gray-200 dark:border-white/10 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 transition-all"
-        >
-          Disconnect
-        </button>
+        {confirmDisconnect ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                disconnect();
+                setConfirmDisconnect(false);
+              }}
+              className="rounded-full border border-red-500/50 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-all"
+            >
+              Sure?
+            </button>
+            <button
+              onClick={() => setConfirmDisconnect(false)}
+              className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDisconnect(true)}
+            className="rounded-full border border-gray-200 dark:border-white/10 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 transition-all"
+          >
+            Disconnect
+          </button>
+        )}
       </div>
     );
   }
