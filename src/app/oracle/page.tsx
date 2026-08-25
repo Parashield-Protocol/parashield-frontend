@@ -165,7 +165,7 @@ export default function OraclePage() {
       {readings.length > 0 && (
         <>
           {/* Filter pills */}
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div className="mt-6 flex flex-wrap items-center gap-2">
             {DATA_TYPES.map((dt) => (
               <button
                 key={dt}
@@ -179,6 +179,11 @@ export default function OraclePage() {
                 {dt === 'all' ? 'All types' : dt.charAt(0).toUpperCase() + dt.slice(1)}
               </button>
             ))}
+            {dataTypeFilter !== 'all' && (
+              <span className="text-xs text-gray-400">
+                {filteredReadings.length} result{filteredReadings.length !== 1 ? 's' : ''}
+              </span>
+            )}
           </div>
 
           <div className={`mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] transition-opacity ${loading ? 'opacity-50' : ''}`}>
