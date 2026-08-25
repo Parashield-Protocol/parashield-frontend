@@ -142,4 +142,30 @@ describe('useAllOracleReadings', () => {
 
     expect(hook.current.loading).toBe(false);
   });
+
+  it('discards a slower refetch response overtaken by a newer refetch (#450)', async () => {
+    fetchAllOracleReadings.mockResolvedValueOnce([makeReading({ key: 'initial' })]);
+    const hook = renderHook(() => useAllOracleReadings());
+    await flushMicrotasks();
+
+    const resolvers: Array<(readings: OracleReading[]) => void> = [];
+    fetchAllOracleReadings.mockImplementation(
+      () => new Promise<OracleReading[]>((resolve) => { resolvers.push(resolve); }),
+    );
+
+    // Fire two manual refetches back to back before either resolves.
+    act(() => { void hook.current.refetch(); });
+    act(() => { void hook.current.refetch(); });
+    await flushMicrotasks();
+
+    expect(resolvers).toHaveLength(2);
+
+    // Resolve the second (newer) request first, then the stale first one.
+    act(() => resolvers[1]([makeReading({ key: 'newer' })]));
+    await flushMicrotasks();
+    act(() => resolvers[0]([makeReading({ key: 'stale' })]));
+    await flushMicrotasks();
+
+    expect(hook.current.readings).toEqual([makeReading({ key: 'newer' })]);
+  });
 });

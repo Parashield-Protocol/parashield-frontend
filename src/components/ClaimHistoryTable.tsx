@@ -92,101 +92,160 @@ function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProp
   }
 
   return (
-    <div className={`overflow-x-auto ${className ?? ''}`}>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
-            <th className="pb-3 pr-4">Claim ID</th>
-            <th className="pb-3 pr-4">Policy</th>
-            <th className="pb-3 pr-4">
-              <button
-                type="button"
-                onClick={() => toggleSort('triggerMet')}
-                className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
-                  sort.column === 'triggerMet' ? 'text-white' : ''
-                }`}
+    <div className={`${className ?? ''}`}>
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
+              <th className="pb-3 pr-4">Claim ID</th>
+              <th className="pb-3 pr-4">Policy</th>
+              <th
+                className="pb-3 pr-4"
+                aria-sort={sort.column === 'triggerMet' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
               >
-                Trigger {sortIndicator('triggerMet')}
-              </button>
-            </th>
-            <th className="pb-3 pr-4">
-              <button
-                type="button"
-                onClick={() => toggleSort('payoutAmount')}
-                className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
-                  sort.column === 'payoutAmount' ? 'text-white' : ''
-                }`}
-              >
-                Payout {sortIndicator('payoutAmount')}
-              </button>
-            </th>
-            <th className="pb-3 pr-4">
-              <button
-                type="button"
-                onClick={() => toggleSort('submittedAt')}
-                className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
-                  sort.column === 'submittedAt' ? 'text-white' : ''
-                }`}
-              >
-                Submitted {sortIndicator('submittedAt')}
-              </button>
-            </th>
-            <th className="pb-3 pr-4">Tx</th>
-            <th className="pb-3">
-              <button
-                type="button"
-                onClick={() => toggleSort('status')}
-                className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
-                  sort.column === 'status' ? 'text-white' : ''
-                }`}
-              >
-                Status {sortIndicator('status')}
-              </button>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedClaims.map((claim) => (
-            <tr
-              key={claim.id}
-              className="border-b border-white/5 transition-colors hover:bg-white/[0.02]"
-            >
-              <td className="py-4 pr-4 font-mono text-xs text-gray-400">
-                {claim.id.slice(0, 8)}…
-              </td>
-              <td className="py-4 pr-4 font-mono text-xs">
-                <Link
-                  href={`/policies/${claim.policyId}`}
-                  className="text-teal-400 hover:text-teal-300 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => toggleSort('triggerMet')}
+                  className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
+                    sort.column === 'triggerMet' ? 'text-white' : ''
+                  }`}
                 >
-                  {claim.policyId.slice(0, 8)}…
-                </Link>
-              </td>
-              <td className="py-4 pr-4">
-                <span className={`text-xs font-semibold ${claim.triggerMet ? 'text-emerald-400' : 'text-gray-400'}`}>
-                  {claim.triggerMet ? '✓ Met' : '✕ Not met'}
-                </span>
-              </td>
-              <td className="py-4 pr-4 text-xs font-semibold text-emerald-400">
+                  Trigger {sortIndicator('triggerMet')}
+                </button>
+              </th>
+              <th
+                className="pb-3 pr-4"
+                aria-sort={sort.column === 'payoutAmount' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleSort('payoutAmount')}
+                  className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
+                    sort.column === 'payoutAmount' ? 'text-white' : ''
+                  }`}
+                >
+                  Payout {sortIndicator('payoutAmount')}
+                </button>
+              </th>
+              <th
+                className="pb-3 pr-4"
+                aria-sort={sort.column === 'submittedAt' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleSort('submittedAt')}
+                  className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
+                    sort.column === 'submittedAt' ? 'text-white' : ''
+                  }`}
+                >
+                  Submitted {sortIndicator('submittedAt')}
+                </button>
+              </th>
+              <th className="pb-3 pr-4">Tx</th>
+              <th
+                className="pb-3"
+                aria-sort={sort.column === 'status' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleSort('status')}
+                  className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
+                    sort.column === 'status' ? 'text-white' : ''
+                  }`}
+                >
+                  Status {sortIndicator('status')}
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedClaims.map((claim) => (
+              <tr
+                key={claim.id}
+                className="border-b border-white/5 transition-colors hover:bg-white/[0.02]"
+              >
+                <td className="py-4 pr-4 font-mono text-xs text-gray-400">
+                  {claim.id.slice(0, 8)}…
+                </td>
+                <td className="py-4 pr-4 font-mono text-xs">
+                  <Link
+                    href={`/policies/${claim.policyId}`}
+                    className="text-teal-400 hover:text-teal-300 transition-colors"
+                  >
+                    {claim.policyId.slice(0, 8)}…
+                  </Link>
+                </td>
+                <td className="py-4 pr-4">
+                  <span className={`text-xs font-semibold ${claim.triggerMet ? 'text-emerald-400' : 'text-gray-400'}`}>
+                    {claim.triggerMet ? '✓ Met' : '✕ Not met'}
+                  </span>
+                </td>
+                <td className="py-4 pr-4 text-xs font-semibold text-emerald-400">
+                  {claim.payoutAmount ? formatUSDC(claim.payoutAmount) : '—'}
+                </td>
+                <td className="py-4 pr-4 text-xs text-gray-400">
+                  {formatDateTime(claim.submittedAt)}
+                </td>
+                <td className="py-4 pr-4">
+                  {claim.txHash ? (
+                    <TransactionLink txHash={claim.txHash} />
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
+                </td>
+                <td className="py-4">
+                  <Badge label={claim.status} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile card layout */}
+      <div className="md:hidden space-y-3">
+        {sortedClaims.map((claim) => (
+          <div
+            key={claim.id}
+            className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs text-gray-400">
+                {claim.id.slice(0, 8)}…
+              </span>
+              <Badge label={claim.status} />
+            </div>
+            <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+              <span className="text-gray-400">Policy</span>
+              <Link
+                href={`/policies/${claim.policyId}`}
+                className="font-mono text-teal-400 hover:text-teal-300 transition-colors truncate"
+              >
+                {claim.policyId.slice(0, 8)}…
+              </Link>
+              <span className="text-gray-400">Trigger</span>
+              <span className={claim.triggerMet ? 'font-semibold text-emerald-400' : 'text-gray-400'}>
+                {claim.triggerMet ? '✓ Met' : '✕ Not met'}
+              </span>
+              <span className="text-gray-400">Payout</span>
+              <span className="font-semibold text-emerald-400">
                 {claim.payoutAmount ? formatUSDC(claim.payoutAmount) : '—'}
-              </td>
-              <td className="py-4 pr-4 text-xs text-gray-400">
-                {formatDateTime(claim.submittedAt)}
-              </td>
-              <td className="py-4 pr-4">
+              </span>
+              <span className="text-gray-400">Submitted</span>
+              <span className="text-gray-400">{formatDateTime(claim.submittedAt)}</span>
+              <span className="text-gray-400">Tx</span>
+              <span>
                 {claim.txHash ? (
                   <TransactionLink txHash={claim.txHash} />
                 ) : (
-                  <span className="text-xs text-gray-400">—</span>
+                  <span className="text-gray-400">—</span>
                 )}
-              </td>
-              <td className="py-4">
-                <Badge label={claim.status} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -112,9 +112,11 @@ export function usePolicy(id: string | null) {
   // Manual refresh (e.g. a "Refresh" button) — deliberately independent of
   // the effect's `cancelled` guard above, since that guard exists to drop
   // stale responses when `id` changes, not to gate a user-triggered refetch.
+  const [refetching, setRefetching] = useState(false);
+
   const refetch = useCallback(async () => {
     if (!id) return;
-    setLoading(true);
+    setRefetching(true);
     setError(null);
     try {
       const p = await fetchPolicy(id);
@@ -122,9 +124,9 @@ export function usePolicy(id: string | null) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load policy");
     } finally {
-      setLoading(false);
+      setRefetching(false);
     }
   }, [id]);
 
-  return { policy, loading, error, refetch };
+  return { policy, loading, refetching, error, refetch };
 }

@@ -45,7 +45,7 @@ export function ProgressBar({ value, max = 100, label, colour = 'teal', classNam
 
 export function StepProgress({ steps, current }: { steps: string[]; current: number }) {
   return (
-    <div className="flex items-center gap-2" role="group" aria-label="Progress">
+    <div className="flex items-center gap-2" role="group" aria-label={`Progress: step ${current + 1} of ${steps.length}`}>
       {steps.map((step, i) => (
         <div key={step} className="flex items-center gap-2">
           <div
@@ -60,8 +60,13 @@ export function StepProgress({ steps, current }: { steps: string[]; current: num
           >
             {i < current ? '✓' : i + 1}
           </div>
-          <span className={`text-xs ${i === current ? 'text-white' : 'text-gray-400'}`}>{step}</span>
-          {i < steps.length - 1 && <div className="h-px w-6 bg-white/10" />}
+          <span
+            className={`text-xs ${i === current ? 'text-white' : 'text-gray-400'}`}
+            aria-hidden={i === current ? undefined : 'true'}
+          >
+            {step}
+          </span>
+          {i < steps.length - 1 && <div className="h-px w-6 bg-white/10" aria-hidden="true" />}
         </div>
       ))}
     </div>

@@ -1,63 +1,36 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useWallet } from '@/hooks/useWallet';
-import { fetchUserClaims } from '@/lib/api';
+import { useClaims } from '@/hooks/useClaims';
 import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
 import { ClaimHistoryTable } from '@/components/ClaimHistoryTable';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { SkeletonTable } from '@/components/Skeleton';
+import { Breadcrumb } from '@/components/Breadcrumb';
 import { downloadClaimsCSV, downloadClaimsJSON } from '@/lib/claimsExport';
-import type { Claim } from '@/types';
-import { CLAIMS_REFRESH_INTERVAL_MS } from '@/lib/constants';
 
 export default function ClaimsPage() {
   const { address, connected } = useWallet();
-  const [claims,      setClaims]      = useState<Claim[]>([]);
-  const [loading,     setLoading]     = useState(false);
-  const [refreshing,  setRefreshing]  = useState(false);
-  const [error,       setError]       = useState<string | null>(null);
-  const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const {
+    claims,
+    loading,
+    error,
+    pollingError,
+    refetch,
+    paused,
+    togglePause,
+    secondsUntilRefresh,
+    secondsSinceRefresh,
+  } = useClaims(address);
+  const [refreshing, setRefreshing] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-
-  const loadClaims = useCallback(async (silent = false) => {
-    if (!address) return;
-    if (!silent) setLoading(true);
-    try {
-      const data = await fetchUserClaims(address);
-      setClaims(data);
-      setLastFetched(new Date());
-      setError(null);
-    } catch (err) {
-      if (!silent) {
-        setError(err instanceof Error ? err.message : 'Failed to load claims');
-      }
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [address]);
-
-  useEffect(() => {
-    void loadClaims();
-    if (!address) return;
-    const interval = setInterval(() => {
-      if (!document.hidden) void loadClaims(true);
-    }, CLAIMS_REFRESH_INTERVAL_MS);
-    const onVisible = () => {
-      if (!document.hidden) void loadClaims(true);
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  }, [loadClaims, address]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadClaims();
+    await refetch();
     setRefreshing(false);
-  }, [loadClaims]);
+  }, [refetch]);
 
   if (!connected) {
     return (
@@ -67,8 +40,14 @@ export default function ClaimsPage() {
     );
   }
 
+  const breadcrumbItems = [
+    { label: 'Products', href: '/' },
+    { label: 'Claim History' },
+  ];
+
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
+      <Breadcrumb items={breadcrumbItems} />
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Claim History</h1>
@@ -109,6 +88,13 @@ export default function ClaimsPage() {
               </div>
             )}
             <button
+              onClick={togglePause}
+              className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 hover:border-white/20 hover:text-white transition-colors"
+              aria-label={paused ? 'Resume auto-refresh' : 'Pause auto-refresh'}
+            >
+              {paused ? '▶ Resume' : '⏸ Pause'}
+            </button>
+            <button
               onClick={handleRefresh}
               disabled={refreshing || loading}
               className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 hover:border-white/20 hover:text-white disabled:opacity-60 transition-colors"
@@ -117,15 +103,19 @@ export default function ClaimsPage() {
               Refresh
             </button>
           </div>
-          {lastFetched && (
-            <span className="text-[10px] text-gray-400">
-              Updated {lastFetched.toLocaleTimeString()}
-            </span>
-          )}
+          <p className="text-[11px] text-gray-500">
+            {secondsSinceRefresh !== null && (
+              <>Last refreshed {secondsSinceRefresh}s ago</>
+            )}
+            {!paused && secondsUntilRefresh !== null && (
+              <> · next in {secondsUntilRefresh}s</>
+            )}
+            {paused && <> · auto-refresh paused</>}
+          </p>
         </div>
       </div>
 
-      {loading && !refreshing ? (
+      {loading ? (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <SkeletonTable rows={5} />
         </div>
@@ -142,9 +132,24 @@ export default function ClaimsPage() {
           </button>
         </div>
       ) : (
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-          <ClaimHistoryTable claims={claims} />
-        </div>
+        <>
+          {pollingError && (
+            <div className="mt-8 flex items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-400">
+              <span>Connection lost — showing last known claims. {pollingError}</span>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-amber-500/30 px-3 py-1 hover:bg-amber-500/10 disabled:opacity-60 transition-colors"
+              >
+                {refreshing && <LoadingSpinner size="sm" className="h-3 w-3 border-amber-400/30 border-t-amber-400" />}
+                Retry
+              </button>
+            </div>
+          )}
+          <div className={`rounded-2xl border border-white/10 bg-white/[0.02] p-6 ${pollingError ? 'mt-3' : 'mt-8'}`}>
+            <ClaimHistoryTable claims={claims} />
+          </div>
+        </>
       )}
     </main>
   );

@@ -45,7 +45,7 @@ export function ToastContainer() {
   if (!toasts.length) return null;
   return (
     <div className="pointer-events-none fixed inset-0 z-50" role="status" aria-live="polite" aria-atomic="true">
-      <div className="pointer-events-auto absolute bottom-6 right-6 flex w-[340px] flex-col gap-3">
+      <div className="pointer-events-auto absolute bottom-6 right-6 flex w-[340px] flex-col gap-3 max-h-[calc(100vh-48px)] overflow-y-auto">
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} />
         ))}

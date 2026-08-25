@@ -229,9 +229,10 @@ export function fetchProtocolStats(): Promise<ProtocolStats> {
   return Promise.all([
     get<{ totalCoverage: string }>('/policies/stats'),
     get<{ totalPayouts: string }>('/claims/stats'),
-  ]).then(([policies, claims]) => ({
+    get<Product[]>('/policies/products'),
+  ]).then(([policies, claims, products]) => ({
     totalCoverage: policies.totalCoverage,
     totalPayouts:    claims.totalPayouts,
-    activeProducts:  0,
+    activeProducts:  products.filter((p) => p.status === 'Active').length,
   }));
 }

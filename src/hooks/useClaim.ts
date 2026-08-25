@@ -81,6 +81,7 @@ export function useClaim(policyId?: string) {
       if (cancelledRef.current) return;
       try {
         const result = await fetchClaim(currentClaimId);
+        // Re-check after await — reset() may have fired while the fetch was in-flight
         if (!active || cancelledRef.current) return;
         if (result) {
           if (cancelledRef.current) return;
@@ -111,12 +112,19 @@ export function useClaim(policyId?: string) {
     };
   }, [step, claimId]);
 
-  const submit = useCallback(async (claimant: string, policyId: string) => {
+  // Named submitPolicyId rather than policyId (#457): the outer useClaim's
+  // `policyId` parameter was previously shadowed by an identically-named
+  // parameter here, which happened to be harmless since every current
+  // caller passes the same value to both -- but the shadowing made it easy
+  // to misread which policyId a given line actually uses, and would have
+  // silently done the wrong thing if a future caller ever passed different
+  // values to useClaim() and submit().
+  const submit = useCallback(async (claimant: string, submitPolicyId: string) => {
     cancelledRef.current = false;
     setStep('submitting');
     setError(null);
     try {
-      const txHash = await invokeSubmitClaim(claimant, policyId);
+      const txHash = await invokeSubmitClaim(claimant, submitPolicyId);
       if (cancelledRef.current) return { error: null };
 
       // The claim is already final on-chain at this point; the backend still
@@ -124,7 +132,7 @@ export function useClaim(policyId?: string) {
       // reads from the API (issue #244). A failure here is not a failed
       // claim, so surface it as a warning rather than an error.
       try {
-        await recordClaimSubmission(claimant, policyId);
+        await recordClaimSubmission(claimant, submitPolicyId);
       } catch (syncErr) {
         showToast(
           `Claim submitted on-chain (${txHash.slice(0, 8)}…) but could not be recorded: ${toUserMessage(syncErr)}`,

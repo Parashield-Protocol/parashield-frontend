@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { BASE_FEE } from '@stellar/stellar-sdk';
 import { useProducts } from '@/hooks/useProducts';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { fetchProtocolStats } from '@/lib/api';
@@ -17,6 +18,16 @@ import type { Category, Product } from '@/types';
 
 type CategoryFilterValue = Category | 'all';
 
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 function StatValue({ loading, failed, children }: { loading: boolean; failed: boolean; children: React.ReactNode }) {
   if (loading) return <Skeleton className="mx-auto h-9 w-28" />;
   if (failed)  return <p className="text-3xl font-black text-teal-400">—</p>;
@@ -30,7 +41,7 @@ export default function HomePage() {
   const [compareIds, setCompareIds]     = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen]   = useState(false);
 
-  const toggleCompare = (product: Product) => {
+  const toggleCompare = useCallback((product: Product) => {
     setCompareIds((prev) => {
       const next = new Set(prev);
       if (next.has(product.id)) {
@@ -40,7 +51,7 @@ export default function HomePage() {
       }
       return next;
     });
-  };
+  }, []);
 
   const compareProducts = useMemo(
     () => products.filter((p) => compareIds.has(p.id)),
@@ -70,6 +81,7 @@ export default function HomePage() {
   const [statsError,   setStatsError]   = useState(false);
   const [totalCoverage, setTotalCoverage] = useState<string | null>(null);
   const [totalPayouts,  setTotalPayouts]  = useState<string | null>(null);
+  const [statsLastUpdated, setStatsLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +92,7 @@ export default function HomePage() {
         if (cancelled) return;
         setTotalCoverage(stats.totalCoverage);
         setTotalPayouts(stats.totalPayouts);
+        setStatsLastUpdated(new Date());
       })
       .catch(() => { if (!cancelled) setStatsError(true); })
       .finally(() => { if (!cancelled) setStatsLoading(false); });
@@ -292,10 +305,15 @@ export default function HomePage() {
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total payouts</p>
           </div>
           <div>
-            <p className="text-3xl font-black text-teal-400">$0.00001</p>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Per transaction</p>
+            <p className="text-3xl font-black text-teal-400">{stroopsToDisplay(BASE_FEE, 5)} XLM</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Per transaction (network base fee)</p>
           </div>
         </div>
+        {statsLastUpdated && !statsLoading && (
+          <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+            Updated {timeAgo(statsLastUpdated)}
+          </p>
+        )}
       </section>
     </main>
   );

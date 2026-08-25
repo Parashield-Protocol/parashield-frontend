@@ -1,5 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { BuyPolicyModal } from '../components/BuyPolicyModal';
+import { useWallet } from '../hooks/useWallet';
 import type { Product } from '../types';
 
 vi.mock('@/lib/stellar', () => ({
@@ -77,5 +79,62 @@ describe('BuyPolicyModal', () => {
   it('displays the product name in the modal title', () => {
     const html = renderToStaticMarkup(<BuyPolicyModal product={makeProduct({ name: 'Test Product' })} onClose={vi.fn()} />);
     expect(html).toContain('Buy — Test Product');
+  });
+
+  describe('scientific-notation input rejection (#473, #475)', () => {
+    beforeEach(() => {
+      vi.mocked(useWallet).mockReturnValue({
+        address: 'GWALLET',
+        connected: true,
+        connecting: false,
+        error: null,
+        walletState: { status: 'connected', address: 'GWALLET' },
+        networkPassphrase: 'Test SDF Network ; September 2015',
+        connect: vi.fn(),
+        disconnect: vi.fn(),
+      });
+    });
+
+    it('rejects scientific notation in the coverage field', () => {
+      render(<BuyPolicyModal product={makeProduct()} onClose={vi.fn()} />);
+
+      const [coverageInput, durationInput] = screen.getAllByRole('spinbutton');
+      fireEvent.change(coverageInput, { target: { value: '5e8' } });
+      fireEvent.change(durationInput, { target: { value: '5' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      expect(
+        screen.getByText('Coverage must be a plain positive number (no scientific notation)'),
+      ).toBeInTheDocument();
+    });
+
+    it('rejects scientific notation in the duration field', () => {
+      render(<BuyPolicyModal product={makeProduct()} onClose={vi.fn()} />);
+
+      const [coverageInput, durationInput] = screen.getAllByRole('spinbutton');
+      fireEvent.change(coverageInput, { target: { value: '50' } });
+      fireEvent.change(durationInput, { target: { value: '1e1' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      expect(
+        screen.getByText('Duration must be a whole number of days (no scientific notation or decimals)'),
+      ).toBeInTheDocument();
+    });
+
+    it('accepts a plain valid coverage and duration and advances to the next step', () => {
+      render(<BuyPolicyModal product={makeProduct()} onClose={vi.fn()} />);
+
+      const [coverageInput, durationInput] = screen.getAllByRole('spinbutton');
+      fireEvent.change(coverageInput, { target: { value: '50' } });
+      fireEvent.change(durationInput, { target: { value: '10' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      expect(
+        screen.queryByText('Coverage must be a plain positive number (no scientific notation)'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Duration must be a whole number of days (no scientific notation or decimals)'),
+      ).not.toBeInTheDocument();
+    });
   });
 });

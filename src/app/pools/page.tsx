@@ -7,6 +7,7 @@ import { Badge } from '@/components/Badge';
 import { ProgressBar } from '@/components/ProgressBar';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/Skeleton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DepositModal } from '@/components/DepositModal';
 import { WithdrawModal } from '@/components/WithdrawModal';
 import { useWallet } from '@/hooks/useWallet';
@@ -40,7 +41,7 @@ export default function PoolsPage() {
           disabled={loading}
           className="rounded-lg bg-teal-500 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors flex items-center gap-2"
         >
-          {loading && <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-300 border-t-teal-100" />}
+          {loading && <LoadingSpinner size="sm" />}
           Refresh
         </button>
       </div>
@@ -60,7 +61,7 @@ export default function PoolsPage() {
               disabled={loading}
               className="shrink-0 rounded-lg bg-red-500 px-4 py-2 text-xs font-semibold text-white hover:bg-red-400 disabled:opacity-60 transition-colors flex items-center gap-2"
             >
-              {loading && <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-red-300 border-t-red-100" />}
+              {loading && <LoadingSpinner size="sm" />}
               Try again
             </button>
           </div>
@@ -99,7 +100,9 @@ export default function PoolsPage() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-gray-400">APY</dt>
-                  <dd className="font-semibold text-emerald-400">{(pool.apy * 100).toFixed(1)}%</dd>
+                  <dd className="font-semibold text-emerald-400">
+                    {pool.apy != null ? `${(pool.apy * 100).toFixed(1)}%` : '—'}
+                  </dd>
                 </div>
               </dl>
 
@@ -115,7 +118,9 @@ export default function PoolsPage() {
                 {connected && (
                   <button
                     onClick={() => setDepositPool(pool)}
-                    className="flex-1 rounded-xl bg-teal-500 py-2 text-xs font-semibold text-white hover:bg-teal-400 transition-colors"
+                    disabled={pool.paused}
+                    className="flex-1 rounded-xl bg-teal-500 py-2 text-xs font-semibold text-white hover:bg-teal-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-teal-500"
+                    aria-label={pool.paused ? "Deposit — pool paused" : "Deposit"}
                   >
                     Deposit
                   </button>

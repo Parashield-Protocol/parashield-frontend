@@ -31,9 +31,16 @@ export function NavBar() {
   const pathname = usePathname();
   const mobileMenuRef = useFocusTrap(mobileMenuOpen);
 
+  // Guards against a no-op state update on every Escape press when neither
+  // panel is open (#459) -- React 18 already bails out of re-rendering for a
+  // same-value primitive setState, but being explicit here means this stays
+  // true even if these ever become non-primitive state.
   useKeyboardShortcut('Escape', () => {
-    if (shortcutsOpen) setShortcutsOpen(false);
-    else setMobileMenuOpen(false);
+    if (shortcutsOpen) {
+      setShortcutsOpen(false);
+    } else if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
   });
   useKeyboardShortcut('?', () => setShortcutsOpen(true));
 
@@ -67,11 +74,13 @@ export function NavBar() {
             className="text-gray-400 hover:text-white transition-colors"
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
-            {theme === 'dark' ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-            )}
+            <div className="relative w-5 h-5 inline-block">
+              {theme === 'dark' ? (
+                <svg key="sun" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute animate-fade-in" style={{animation: 'fadeInRotate 300ms ease-in-out'}}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+              ) : (
+                <svg key="moon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute animate-fade-in" style={{animation: 'fadeInRotate 300ms ease-in-out'}}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              )}
+            </div>
           </button>
           <WalletButton />
           <button

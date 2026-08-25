@@ -1,7 +1,8 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { memo } from 'react';
+import { useRouter } from 'next/navigation';
+import { memo, useCallback } from 'react';
 import { Badge } from './Badge';
 import type { Policy } from '@/types';
 import { formatUSDC, formatDate, formatDateTime, timeLeft } from '@/lib/format';
@@ -12,32 +13,48 @@ interface PolicyCardProps {
 }
 
 function PolicyCardComponent({ policy }: PolicyCardProps) {
+  const router = useRouter();
   const icon       = policy.product ? CATEGORY_ICONS[policy.product.category] ?? '🛡️' : '🛡️';
   const name       = policy.product?.name ?? `Policy #${policy.id.slice(0, 8)}`;
   const isActive   = policy.status === 'Active';
+  const policyHref = `/policies/${policy.id}`;
+
+  const navigateToPolicy = useCallback(() => {
+    router.push(policyHref);
+  }, [router, policyHref]);
 
   const handleCardKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      // Navigate to policy detail page
-      window.location.href = `/policies/${policy.id}`;
+      navigateToPolicy();
     }
   };
 
+  // Active shows a relative countdown; every other status shows an absolute
+  // date, since "time left" isn't meaningful once a policy is no longer
+  // active. Rather than forcing one format everywhere, every value carries
+  // the absolute date as a title tooltip too (#474), so the countdown case
+  // is never ambiguous about the actual date.
   let expiresLabel: string;
   let expiresValue: string;
+  let expiresTitle: string;
   if (isActive) {
     expiresLabel = 'Expires';
     expiresValue = timeLeft(policy.endTime);
+    expiresTitle = formatDateTime(policy.endTime);
   } else if (policy.status === 'Cancelled') {
     expiresLabel = 'Cancelled';
-    expiresValue = policy.cancelledAt ? formatDate(policy.cancelledAt) : formatDate(policy.endTime);
+    const cancelledOrEnd = policy.cancelledAt ?? policy.endTime;
+    expiresValue = formatDate(cancelledOrEnd);
+    expiresTitle = formatDateTime(cancelledOrEnd);
   } else if (policy.status === 'Claimed') {
     expiresLabel = 'Claimed';
     expiresValue = formatDate(policy.endTime);
+    expiresTitle = formatDateTime(policy.endTime);
   } else {
     expiresLabel = 'Expired';
     expiresValue = formatDate(policy.endTime);
+    expiresTitle = formatDateTime(policy.endTime);
   }
 
   return (
@@ -45,7 +62,7 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
       <div
         role="link"
         tabIndex={0}
-        onClick={() => { window.location.href = `/policies/${policy.id}`; }}
+        onClick={navigateToPolicy}
         onKeyDown={handleCardKeyDown}
         aria-label={`${name} — ${policy.status} — View details`}
         className={`flex flex-col rounded-2xl border p-5 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 ${
@@ -75,7 +92,10 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
         </div>
         <div>
           <dt className="text-gray-400">{expiresLabel}</dt>
-          <dd className={`mt-0.5 font-semibold ${isActive ? 'text-amber-400' : 'text-gray-400'}`}>
+          <dd
+            title={expiresTitle}
+            className={`mt-0.5 font-semibold ${isActive ? 'text-amber-400' : 'text-gray-400'}`}
+          >
             {expiresValue}
           </dd>
         </div>

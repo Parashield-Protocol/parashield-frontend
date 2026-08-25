@@ -1,17 +1,19 @@
 ﻿"use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { usePolicy } from "@/hooks/usePolicies";
 import { useWallet } from "@/hooks/useWallet";
 import { OracleDataWidget } from "@/components/OracleDataWidget";
 import { PolicyStatusTimeline } from "@/components/PolicyStatusTimeline";
 import { TransactionLink } from "@/components/TransactionLink";
 import { Badge } from "@/components/Badge";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { formatUSDC, formatDate, timeLeft, shortenAddress } from "@/lib/format";
 import { CopyButton } from "@/components/CopyButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClaimStatus } from "@/components/ClaimStatus";
 import { Skeleton, SkeletonText } from "@/components/Skeleton";
+import { CATEGORY_ICONS } from "@/lib/constants";
 
 export default function PolicyDetailClient({
   params,
@@ -19,7 +21,7 @@ export default function PolicyDetailClient({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { policy, loading, error, refetch } = usePolicy(id);
+  const { policy, loading, refetching, error, refetch } = usePolicy(id);
   const { address } = useWallet();
 
   if (loading) {
@@ -88,8 +90,32 @@ export default function PolicyDetailClient({
   const canClaim =
     policy.status === "Active" && address === policy.policyholder;
 
+  const breadcrumbItems = [
+    { label: 'Products', href: '/' },
+    ...(policy.product?.category
+      ? [{
+          label: policy.product.category.charAt(0).toUpperCase() + policy.product.category.slice(1),
+          href: `/?category=${policy.product.category}`,
+          icon: CATEGORY_ICONS[policy.product.category as keyof typeof CATEGORY_ICONS],
+        }]
+      : []),
+    {
+      label: policy.product?.name ?? `Policy ${id.slice(0, 8)}…`,
+      icon: policy.product?.category ? CATEGORY_ICONS[policy.product.category as keyof typeof CATEGORY_ICONS] : undefined,
+    },
+  ];
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
+      {refetching && (
+        <div className="fixed inset-x-0 top-0 z-50 flex justify-center">
+          <div className="mt-4 flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs text-gray-400 backdrop-blur">
+            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-300 border-t-teal-100" />
+            Refreshing…
+          </div>
+        </div>
+      )}
+      <Breadcrumb items={breadcrumbItems} />
       <div className="mb-6 flex items-center gap-4">
         <h1 className="text-2xl font-bold flex-1">
           {policy.product?.name ?? `Policy ${id.slice(0, 8)}…`}
@@ -177,20 +203,7 @@ export default function PolicyDetailClient({
       </div>
 
       {policy.oracleKey && (
-        <div className="mt-6">
-          <h2 className="mb-3 text-sm font-semibold text-gray-400">
-            Live Oracle Reading
-          </h2>
-          <ErrorBoundary
-            fallback={
-              <p className="rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
-                Oracle data unavailable — unable to parse the latest reading.
-              </p>
-            }
-          >
-            <OracleDataWidget oracleKey={policy.oracleKey} />
-          </ErrorBoundary>
-        </div>
+        <OracleSection oracleKey={policy.oracleKey} />
       )}
 
       {canClaim && (
@@ -207,5 +220,32 @@ export default function PolicyDetailClient({
         </div>
       )}
     </main>
+  );
+}
+
+function OracleSection({ oracleKey }: { oracleKey: string }) {
+  const [retryKey, setRetryKey] = useState(0);
+
+  return (
+    <div className="mt-6">
+      <h2 className="mb-3 text-sm font-semibold text-gray-400">
+        Live Oracle Reading
+      </h2>
+      <ErrorBoundary
+        fallback={
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+            <p>Oracle data unavailable — unable to parse the latest reading.</p>
+            <button
+              onClick={() => setRetryKey((k) => k + 1)}
+              className="mt-3 rounded-lg bg-teal-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-400 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        }
+      >
+        <OracleDataWidget key={retryKey} oracleKey={oracleKey} />
+      </ErrorBoundary>
+    </div>
   );
 }

@@ -48,6 +48,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * The `@custom-variant dark (&:where(.dark, .dark *));` in globals.css (#455)
+ * means styling should be done with
+ * `dark:` prefix classes everywhere, driven off the `dark`/`light` class this
+ * provider sets on `<html>` (#437) -- not by reading `theme` here and
+ * branching className strings in components. The one legitimate reason to
+ * read `theme` from this hook is to choose *which content* to render (e.g.
+ * NavBar swapping its sun/moon icon, or an aria-label's wording), which
+ * `dark:` classes can't express since they only toggle styles, not JSX.
+ */
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error('useTheme must be used inside <ThemeProvider>');

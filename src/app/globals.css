@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
-:root {
-  --color-brand:     #14b8a6;
-  --color-brand-dim: #0d9488;
-  --color-success:   #10b981;
-  --color-danger:    #ef4444;
-  --color-warning:   #f59e0b;
-}
+/*
+ * Tailwind v4 config is CSS-first (#455); tailwind.config.ts's
+ * `darkMode: 'class'` was never actually loaded (no `@config` directive
+ * referenced it), so `dark:` utilities were silently falling back to v4's
+ * default `prefers-color-scheme` media query instead of the `.dark` class
+ * ThemeProvider toggles on <html> -- the manual theme toggle likely didn't
+ * visually apply `dark:` utility classes at all for a user whose OS
+ * preference disagreed with their in-app choice. This is the v4-CSS
+ * equivalent of the old `darkMode: 'class'` config.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
 
 .dark {
-  --color-surface: rgba(255, 255, 255, 0.03);
-  --color-border:  rgba(255, 255, 255, 0.10);
   color-scheme: dark;
 }
 
 .light {
-  --color-surface: rgba(0, 0, 0, 0.03);
-  --color-border:  rgba(0, 0, 0, 0.10);
   color-scheme: light;
 }
 
@@ -44,3 +44,14 @@ input[type=number]::-webkit-inner-spin-button {
   margin: 0;
 }
 input[type=number] { -moz-appearance: textfield; }
+
+@keyframes fadeInRotate {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}

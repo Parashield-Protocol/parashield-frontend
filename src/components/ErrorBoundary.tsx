@@ -30,7 +30,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error('[ErrorBoundary]', error, info);
+    // Only log to the browser console outside production (#476) -- track()
+    // below already reports the error for production monitoring; logging
+    // the raw error/component stack to the console in prod risks leaking
+    // internal details to anyone with devtools open.
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[ErrorBoundary]', error, info);
+    }
     track('app_error', {
       message:    error.message,
       stack:      error.stack?.slice(0, 200),
@@ -50,7 +56,12 @@ export class ErrorBoundary extends Component<Props, State> {
           <span className="text-4xl">⚠️</span>
           <h3 className="mt-4 text-lg font-semibold text-white">Something went wrong</h3>
           <p className="mt-2 text-sm text-gray-400">
-            {this.state.error?.message ?? 'An unexpected error occurred.'}
+            {/* The raw error message may contain technical details (stack
+                frames, internal identifiers, API response bodies) that are
+                confusing to users and can leak internal information -- the
+                full error is already logged via console.error and track()
+                above for debugging (#465). */}
+            An unexpected error occurred. This has been logged so we can look into it.
           </p>
           <button
             onClick={this.handleReset}

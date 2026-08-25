@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { PoolStats } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
 import { fetchPoolShares } from '@/lib/api';
@@ -49,26 +49,38 @@ export function DepositModal({ pool, onClose }: Props) {
   const [totalLiquidity, setTotalLiquidity] = useState<bigint | null>(null);
   const [paused,       setPaused]       = useState(false);
   const [loadingShares, setLoadingShares] = useState(true);
+  const [sharesFetchError, setSharesFetchError] = useState('');
   const [busy,         setBusy]         = useState(false);
   const [error,        setError]        = useState('');
 
+  const loadShares = useCallback(
+    (signal: { cancelled: boolean }) => {
+      setLoadingShares(true);
+      setSharesFetchError('');
+      fetchPoolShares(pool.poolId)
+        .then((info) => {
+          if (signal.cancelled) return;
+          setShareSupply(BigInt(info.shareSupply));
+          setTotalLiquidity(BigInt(info.totalLiquidity));
+          setPaused(info.paused ?? false);
+        })
+        .catch((err) => {
+          if (signal.cancelled) return;
+          // Distinct from `error` (deposit-submission errors): this gates
+          // whether the input/button are usable at all (#464), rather than
+          // being cleared on every amount keystroke like `error` is.
+          setSharesFetchError(toUserMessage(err));
+        })
+        .finally(() => { if (!signal.cancelled) setLoadingShares(false); });
+    },
+    [pool.poolId],
+  );
+
   useEffect(() => {
-    let cancelled = false;
-    setLoadingShares(true);
-    fetchPoolShares(pool.poolId)
-      .then((info) => {
-        if (cancelled) return;
-        setShareSupply(BigInt(info.shareSupply));
-        setTotalLiquidity(BigInt(info.totalLiquidity));
-        setPaused(info.paused ?? false);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(toUserMessage(err));
-      })
-      .finally(() => { if (!cancelled) setLoadingShares(false); });
-    return () => { cancelled = true; };
-  }, [pool.poolId]);
+    const signal = { cancelled: false };
+    loadShares(signal);
+    return () => { signal.cancelled = true; };
+  }, [loadShares]);
 
   const amountNum     = parseFloat(amount) || 0;
   let   depositStroops = 0n;
@@ -87,6 +99,7 @@ export function DepositModal({ pool, onClose }: Props) {
 
   async function handleDeposit() {
     if (!address) return;
+    if (!sharesAvailable) { setError('Pool data is unavailable — retry loading before depositing.'); return; }
     if (paused) { setError('This pool is currently paused. Deposits are not accepted.'); return; }
     if (amountNum <= 0) { setError('Enter a valid USDC amount.'); return; }
     if (depositStroops < MIN_DEPOSIT_STROOPS) { 
@@ -115,6 +128,24 @@ export function DepositModal({ pool, onClose }: Props) {
   }
 
   const poolLabel = CATEGORY_LABELS[pool.category] ?? pool.category;
+
+  // Pool shares failed to load: show an error state instead of an input
+  // that would let a user attempt a deposit with incomplete data (#464).
+  if (sharesFetchError && !loadingShares) {
+    return (
+      <Modal open title={`Deposit — ${poolLabel} Pool`} onClose={onClose}>
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 p-6 text-center text-sm">
+          <p className={ERROR_TEXT}>{sharesFetchError}</p>
+          <button
+            onClick={() => loadShares({ cancelled: false })}
+            className="rounded-lg border border-white/10 px-4 py-1.5 text-xs font-semibold text-gray-300 hover:border-teal-500/30 hover:text-teal-400 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal open title={`Deposit — ${poolLabel} Pool`} onClose={onClose}>

@@ -92,5 +92,18 @@ export function ClaimStatus({ policyId }: ClaimStatusProps) {
     );
   }
 
-  return null;
+  // Fallback for any state this component doesn't explicitly render --
+  // including step === 'done' with no claim data yet, and forward
+  // compatibility with a future ClaimStep value the smart contract adds that
+  // this component hasn't been updated to handle (#453). Silently rendering
+  // nothing here previously made a claim's status disappear from the UI with
+  // no indication anything was wrong.
+  return (
+    <div className="flex items-center justify-between">
+      <p className="text-sm text-gray-400">Unable to display claim status.</p>
+      <button onClick={reset} className="text-xs text-gray-400 hover:text-white transition-colors">
+        Refresh
+      </button>
+    </div>
+  );
 }

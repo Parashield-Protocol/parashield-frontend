@@ -8,6 +8,14 @@ export function safeBigInt(value: string | bigint | null | undefined): bigint {
   return BigInt(trimmed);
 }
 
+/**
+ * Truncates (never rounds) to `decimals` places, deliberately (#451): several
+ * callers (e.g. `estimatePremium`) need this to match the Soroban contract's
+ * own integer division exactly, and rounding up would display an amount the
+ * chain would never actually charge/return. If you need a rounded display
+ * value for a specific call site, round at that call site instead of
+ * changing this shared truncation behavior.
+ */
 export function stroopsToDisplay(stroops: string | bigint | null | undefined, decimals = 2): string {
   if (stroops === null || stroops === undefined) return '—';
   if (typeof stroops === 'string') {
@@ -94,10 +102,10 @@ export function formatOracleValue(value: string | null | undefined, dataType: st
     case 'flight':
       return `${fixedPointToFixed(raw, 0)} min delay`;
     case 'defi': {
-      const n = Number(raw) / 1e7;
-      if (n === 1) return 'Exploit detected';
-      if (n === 0) return 'No exploit';
-      return `Unknown (${n.toFixed(0)})`;
+      const fixed = fixedPointToFixed(raw, 0);
+      if (fixed === '1') return 'Exploit detected';
+      if (fixed === '0') return 'No exploit';
+      return `Unknown (${fixed})`;
     }
     case 'unknown':
       return fixedPointToFixed(raw, 4);
