@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useWallet } from "@/hooks/useWallet";
 import { usePolicies } from "@/hooks/usePolicies";
 import { fetchUserClaims } from "@/lib/api";
@@ -83,9 +83,9 @@ export default function DashboardPage() {
     );
   }
 
-  const active = policies.filter((p) => p.status === "Active");
-  const totalCov = active.reduce((sum, p) => sum + safeBigInt(p.coverage), 0n);
-  const totalPaid = active.reduce((sum, p) => sum + safeBigInt(p.premiumPaid), 0n);
+  const active = useMemo(() => policies.filter((p) => p.status === "Active"), [policies]);
+  const totalCov = useMemo(() => active.reduce((sum, p) => sum + safeBigInt(p.coverage), 0n), [active]);
+  const totalPaid = useMemo(() => active.reduce((sum, p) => sum + safeBigInt(p.premiumPaid), 0n), [active]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
