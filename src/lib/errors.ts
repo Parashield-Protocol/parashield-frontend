@@ -79,7 +79,7 @@ export function toUserMessage(err: unknown): string {
   // situation in user terms and needs no "Contract call failed" prefix.
   if (err instanceof StateArchivedError) return err.message;
   if (err instanceof ContractError) {
-    if (err.details !== undefined) console.error('ContractError details:', err.details);
+    if (err.details !== undefined && import.meta.env.DEV) console.error('ContractError details:', err.details);
     return `Contract call failed: ${err.message}`;
   }
   if (err instanceof Error) return err.message;
