@@ -101,14 +101,27 @@ export function confidenceIcon(confidence: number): string {
   return '○';
 }
 
+const rainfallKeyCache = new Map<string, string>();
+const MAX_RAINFALL_KEY_CACHE_SIZE = 100;
+
 export function buildRainfallKey(lat: number, lng: number, year: number, month: number): string {
+  const cacheKey = `${lat}|${lng}|${year}|${month}`;
+  const cachedKey = rainfallKeyCache.get(cacheKey);
+  if (cachedKey) return cachedKey;
+
   const monthStr = String(month).padStart(2, '0');
   // Clamp coordinate precision to 4 decimals (~11m). Without a cap, values like
   // parseFloat('-0.09171234567') produce long keys that can blow past Soroban's
   // 32-char limit. toFixed(4) keeps keys well within budget (issue #222).
   const latStr = clampCoord(lat);
   const lngStr = clampCoord(lng);
-  return `rainfall:${latStr},${lngStr}:${year}-${monthStr}`;
+  const key = `rainfall:${latStr},${lngStr}:${year}-${monthStr}`;
+  if (rainfallKeyCache.size >= MAX_RAINFALL_KEY_CACHE_SIZE) {
+    const oldestKey = rainfallKeyCache.keys().next().value;
+    if (oldestKey !== undefined) rainfallKeyCache.delete(oldestKey);
+  }
+  rainfallKeyCache.set(cacheKey, key);
+  return key;
 }
 
 // Format a coordinate to at most 4 decimals without trailing-zero padding,

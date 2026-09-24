@@ -74,6 +74,7 @@ function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetPro
 
   const confLabel  = confidenceLabel(reading.confidence);
   const confColour = confidenceColour(reading.confidence);
+  const formattedOracleValue = String(formatOracleValue(reading.value, parseOracleKey(oracleKey).dataType));
 
   return (
     <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${className ?? ''}`}>
@@ -81,7 +82,7 @@ function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetPro
       <p className="mt-1 text-xs text-gray-400 truncate">{oracleKeyLabel(oracleKey)}</p>
 
       <p className="mt-3 text-2xl font-black text-white">
-        {formatOracleValue(reading.value, parseOracleKey(oracleKey).dataType)}
+        {formattedOracleValue}
       </p>
 
       <div className="mt-3 flex items-center justify-between text-[10px] text-gray-400">

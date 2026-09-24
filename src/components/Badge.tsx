@@ -43,7 +43,6 @@ export function Badge({ label, variant, className, icon: customIcon }: BadgeProp
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${colourClass} ${className ?? ''}`}
-      aria-label={label}
     >
       {icon && <span aria-hidden="true">{icon}</span>}
       {label}
