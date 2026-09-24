@@ -111,8 +111,8 @@ export default function PolicyDetailClient({
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       {refetching && (
-        <div className="fixed inset-x-0 top-0 z-50 flex justify-center">
-          <div className="mt-4 flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs text-gray-400 backdrop-blur">
+        <div className="sticky top-0 z-50 flex justify-center py-2">
+          <div className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs text-gray-400 backdrop-blur">
             <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-300 border-t-teal-100" />
             Refreshing…
           </div>
@@ -135,7 +135,7 @@ export default function PolicyDetailClient({
             <span className="font-mono text-sm text-white">
               {shortenAddress(policy.policyholder)}
             </span>
-            <CopyButton text={policy.policyholder} label="Copy address" />
+            <CopyButton text={policy.policyholder} label={`Copy address ${shortenAddress(policy.policyholder)}`} />
           </div>
         </div>
 
@@ -170,7 +170,7 @@ export default function PolicyDetailClient({
             <span className="font-mono text-sm text-white break-all">
               {policy.oracleKey}
             </span>
-            <CopyButton text={policy.oracleKey} label="Copy key" />
+            <CopyButton text={policy.oracleKey} label={`Copy key ${shortenAddress(policy.oracleKey)}`} />
           </div>
         </div>
 
