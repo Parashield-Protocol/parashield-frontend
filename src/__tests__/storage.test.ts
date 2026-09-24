@@ -68,4 +68,63 @@ describe('storage', () => {
     expect(() => storage.setSession('token', 'value')).not.toThrow();
     sessionStorageMock.setItem.mockReset();
   });
+
+  // #613: Safari private browsing throws on setItem even for tiny writes.
+  // The value must stay readable for the page session instead of vanishing.
+  describe('in-memory fallback when browser storage rejects writes', () => {
+    it('keeps a failed localStorage write readable via get/getJSON', () => {
+      const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+        throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
+      });
+
+      expect(storage.set('wallet', 'GABC')).toBe(false);
+      expect(storage.get('wallet')).toBe('GABC');
+      expect(storage.setJSON('prefs', { a: 1 })).toBe(false);
+      expect(storage.getJSON('prefs')).toEqual({ a: 1 });
+
+      storage.remove('wallet');
+      expect(storage.get('wallet')).toBeNull();
+      setItem.mockRestore();
+    });
+
+    it('falls back to memory when localStorage throws SecurityError on read and write', () => {
+      const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+        throw new DOMException('denied', 'SecurityError');
+      });
+      const getItem = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+        throw new DOMException('denied', 'SecurityError');
+      });
+
+      storage.set('k', 'v');
+      expect(storage.get('k')).toBe('v');
+
+      setItem.mockRestore();
+      getItem.mockRestore();
+    });
+
+    it('prefers browser storage again once a write succeeds', () => {
+      const setItem = vi.spyOn(localStorage, 'setItem').mockImplementationOnce(() => {
+        throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
+      });
+      storage.set('k2', 'old');
+      setItem.mockRestore();
+
+      expect(storage.set('k2', 'new')).toBe(true);
+      expect(storage.get('k2')).toBe('new');
+      localStorage.removeItem('k2');
+      expect(storage.get('k2')).toBeNull();
+    });
+
+    it('keeps a failed sessionStorage write readable via getSession', () => {
+      sessionStorageMock.setItem.mockImplementation(() => {
+        throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
+      });
+
+      expect(storage.setSession('ps_auth_token', 'jwt')).toBe(false);
+      expect(storage.getSession('ps_auth_token')).toBe('jwt');
+      storage.removeSession('ps_auth_token');
+      expect(storage.getSession('ps_auth_token')).toBeNull();
+      sessionStorageMock.setItem.mockReset();
+    });
+  });
 });
