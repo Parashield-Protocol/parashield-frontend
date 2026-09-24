@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Image from 'next/image';
 import logoDark  from '../../assets/parashield-logo-dark.png';
 import logoLight from '../../assets/parashield-logo-light.png';
@@ -17,7 +20,21 @@ interface LogoProps {
 }
 
 export function Logo({ variant = 'dark', size = 32, className, priority = true }: LogoProps) {
+  const [imgFailed, setImgFailed] = useState(false);
   const src = variant === 'light' ? logoLight : logoDark;
+
+  if (imgFailed) {
+    return (
+      <span
+        className={`inline-flex items-center justify-center rounded bg-teal-500/20 text-xs font-bold text-teal-400 ${className ?? ''}`}
+        style={{ width: size, height: size }}
+        aria-label="ParaShield"
+      >
+        PS
+      </span>
+    );
+  }
+
   return (
     <Image
       src={src}
@@ -26,6 +43,7 @@ export function Logo({ variant = 'dark', size = 32, className, priority = true }
       height={size}
       className={className}
       priority={priority}
+      onError={() => setImgFailed(true)}
     />
   );
 }

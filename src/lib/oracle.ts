@@ -9,11 +9,19 @@ export interface OracleKey {
 
 export function parseOracleKey(key: string): OracleKey {
   if (key.startsWith('rainfall:')) {
-    const [, coords, period] = key.split(':');
+    const segments = key.split(':');
+    if (segments.length < 3 || !segments[1] || !segments[2]) {
+      return { dataType: 'unknown', rawKey: key };
+    }
+    const [, coords, period] = segments;
     return { dataType: 'rainfall', location: coords, period };
   }
   if (key.startsWith('temperature:')) {
-    const [, coords, period] = key.split(':');
+    const segments = key.split(':');
+    if (segments.length < 3 || !segments[1] || !segments[2]) {
+      return { dataType: 'unknown', rawKey: key };
+    }
+    const [, coords, period] = segments;
     return { dataType: 'temperature', location: coords, period };
   }
   if (key.startsWith('flight:')) {
@@ -21,21 +29,29 @@ export function parseOracleKey(key: string): OracleKey {
     // if the flight number itself contains a colon (e.g. "AB:12"), so isolate the
     // date from the last ':' and treat everything before it as the flight number.
     const rest = key.slice('flight:'.length);
+    if (!rest) {
+      return { dataType: 'unknown', rawKey: key };
+    }
     const lastColon = rest.lastIndexOf(':');
     if (lastColon === -1) {
       return { dataType: 'flight', flightNumber: rest };
     }
-    return {
-      dataType: 'flight',
-      flightNumber: rest.slice(0, lastColon),
-      period: rest.slice(lastColon + 1),
-    };
+    const flightNumber = rest.slice(0, lastColon);
+    const period = rest.slice(lastColon + 1);
+    if (!flightNumber || !period) {
+      return { dataType: 'unknown', rawKey: key };
+    }
+    return { dataType: 'flight', flightNumber, period };
   }
   if (key === 'defi') {
     return { dataType: 'defi' };
   }
   if (key.startsWith('defi:')) {
-    const [, defiKey] = key.split(':', 2);
+    const segments = key.split(':', 2);
+    const defiKey = segments[1];
+    if (!defiKey) {
+      return { dataType: 'unknown', rawKey: key };
+    }
     return { dataType: 'defi', defiKey };
   }
   return { dataType: 'unknown', rawKey: key };

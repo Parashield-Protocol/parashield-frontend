@@ -1,5 +1,6 @@
 'use client';
 
+import { X } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import type { Toast as ToastType } from '@/types';
 
@@ -30,10 +31,10 @@ function ToastItem({ toast }: { toast: ToastType }) {
       <p className="flex-1 text-sm leading-snug">{toast.message}</p>
       <button
         onClick={() => dismiss(toast.id)}
-        className="ml-2 text-xs opacity-60 hover:opacity-100 transition-opacity"
+        className="ml-2 opacity-60 hover:opacity-100 transition-opacity"
         aria-label="Dismiss"
       >
-        ✕
+        <X size={14} />
       </button>
     </div>
   );
