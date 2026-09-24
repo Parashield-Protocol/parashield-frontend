@@ -135,7 +135,7 @@ export default function PolicyDetailClient({
             <span className="font-mono text-sm text-white">
               {shortenAddress(policy.policyholder)}
             </span>
-            <CopyButton text={policy.policyholder} label="Copy address" />
+            <CopyButton text={policy.policyholder} label={`Copy address ${shortenAddress(policy.policyholder)}`} />
           </div>
         </div>
 
@@ -170,7 +170,7 @@ export default function PolicyDetailClient({
             <span className="font-mono text-sm text-white break-all">
               {policy.oracleKey}
             </span>
-            <CopyButton text={policy.oracleKey} label="Copy key" />
+            <CopyButton text={policy.oracleKey} label={`Copy key ${shortenAddress(policy.oracleKey)}`} />
           </div>
         </div>
 
