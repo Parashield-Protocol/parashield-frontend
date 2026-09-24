@@ -29,6 +29,13 @@ describe('SearchBar', () => {
     expect(html).toContain('type="text"');
   });
 
+  it('renders the lucide Search icon instead of an emoji (#651)', () => {
+    const html = renderToStaticMarkup(<SearchBar onSearch={vi.fn()} />);
+    expect(html).toContain('lucide-search');
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).not.toContain('🔍');
+  });
+
   it('does not render clear button when query is empty', () => {
     const onSearch = vi.fn();
     const html = renderToStaticMarkup(<SearchBar onSearch={onSearch} />);
@@ -91,7 +98,11 @@ describe('SearchBar debouncing', () => {
     });
     onSearch.mockClear();
 
-    fireEvent.click(screen.getByLabelText('Clear search'));
+    const clear = screen.getByLabelText('Clear search');
+    expect(clear.querySelector('svg.lucide-x')).not.toBeNull();
+    expect(clear.textContent).not.toContain('✕');
+
+    fireEvent.click(clear);
     expect(onSearch).toHaveBeenCalledWith('');
     expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('');
   });
