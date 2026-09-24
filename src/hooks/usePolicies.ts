@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchUserPolicies, fetchPolicy } from "@/lib/api";
+import { isApiError } from "@/lib/errors";
 import type { Policy } from "@/types";
 import { POLLING_INTERVAL_MS } from "@/lib/constants";
 
@@ -84,7 +85,12 @@ export function usePolicy(id: string | null) {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load policy");
+          // 404 means the policy doesn't exist — show "not found" instead of error
+          if (isApiError(err) && err.status === 404) {
+            setPolicy(null);
+          } else {
+            setError(err instanceof Error ? err.message : "Failed to load policy");
+          }
         }
       })
       .finally(() => {
@@ -108,7 +114,12 @@ export function usePolicy(id: string | null) {
       const p = await fetchPolicy(id);
       setPolicy(p);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load policy");
+      // 404 means the policy doesn't exist — show "not found" instead of error
+      if (isApiError(err) && err.status === 404) {
+        setPolicy(null);
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to load policy");
+      }
     } finally {
       setLoading(false);
     }

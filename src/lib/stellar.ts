@@ -82,6 +82,7 @@ export function getStoredAddress(): WalletAddress | null {
 
 export function disconnectWallet(): void {
   try { getKit().disconnect(); } catch { /* ignore */ }
+  _kit = null;
   storage.remove(WALLET_STORAGE_KEY);
   storage.remove(ADDRESS_STORAGE_KEY);
   storage.remove(NETWORK_STORAGE_KEY);

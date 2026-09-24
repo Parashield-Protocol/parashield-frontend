@@ -67,10 +67,16 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
     if (!open) return;
 
     triggerRef.current = document.activeElement as HTMLElement | null;
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    (focusable?.[0] ?? dialogRef.current)?.focus();
+    // Focus the dialog element first so screen readers announce the modal,
+    // then move to the first interactive element after a short delay.
+    dialogRef.current?.focus();
+    const raf = requestAnimationFrame(() => {
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusable?.length) focusable[0].focus();
+    });
 
     return () => {
+      cancelAnimationFrame(raf);
       triggerRef.current?.focus();
     };
   }, [open]);
