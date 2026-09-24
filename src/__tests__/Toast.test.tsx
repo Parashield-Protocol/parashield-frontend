@@ -19,9 +19,27 @@ describe('ToastContainer', () => {
     mockToasts.length = 0;
   });
 
-  it('renders nothing when no toasts', () => {
+  it('renders an empty live region when no toasts', () => {
     render(<ToastContainer />);
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    const region = screen.getByRole('status');
+    expect(region).toHaveAttribute('aria-live', 'polite');
+    expect(region).toHaveTextContent('');
+  });
+
+  it('keeps the same live region mounted when a toast arrives (#589)', () => {
+    const { rerender } = render(<ToastContainer />);
+    const region = screen.getByRole('status');
+    mockToasts.push({ id: '1', message: 'Saved', variant: 'success', duration: 5000 });
+    rerender(<ToastContainer />);
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region).toHaveTextContent('Saved');
+  });
+
+  it('announces only additions so stacked toasts are not re-read', () => {
+    render(<ToastContainer />);
+    const region = screen.getByRole('status');
+    expect(region).toHaveAttribute('aria-relevant', 'additions');
+    expect(region).not.toHaveAttribute('aria-atomic', 'true');
   });
 
   it('renders a toast', () => {
@@ -32,8 +50,7 @@ describe('ToastContainer', () => {
       duration: 5000,
     });
     render(<ToastContainer />);
-    expect(screen.getByRole('alert')).toBeInTheDocument();
-    expect(screen.getByText('Test message')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toContainElement(screen.getByText('Test message'));
   });
 
   it('renders multiple toasts', () => {
@@ -42,7 +59,7 @@ describe('ToastContainer', () => {
       { id: '2', message: 'Second', variant: 'success', duration: 5000 }
     );
     render(<ToastContainer />);
-    expect(screen.getAllByRole('alert')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: /dismiss/i })).toHaveLength(2);
     expect(screen.getByText('First')).toBeInTheDocument();
     expect(screen.getByText('Second')).toBeInTheDocument();
   });
@@ -79,7 +96,7 @@ describe('ToastContainer', () => {
       duration: 5000,
     });
     render(<ToastContainer />);
-    const alert = screen.getByRole('alert');
-    expect(alert.className).toContain('border-red-500/30');
+    const toast = screen.getByText('Error toast').parentElement!;
+    expect(toast.className).toContain('border-red-500/30');
   });
 });

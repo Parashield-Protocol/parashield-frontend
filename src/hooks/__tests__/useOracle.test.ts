@@ -252,6 +252,40 @@ describe('useOracleReading', () => {
 
     nowSpy.mockRestore();
   });
+
+  // Issue #588: the visibility listener must survive key changes instead of
+  // being torn down and re-added, and must fetch the *current* key.
+  it('keeps one visibilitychange listener across key changes and refetches the new key', async () => {
+    mockFetchOracleReading.mockImplementation((key: string) => Promise.resolve({
+      key, dataType: 'weather', value: '324000000', confidence: 95, timestamp: 1000, source: 'mock',
+    }));
+    let now = 1_000_000;
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const addSpy = vi.spyOn(document, 'addEventListener');
+    const removeSpy = vi.spyOn(document, 'removeEventListener');
+    const visibilityCalls = (spy: typeof addSpy) =>
+      spy.mock.calls.filter(([event]) => event === 'visibilitychange').length;
+
+    const { rerender } = renderHook(({ k }) => useOracleReading(k), {
+      initialProps: { k: 'weather-abuja' },
+    });
+    await waitFor(() => expect(mockFetchOracleReading).toHaveBeenCalledWith('weather-abuja'));
+
+    rerender({ k: 'weather-lagos' });
+    await waitFor(() => expect(mockFetchOracleReading).toHaveBeenCalledWith('weather-lagos'));
+    expect(visibilityCalls(addSpy)).toBe(1);
+    expect(visibilityCalls(removeSpy)).toBe(0);
+
+    mockFetchOracleReading.mockClear();
+    now += VISIBILITY_REFETCH_MIN_MS;
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    await waitFor(() => expect(mockFetchOracleReading).toHaveBeenCalledTimes(1));
+    expect(mockFetchOracleReading).toHaveBeenCalledWith('weather-lagos');
+
+    nowSpy.mockRestore();
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
 });
 
 describe('useAllOracleReadings', () => {

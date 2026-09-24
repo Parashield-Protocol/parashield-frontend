@@ -25,7 +25,6 @@ function ToastItem({ toast }: { toast: ToastType }) {
   return (
     <div
       className={`flex items-start gap-3 rounded-xl border p-4 shadow-xl backdrop-blur-sm ${style}`}
-      role="alert"
     >
       <span className="mt-0.5 text-sm font-bold">{icon}</span>
       <p className="flex-1 text-sm leading-snug">{toast.message}</p>
@@ -42,9 +41,17 @@ function ToastItem({ toast }: { toast: ToastType }) {
 
 export function ToastContainer() {
   const { toasts } = useToast();
-  if (!toasts.length) return null;
+  // The live region must stay mounted even with no toasts: screen readers only
+  // announce content added to a region that already exists, so rendering it
+  // together with the first toast meant nothing was announced (#589). Only
+  // additions are announced, so stacking a new toast doesn't re-read the others.
   return (
-    <div className="pointer-events-none fixed inset-0 z-50" role="status" aria-live="polite" aria-atomic="true">
+    <div
+      className="pointer-events-none fixed inset-0 z-50"
+      role="status"
+      aria-live="polite"
+      aria-relevant="additions"
+    >
       <div className="pointer-events-auto absolute bottom-6 right-6 flex w-[340px] flex-col gap-3 max-h-[calc(100vh-48px)] overflow-y-auto">
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} />

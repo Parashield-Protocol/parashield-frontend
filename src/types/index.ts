@@ -32,6 +32,7 @@ export interface Policy {
   startTime:    number;  // unix epoch seconds
   endTime:      number;  // unix epoch seconds
   cancelledAt?: number;  // unix epoch seconds, set when status === 'Cancelled'
+  updatedAt?:   number;  // unix epoch seconds, last status change (when the backend provides it)
   status:       PolicyStatus;
   contractTxHash?: string;
 }

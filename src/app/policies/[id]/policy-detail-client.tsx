@@ -4,11 +4,11 @@ import { use, useState } from "react";
 import { usePolicy } from "@/hooks/usePolicies";
 import { useWallet } from "@/hooks/useWallet";
 import { OracleDataWidget } from "@/components/OracleDataWidget";
-import { PolicyStatusTimeline } from "@/components/PolicyStatusTimeline";
+import { PolicyStatusTimeline, getPolicyLastUpdated } from "@/components/PolicyStatusTimeline";
 import { TransactionLink } from "@/components/TransactionLink";
 import { Badge } from "@/components/Badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { formatUSDC, formatDate, timeLeft, shortenAddress } from "@/lib/format";
+import { formatUSDC, formatDate, formatDateTime, timeLeft, shortenAddress } from "@/lib/format";
 import { CopyButton } from "@/components/CopyButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClaimStatus } from "@/components/ClaimStatus";
@@ -179,6 +179,10 @@ export default function PolicyDetailClient({
           {
             label: "Expiry",
             value: `${formatDate(policy.endTime)} (${timeLeft(policy.endTime)})`,
+          },
+          {
+            label: "Last updated",
+            value: formatDateTime(getPolicyLastUpdated(policy), { withTimeZone: true }),
           },
         ].map(({ label, value }) => (
           <div

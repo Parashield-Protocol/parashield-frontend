@@ -54,6 +54,22 @@ export function getPolicyTimelineEvents(policy: Policy): TimelineEvent[] {
   return events;
 }
 
+/**
+ * When the policy's status last changed (#591), in epoch seconds. Prefers the
+ * backend's updatedAt, otherwise falls back to the timestamp of the transition
+ * that produced the current status. Returns null when that isn't known (a
+ * Claimed policy without updatedAt carries no claim-payout time).
+ */
+export function getPolicyLastUpdated(policy: Policy): number | null {
+  if (policy.updatedAt != null) return policy.updatedAt;
+  switch (policy.status) {
+    case 'Active':    return policy.startTime;
+    case 'Expired':   return policy.endTime;
+    case 'Cancelled': return policy.cancelledAt ?? null;
+    default:          return null;
+  }
+}
+
 export function PolicyStatusTimeline({ policy, className }: PolicyStatusTimelineProps) {
   const events = getPolicyTimelineEvents(policy);
 

@@ -49,6 +49,22 @@ export function useOracleReading(key: string | null) {
     }
   }, [key]);
 
+  // Always points at the load() for the current key, so the visibility
+  // listener below can stay registered across key changes.
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
+  // Registered once for the hook's lifetime rather than per key: tearing it
+  // down and re-adding it on every key change left a window where visibility
+  // changes went unhandled (#588). load() is a no-op while key is null.
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden && isStale(lastFetchAtRef.current)) void loadRef.current();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   useEffect(() => {
     currentKeyRef.current = key;
 
@@ -67,14 +83,7 @@ export function useOracleReading(key: string | null) {
     if (!key) return;
     void load();
     const interval = setInterval(() => { if (!document.hidden) void load(); }, ORACLE_REFRESH_INTERVAL_MS);
-    const onVisible = () => {
-      if (!document.hidden && isStale(lastFetchAtRef.current)) void load();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
+    return () => clearInterval(interval);
   }, [load, key]);
 
   return { reading, loading, error, refetch: load };
