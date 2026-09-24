@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, useRef } from 'react';
 import { useOracleReading } from '@/hooks/useOracle';
 import { Skeleton } from './Skeleton';
 import { formatOracleValue, formatDateTime, formatUtcDateTime } from '@/lib/format';
@@ -15,11 +15,16 @@ function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetPro
   const { reading, loading, error, refetch } = useOracleReading(oracleKey);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Keep a stable refetch reference so handleRefresh doesn't change identity
+  // when the hook re-exports a new function on every render.
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetch();
+    await refetchRef.current();
     setRefreshing(false);
-  }, [refetch]);
+  }, []);
 
   if (loading) {
     return (

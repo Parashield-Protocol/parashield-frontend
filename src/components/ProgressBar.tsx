@@ -27,7 +27,7 @@ export function ProgressBar({ value, max = 100, label, colour = 'teal', classNam
           <span>{pct.toFixed(0)}%</span>
         </div>
       )}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-white/10" aria-live="polite">
         <div
           className={`h-full rounded-full transition-all duration-500 ${COLOUR_CLASSES[colour]}`}
           style={{ width: `${pct}%` }}
