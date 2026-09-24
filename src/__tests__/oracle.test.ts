@@ -115,15 +115,31 @@ describe('oracleKeyLabel', () => {
   it('formats keyed defi keys', () => {
     expect(oracleKeyLabel('defi:protocol-monitor')).toBe('DeFi · protocol-monitor');
   });
+
+  it('formats rainfall coordinates with N/S/E/W indicators', () => {
+    expect(oracleKeyLabel('rainfall:-0.0917,34.7679:2026-06')).toBe('Rainfall · 0.0917S, 34.7679E · 2026-06');
+  });
+
+  it('formats temperature coordinates with N/S/E/W indicators', () => {
+    expect(oracleKeyLabel('temperature:10.5,20.3:2026-01')).toBe('Temperature · 10.5N, 20.3E · 2026-01');
+  });
+
+  it('returns raw key for unknown data type', () => {
+    expect(oracleKeyLabel('unknown:key')).toBe('unknown:key');
+  });
 });
 
 describe('confidenceLabel', () => {
+  it('returns No Data for 0', () => { expect(confidenceLabel(0)).toBe('No Data'); });
   it('returns High for 90+', () => { expect(confidenceLabel(90)).toBe('High'); });
   it('returns Medium for 70-89', () => { expect(confidenceLabel(75)).toBe('Medium'); });
   it('returns Low for below 70', () => { expect(confidenceLabel(50)).toBe('Low'); });
 });
 
 describe('confidenceColour', () => {
+  it('returns gray for zero confidence', () => {
+    expect(confidenceColour(0)).toBe('text-gray-400');
+  });
   it('returns emerald for high confidence', () => {
     expect(confidenceColour(95)).toBe('text-emerald-400');
   });

@@ -61,9 +61,9 @@ export function oracleKeyLabel(key: string): string {
   const parsed = parseOracleKey(key);
   switch (parsed.dataType) {
     case 'rainfall':
-      return `Rainfall · ${parsed.location ?? ''} · ${parsed.period ?? ''}`;
+      return `Rainfall · ${formatCoordinates(parsed.location ?? '')} · ${parsed.period ?? ''}`;
     case 'temperature':
-      return `Temperature · ${parsed.location ?? ''} · ${parsed.period ?? ''}`;
+      return `Temperature · ${formatCoordinates(parsed.location ?? '')} · ${parsed.period ?? ''}`;
     case 'flight':
       return `Flight ${parsed.flightNumber ?? ''} · ${parsed.period ?? ''}`;
     case 'defi':
@@ -82,12 +82,14 @@ export function oracleKeyLabel(key: string): string {
 }
 
 export function confidenceLabel(confidence: number): string {
+  if (confidence === 0) return 'No Data';
   if (confidence >= 90) return 'High';
   if (confidence >= 70) return 'Medium';
   return 'Low';
 }
 
 export function confidenceColour(confidence: number): string {
+  if (confidence === 0) return 'text-gray-400';
   if (confidence >= 90) return 'text-emerald-400';
   if (confidence >= 70) return 'text-amber-400';
   return 'text-red-400';
@@ -117,4 +119,16 @@ function clampCoord(value: number): string {
 
 export function buildFlightKey(flightNumber: string, date: string): string {
   return `flight:${flightNumber}:${date}`;
+}
+
+/** Format raw comma-separated coordinates (e.g. "-0.0917,34.7679") with N/S/E/W indicators. */
+function formatCoordinates(coords: string): string {
+  const parts = coords.split(',');
+  if (parts.length !== 2) return coords;
+  const lat = parseFloat(parts[0]);
+  const lng = parseFloat(parts[1]);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return coords;
+  const latDir = lat >= 0 ? 'N' : 'S';
+  const lngDir = lng >= 0 ? 'E' : 'W';
+  return `${Math.abs(lat)}${latDir}, ${Math.abs(lng)}${lngDir}`;
 }
