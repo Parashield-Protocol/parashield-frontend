@@ -57,7 +57,7 @@ export function StepProgress({ steps, current }: { steps: string[]; current: num
             aria-label={i < current ? `${step} — completed` : i === current ? `${step} — current step` : `${step} — pending`}
             aria-current={i === current ? 'step' : undefined}
             className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-              i < current  ? 'bg-teal-500 text-white' :
+              i < current  ? 'bg-teal-500 text-white cursor-pointer hover:bg-teal-400' :
               i === current ? 'border-2 border-teal-500 text-teal-400' :
               'border border-white/10 text-gray-400'
             }`}
@@ -65,7 +65,7 @@ export function StepProgress({ steps, current }: { steps: string[]; current: num
             {i < current ? '✓' : i + 1}
           </div>
           <span
-            className={`text-xs ${i === current ? 'text-white' : 'text-gray-400'}`}
+            className={`text-xs ${i === current ? 'text-white' : 'text-gray-400'} ${i < current ? 'cursor-pointer hover:text-white' : ''}`}
             aria-hidden={i === current ? undefined : 'true'}
           >
             {step}
