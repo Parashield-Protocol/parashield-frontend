@@ -49,12 +49,13 @@ export function Logo({ variant = 'dark', size = 32, className, priority = true }
 }
 
 export function LogoWordmark({ variant = 'dark', size = 32, className, priority }: LogoProps) {
+  const shieldTextColor = variant === 'light' ? 'text-gray-900' : 'text-white';
   return (
     <span className={`flex items-center gap-2 ${className ?? ''}`}>
       <Logo variant={variant} size={size} priority={priority} />
       <span className="text-lg font-bold tracking-tight">
         <span className="text-teal-400">Para</span>
-        <span className={variant === 'dark' ? 'text-white' : 'text-gray-900'}>shield</span>
+        <span className={shieldTextColor}>shield</span>
       </span>
     </span>
   );

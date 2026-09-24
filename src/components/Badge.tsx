@@ -7,6 +7,7 @@ interface BadgeProps {
   label:     BadgeLabel;
   variant?:  ColourName;
   className?: string;
+  icon?:     string;
 }
 
 type ColourName = 'emerald' | 'sky' | 'amber' | 'red' | 'gray' | 'purple' | 'teal';
@@ -35,10 +36,10 @@ function isStatusKey(key: string): key is PolicyStatus | ClaimStatus {
   return key in STATUS_COLOURS;
 }
 
-export function Badge({ label, variant, className }: BadgeProps) {
+export function Badge({ label, variant, className, icon: customIcon }: BadgeProps) {
   const colour: ColourName = (variant ?? (isStatusKey(label) ? STATUS_COLOURS[label] : undefined) ?? 'gray') as ColourName;
   const colourClass = COLOUR_CLASSES[colour];
-  const icon = isStatusKey(label) ? STATUS_ICONS[label] : undefined;
+  const icon = customIcon ?? (isStatusKey(label) ? STATUS_ICONS[label] : undefined);
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${colourClass} ${className ?? ''}`}
