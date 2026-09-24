@@ -1,9 +1,21 @@
 const isClient = typeof window !== 'undefined';
 
+let securityErrorWarned = false;
+
+function warnSecurityError(operation: string, error: unknown): void {
+  if (!securityErrorWarned && error instanceof DOMException && error.name === 'SecurityError') {
+    console.warn(
+      `[storage] ${operation} failed due to SecurityError — storage may be disabled (e.g. private browsing mode).`,
+      error,
+    );
+    securityErrorWarned = true;
+  }
+}
+
 function get(key: string): string | null {
   if (!isClient) return null;
   try { return localStorage.getItem(key); }
-  catch { return null; }
+  catch (error) { warnSecurityError('get', error); return null; }
 }
 
 function isQuotaExceededError(error: unknown): boolean {
@@ -22,6 +34,7 @@ function set(key: string, value: string): boolean {
     return true;
   } catch (error) {
     if (isQuotaExceededError(error)) return false;
+    warnSecurityError('set', error);
     return false;
   }
 }
@@ -29,7 +42,7 @@ function set(key: string, value: string): boolean {
 function remove(key: string): void {
   if (!isClient) return;
   try { localStorage.removeItem(key); }
-  catch { /* ignore */ }
+  catch (error) { warnSecurityError('remove', error); }
 }
 
 function getJSON<T>(key: string): T | null {
@@ -47,7 +60,7 @@ function setJSON<T>(key: string, value: T): boolean {
 function getSession(key: string): string | null {
   if (!isClient) return null;
   try { return sessionStorage.getItem(key); }
-  catch { return null; }
+  catch (error) { warnSecurityError('getSession', error); return null; }
 }
 
 function setSession(key: string, value: string): boolean {
@@ -57,6 +70,7 @@ function setSession(key: string, value: string): boolean {
     return true;
   } catch (error) {
     if (isQuotaExceededError(error)) return false;
+    warnSecurityError('setSession', error);
     return false;
   }
 }
@@ -64,7 +78,7 @@ function setSession(key: string, value: string): boolean {
 function removeSession(key: string): void {
   if (!isClient) return;
   try { sessionStorage.removeItem(key); }
-  catch { /* ignore */ }
+  catch (error) { warnSecurityError('removeSession', error); }
 }
 
 const storage = { get, set, remove, getJSON, setJSON, getSession, setSession, removeSession };

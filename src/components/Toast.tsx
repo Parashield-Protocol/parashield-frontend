@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { X } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import type { Toast as ToastType } from '@/types';
@@ -18,7 +19,7 @@ const VARIANT_ICONS: Record<string, string> = {
   info:    'ℹ',
 };
 
-function ToastItem({ toast }: { toast: ToastType }) {
+const ToastItem = memo(function ToastItem({ toast }: { toast: ToastType }) {
   const { dismiss } = useToast();
   const style  = VARIANT_STYLES[toast.variant] ?? VARIANT_STYLES.info;
   const icon   = VARIANT_ICONS[toast.variant]  ?? VARIANT_ICONS.info;
@@ -38,7 +39,7 @@ function ToastItem({ toast }: { toast: ToastType }) {
       </button>
     </div>
   );
-}
+});
 
 export function ToastContainer() {
   const { toasts } = useToast();
