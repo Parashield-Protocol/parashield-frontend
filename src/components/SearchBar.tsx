@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { Search } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface SearchBarProps {
@@ -35,9 +36,11 @@ export function SearchBar({
 
   return (
     <div className={`relative ${className ?? ''}`}>
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-        🔍
-      </span>
+      <Search
+        size={16}
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+      />
       <input
         type="text"
         value={query}
