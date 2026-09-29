@@ -48,6 +48,7 @@ function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetPro
         <button
           onClick={() => void handleRefresh()}
           disabled={refreshing}
+          aria-busy={refreshing}
           className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
         >
           {refreshing ? 'Retrying…' : 'Retry'}
@@ -63,6 +64,7 @@ function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetPro
         <button
           onClick={() => void handleRefresh()}
           disabled={refreshing}
+          aria-busy={refreshing}
           className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
           aria-label="Refresh oracle data"
         >
