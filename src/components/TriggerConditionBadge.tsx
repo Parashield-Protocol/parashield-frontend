@@ -5,10 +5,10 @@ interface TriggerConditionBadgeProps {
   className?: string;
 }
 
-function comparisonSymbol(c: Comparison): string {
-  if (c === 'LessThan')    return '<';
-  if (c === 'GreaterThan') return '>';
-  return '=';
+function comparisonLabel(c: Comparison): string {
+  if (c === 'LessThan')    return 'Less than';
+  if (c === 'GreaterThan') return 'Greater than';
+  return 'Equal to';
 }
 
 const CATEGORY_UNITS: Record<Category, string> = {
@@ -20,7 +20,7 @@ const CATEGORY_UNITS: Record<Category, string> = {
 };
 
 export function TriggerConditionBadge({ product, className }: TriggerConditionBadgeProps) {
-  const symbol = comparisonSymbol(product.comparison);
+  const comparison = comparisonLabel(product.comparison);
   const units = CATEGORY_UNITS[product.category] ?? '';
   return (
     <span
@@ -28,7 +28,7 @@ export function TriggerConditionBadge({ product, className }: TriggerConditionBa
     >
       <span className="text-teal-400">{product.triggerType}</span>
       <span className="text-gray-500 dark:text-gray-400">·</span>
-      <span>{symbol} {product.threshold}{units ? ` ${units}` : ''}</span>
+      <span>{comparison} {product.threshold}{units ? ` ${units}` : ''}</span>
     </span>
   );
 }

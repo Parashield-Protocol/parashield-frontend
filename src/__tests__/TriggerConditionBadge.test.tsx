@@ -21,25 +21,25 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
 }
 
 describe('TriggerConditionBadge', () => {
-  it('renders "<" symbol for LessThan comparison', () => {
+  it('renders plain-language text for LessThan comparison', () => {
     const html = renderToStaticMarkup(
       <TriggerConditionBadge product={makeProduct({ comparison: 'LessThan', threshold: '30' })} />
     );
-    expect(html).toContain('&lt; 30');
+    expect(html).toContain('Less than 30 mm');
   });
 
-  it('renders ">" symbol for GreaterThan comparison', () => {
+  it('renders plain-language text for GreaterThan comparison', () => {
     const html = renderToStaticMarkup(
       <TriggerConditionBadge product={makeProduct({ comparison: 'GreaterThan', threshold: '50' })} />
     );
-    expect(html).toContain('&gt; 50');
+    expect(html).toContain('Greater than 50 mm');
   });
 
-  it('renders "=" symbol for Equal comparison', () => {
+  it('renders plain-language text for Equal comparison', () => {
     const html = renderToStaticMarkup(
       <TriggerConditionBadge product={makeProduct({ comparison: 'Equal', threshold: '100' })} />
     );
-    expect(html).toContain('= 100');
+    expect(html).toContain('Equal to 100 mm');
   });
 
   it('displays the triggerType', () => {
