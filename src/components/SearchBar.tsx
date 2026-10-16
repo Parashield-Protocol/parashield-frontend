@@ -42,9 +42,23 @@ export const SearchBar = memo(function SearchBar({
   // Clearing fires onSearch('') immediately, so an empty query is never pending.
   const isPending = query !== '' && query !== debouncedQuery;
   const pathname = usePathname();
+  const inputRef = useRef<HTMLInputElement>(null);
   // Last value handed to `onSearch`, so clears and the debounce settling on the
   // same value don't trigger a redundant parent re-filter.
   const lastEmitted = useRef<string | null>(null);
+
+  // Ctrl+K / Cmd+K focuses the search input from anywhere on the page (#740).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const emit = useCallback((value: string) => {
     if (lastEmitted.current === value) return;
@@ -80,6 +94,7 @@ export const SearchBar = memo(function SearchBar({
         />
       )}
       <input
+        ref={inputRef}
         type="text"
         aria-busy={isPending}
         value={query}
