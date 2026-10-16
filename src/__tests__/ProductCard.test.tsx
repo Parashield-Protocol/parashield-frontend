@@ -118,4 +118,33 @@ describe('ProductCard', () => {
     expect(html).toContain('Max Coverage');
     expect(html).toContain('1.00');
   });
+
+  describe('hover affordance (#783)', () => {
+    function cardClasses(html: string): string {
+      const match = html.match(/data-testid="product-card"[^>]*class="([^"]*)"|class="([^"]*)"[^>]*data-testid="product-card"/);
+      return match?.[1] ?? match?.[2] ?? '';
+    }
+
+    it('shows a pointer cursor, lift and border on hover for active products', () => {
+      const cls = cardClasses(renderToStaticMarkup(<ProductCard product={makeProduct()} />));
+      expect(cls).toContain('cursor-pointer');
+      expect(cls).toContain('hover:-translate-y-1');
+      expect(cls).toContain('hover:shadow-lg');
+      expect(cls).toContain('hover:border-teal-500/40');
+      expect(cls).toContain('motion-reduce:hover:translate-y-0');
+    });
+
+    it('shows a visible focus state when a control inside has keyboard focus', () => {
+      const cls = cardClasses(renderToStaticMarkup(<ProductCard product={makeProduct()} />));
+      expect(cls).toContain('has-[:focus-visible]:ring-2');
+      expect(cls).toContain('has-[:focus-visible]:border-teal-500/60');
+    });
+
+    it('does not advertise clickability for inactive products', () => {
+      const cls = cardClasses(renderToStaticMarkup(<ProductCard product={makeProduct({ status: 'Paused' })} />));
+      expect(cls).toContain('cursor-default');
+      expect(cls).not.toContain('cursor-pointer');
+      expect(cls).not.toContain('hover:-translate-y-1');
+    });
+  });
 });

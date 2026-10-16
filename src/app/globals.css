@@ -17,6 +17,27 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
+/*
+ * Z-index scale (#785). Every fixed/sticky layer pulls its z-index from here
+ * (`z-(--z-modal)` etc.) instead of a hard-coded number, so layers can't
+ * silently tie. Toasts sit above modals: an error raised while a modal is
+ * open (e.g. a failed submit) must stay visible. Both are portaled to <body>,
+ * so no ancestor stacking context can trap them below these values.
+ *
+ *   base      0   normal flow
+ *   dropdown  30  menus, popovers, tooltips anchored to page content
+ *   sticky    40  NavBar, sticky headers
+ *   modal     50  Modal overlay + dialog
+ *   toast     60  ToastContainer -- always above modals
+ */
+:root {
+  --z-base: 0;
+  --z-dropdown: 30;
+  --z-sticky: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+}
+
 .dark {
   color-scheme: dark;
 }

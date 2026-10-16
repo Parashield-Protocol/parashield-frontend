@@ -45,7 +45,7 @@ export function NavBar() {
   useKeyboardShortcut('?', () => setShortcutsOpen(true));
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-gray-200 dark:border-white/10 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
+    <nav className="sticky top-0 z-(--z-sticky) border-b border-gray-200 dark:border-white/10 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link href="/">
           <LogoWordmark size={28} />
