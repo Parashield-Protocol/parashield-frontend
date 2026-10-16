@@ -6,6 +6,7 @@ interface Props {
 }
 
 const SHORTCUTS = [
+  { key: 'Ctrl+K', description: 'Focus search' },
   { key: '?', description: 'Show keyboard shortcuts' },
   { key: 'Esc', description: 'Close modal / menu' },
 ];
