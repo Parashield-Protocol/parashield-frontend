@@ -1,5 +1,5 @@
 import type { Claim } from '@/types';
-import { formatUSDC, formatDateTime } from '@/lib/format';
+import { formatUSDC, formatDateTime, toDateInputValue } from '@/lib/format';
 
 const CSV_HEADERS = [
   'Claim ID',
@@ -70,11 +70,11 @@ function download(content: string, filename: string, mimeType: string) {
 }
 
 export function downloadClaimsCSV(claims: Claim[]) {
-  const timestamp = new Date().toISOString().slice(0, 10);
+  const timestamp = toDateInputValue();
   download(claimsToCSV(claims), `parashield-claims-${timestamp}.csv`, 'text/csv');
 }
 
 export function downloadClaimsJSON(claims: Claim[]) {
-  const timestamp = new Date().toISOString().slice(0, 10);
+  const timestamp = toDateInputValue();
   download(claimsToJSON(claims), `parashield-claims-${timestamp}.json`, 'application/json');
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { NavBar } from '@/components/NavBar';
 import { ToastContainer } from '@/components/Toast';
@@ -14,6 +15,16 @@ import Link from 'next/link';
 import { LogoWordmark } from '@/components/Logo';
 
 validateConfig();
+
+// Self-hosted at build time by next/font (#780): no render-blocking request to
+// a font CDN, the woff2 is preloaded, and `swap` paints immediately with a
+// metric-adjusted fallback so the late swap doesn't shift layout.
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://parashield.app'),
@@ -64,7 +75,7 @@ const FooterFallback = (
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${inter.variable}`}>
       <body className="bg-gray-950 text-white dark:bg-gray-950 dark:text-white bg-white text-gray-950 antialiased">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:bg-teal-500 focus:px-4 focus:py-2 focus:text-white">Skip to main content</a>
         <Analytics />

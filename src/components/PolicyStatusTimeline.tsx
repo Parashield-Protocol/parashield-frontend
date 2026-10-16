@@ -116,7 +116,7 @@ export function PolicyStatusTimeline({
           onClick={() => setCollapsed((c) => !c)}
           aria-expanded={!isCollapsed}
           aria-controls={listId}
-          className="mb-4 text-xs font-medium text-teal-400 transition-colors hover:text-teal-300"
+          className="mb-4 rounded text-xs font-medium text-teal-400 transition-colors hover:text-teal-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
         >
           {isCollapsed ? `Show all ${events.length} steps` : 'Show current step only'}
         </button>

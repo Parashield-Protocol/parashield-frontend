@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { Product } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
-import { displayToStroops, stroopsToDisplay, estimatePremium, basisPointsToPercent } from '@/lib/format';
+import { displayToStroops, stroopsToDisplay, estimatePremium, basisPointsToPercent, toDateInputValue, dateInputToEpoch } from '@/lib/format';
+import { amountInputGuards, isPlainDecimal } from '@/lib/numberInput';
 import { toUserMessage } from '@/lib/errors';
 import { invokeBuyPolicy } from '@/lib/contract';
 import { buyPolicy as recordPolicyPurchase } from '@/lib/api';
@@ -66,7 +67,9 @@ export function BuyPolicyModal({ product, onClose }: Props) {
 
   // Flight builder state
   const [flightNumber, setFlightNumber] = useState('');
-  const [flightDate, setFlightDate] = useState(new Date().toISOString().split('T')[0]);
+  // Default to the viewer's local "today", not the UTC day from toISOString(),
+  // which is still yesterday for users ahead of UTC (#778).
+  const [flightDate, setFlightDate] = useState(() => toDateInputValue());
 
   const minDisplay = stroopsToDisplay(product.coverageMin, 2);
   const maxDisplay = stroopsToDisplay(product.coverageMax, 2);
@@ -95,7 +98,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
     // #475) rather than relying on parseFloat/parseInt's lenient parsing:
     // parseFloat("5e8") happily returns 500000000, which could pass a naive
     // range check with a value the user never intended to type.
-    if (!/^\d+(\.\d+)?$/.test(coverage.trim())) {
+    if (!isPlainDecimal(coverage)) {
       setCoverageError('Coverage must be a plain positive number (no scientific notation)');
       isValid = false;
     } else {
@@ -152,6 +155,9 @@ export function BuyPolicyModal({ product, onClose }: Props) {
       }
       if (!flightDate) {
         setFlightDateError('Flight date is required');
+        isValid = false;
+      } else if (dateInputToEpoch(flightDate) === null) {
+        setFlightDateError('Enter a valid date');
         isValid = false;
       } else {
         setFlightDateError('');
@@ -237,6 +243,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 max={maxDisplay}
                 value={coverage}
                 onChange={(e) => { setCoverage(e.target.value); setCoverageError(''); }}
+                {...amountInputGuards}
                 maxLength={MAX_INPUT_LENGTHS.amount}
                 placeholder={`${minDisplay} – ${maxDisplay}`}
                 className={`${INPUT_CLASS} ${coverageError ? 'border-red-500' : ''}`}
@@ -251,6 +258,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 type="number"
                 value={duration}
                 onChange={(e) => { setDuration(e.target.value); setDurationError(''); }}
+                {...amountInputGuards}
                 min={1}
                 max={product.maxDuration}
                 maxLength={MAX_INPUT_LENGTHS.amount}

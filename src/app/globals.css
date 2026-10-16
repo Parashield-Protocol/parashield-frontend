@@ -12,6 +12,11 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Inter is loaded via next/font in app/layout.tsx (#780), which sets --font-inter. */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
 .dark {
   color-scheme: dark;
 }
