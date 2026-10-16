@@ -151,10 +151,11 @@ export function DepositModal({ pool, onClose }: Props) {
     <Modal open title={`Deposit — ${poolLabel} Pool`} onClose={onClose}>
       <div className="space-y-4">
         <div>
-          <label className={LABEL_CLASS}>
+          <label htmlFor="deposit-amount" className={LABEL_CLASS}>
             Amount (USDC)
           </label>
           <input
+            id="deposit-amount"
             type="number"
             value={amount}
             onChange={(e) => { setAmount(e.target.value); setError(''); }}
@@ -162,6 +163,8 @@ export function DepositModal({ pool, onClose }: Props) {
             min={0}
             step="0.01"
             className={INPUT_CLASS}
+            aria-invalid={!!error}
+            aria-describedby={error ? 'deposit-amount-error' : undefined}
           />
         </div>
 
@@ -193,7 +196,7 @@ export function DepositModal({ pool, onClose }: Props) {
         {paused && (
           <p className={WARNING_TEXT}>This pool is paused. Deposits are temporarily disabled.</p>
         )}
-        {error && <p className={ERROR_TEXT}>{error}</p>}
+        {error && <p id="deposit-amount-error" className={ERROR_TEXT} aria-live="polite">{error}</p>}
       </div>
 
       <button
