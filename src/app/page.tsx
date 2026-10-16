@@ -14,6 +14,7 @@ import { CategoryFilter } from '@/components/CategoryFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { CompareModal } from '@/components/CompareModal';
 import { CATEGORY_LABELS } from '@/lib/constants';
+import { STORAGE_KEYS } from '@/lib/storageKeys';
 import type { Category, Product } from '@/types';
 
 type CategoryFilterValue = Category | 'all';
@@ -66,7 +67,7 @@ export default function HomePage() {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('ps_category_filter');
+      const stored = localStorage.getItem(STORAGE_KEYS.categoryFilter);
       if (stored) {
         setCategory(JSON.parse(stored) as CategoryFilterValue);
       }
@@ -77,7 +78,7 @@ export default function HomePage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('ps_category_filter', JSON.stringify(category));
+      localStorage.setItem(STORAGE_KEYS.categoryFilter, JSON.stringify(category));
     } catch {
       // ignore
     }

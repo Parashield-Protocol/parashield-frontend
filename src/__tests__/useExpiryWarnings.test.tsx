@@ -1,4 +1,5 @@
 import { useExpiryWarnings } from '../hooks/useExpiryWarnings';
+import { expiryNotifiedStorageKey } from '../lib/storageKeys';
 import { renderHook } from './renderHook';
 import type { Policy } from '../types';
 
@@ -56,7 +57,7 @@ describe('useExpiryWarnings (#532)', () => {
   });
 
   it('skips policies already recorded in sessionStorage', () => {
-    sessionStorage.setItem('ps_expiry_notified_GWALLET', JSON.stringify(['policy-1']));
+    sessionStorage.setItem(expiryNotifiedStorageKey('GWALLET'), JSON.stringify(['policy-1']));
     const toasts: string[] = [];
 
     renderHook(() => useExpiryWarnings([makePolicy()], true, 'GWALLET', (m) => { toasts.push(m); }));

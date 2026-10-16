@@ -4,6 +4,7 @@ import { API_URL, AUTH_TOKEN_STORAGE_KEY } from './constants';
 import storage from './storage';
 import type { Product, Policy, Claim, OracleReading, PoolStats, PoolShareInfo, ProtocolStats, ApiResponse, PaginatedResponse } from '@/types';
 import { invalidatePolicyCache } from './policyCache';
+import { reportRequestFailure, reportRequestSuccess } from './networkStatus';
 
 let onAuthError: (() => void) | null = null;
 
@@ -41,8 +42,13 @@ function parseRetryAfter(value: unknown): number | undefined {
 }
 
 client.interceptors.response.use(
-  (res) => res,
+  (res) => { reportRequestSuccess(); return res; },
   (err: AxiosError<{ message?: string; error?: string }>) => {
+    // Feed the offline indicator: any response, even an error status, proves
+    // the network works; no response at all (not a cancel) means it doesn't.
+    if (err.response) reportRequestSuccess();
+    else if (err.code === AxiosError.ERR_NETWORK) reportRequestFailure();
+
     const status  = err.response?.status ?? 0;
     if (status === 401) {
       storage.removeSession(AUTH_TOKEN_STORAGE_KEY);

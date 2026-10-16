@@ -9,6 +9,7 @@ import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
 import { SkeletonCard } from '@/components/Skeleton';
 import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/Badge';
+import { Listbox, type ListboxOption } from '@/components/Listbox';
 import Link from 'next/link';
 
 type Filter = 'All' | 'Active' | 'Pending' | 'Processing' | 'Expired' | 'Claimed' | 'Cancelled';
@@ -21,7 +22,7 @@ const FILTERS: Filter[] = ['All', 'Active', 'Pending', 'Processing', 'Expired', 
 const SKELETON_COUNT = 6;
 
 // Sort options for policy display
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+const SORT_OPTIONS: ListboxOption<SortOption>[] = [
   { value: 'newest', label: 'Newest First' },
   { value: 'oldest', label: 'Oldest First' },
   { value: 'amount-high', label: 'Highest Amount' },
@@ -176,8 +177,8 @@ export default function PoliciesPage() {
     setPage(0);
   }, []);
 
-  const handleSortChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortBy(e.target.value as SortOption);
+  const handleSortChange = useCallback((value: SortOption) => {
+    setSortBy(value);
     setPage(0);
   }, []);
 
@@ -321,29 +322,14 @@ export default function PoliciesPage() {
             )}
           </div>
 
-          {/* Sort Dropdown */}
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={handleSortChange}
-              aria-label="Sort policies"
-              className="appearance-none rounded-lg border border-white/10 bg-white/5 px-4 py-2 pr-10 text-sm text-white focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value} className="bg-gray-900">
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <svg
-              className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
+          {/* Sort Dropdown: keyboard-navigable listbox */}
+          <Listbox
+            value={sortBy}
+            options={SORT_OPTIONS}
+            onChange={handleSortChange}
+            label="Sort policies"
+            className="sm:w-48"
+          />
         </div>
       )}
 

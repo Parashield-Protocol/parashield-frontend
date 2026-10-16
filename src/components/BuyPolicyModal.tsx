@@ -12,6 +12,9 @@ import { buildRainfallKey, buildFlightKey } from '@/lib/oracle';
 import { Modal } from './Modal';
 import { StepProgress } from './ProgressBar';
 import { useToast } from '@/context/ToastContext';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { ButtonSpinner } from './LoadingSpinner';
 import { INPUT_CLASS, SELECT_CLASS, LABEL_CLASS, ERROR_TEXT, INFO_TEXT, CARD_PANEL } from '@/lib/styles';
 import { MAX_INPUT_LENGTHS } from '@/lib/constants';
 
@@ -50,6 +53,13 @@ export function BuyPolicyModal({ product, onClose }: Props) {
   }, [product.id]);
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
+  // Drops repeat clicks while a request is in flight and right after a step
+  // advance, so a double-click on "Confirm details" can't also sign.
+  const { guard, pending } = useSubmitGuard();
+  const online = useOnlineStatus();
+  // Configure/Review are local; connecting the wallet and signing are not.
+  const needsNetwork = !address || step === 2;
+  const blockedOffline = !online && needsNetwork;
 
   const [coverageError, setCoverageError] = useState('');
   const [durationError, setDurationError] = useState('');
@@ -469,12 +479,15 @@ export function BuyPolicyModal({ product, onClose }: Props) {
           </button>
         )}
         <button
-          onClick={handleBuy}
-          disabled={busy || connecting}
-          className="flex-1 rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
+          onClick={guard(handleBuy)}
+          disabled={busy || pending || connecting || blockedOffline}
+          aria-busy={busy || connecting}
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
         >
-          {connecting  ? 'Connecting wallet…' :
-           busy        ? 'Submitting…' :
+          {(busy || connecting) && <ButtonSpinner />}
+          {connecting     ? 'Connecting wallet…' :
+           busy           ? 'Submitting…' :
+           blockedOffline ? 'Offline — waiting for connection' :
            !address    ? 'Connect Wallet' :
            step === 2  ? 'Sign & Confirm' :
            step === 1  ? 'Confirm details' :

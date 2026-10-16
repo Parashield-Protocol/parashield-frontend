@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from './storageKeys';
+
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -144,10 +146,11 @@ export const STATUS_COLOURS: Record<PolicyStatus | ClaimStatus, string> = {
   Rejected:   'red',
 };
 
-export const WALLET_STORAGE_KEY   = 'ps_wallet_id';
-export const ADDRESS_STORAGE_KEY  = 'ps_wallet_address';
-export const NETWORK_STORAGE_KEY  = 'ps_wallet_network';
-export const AUTH_TOKEN_STORAGE_KEY = 'ps_auth_token';
+// Defined in the storage-key registry; re-exported for existing callers.
+export const WALLET_STORAGE_KEY     = STORAGE_KEYS.walletId;
+export const ADDRESS_STORAGE_KEY    = STORAGE_KEYS.walletAddress;
+export const NETWORK_STORAGE_KEY    = STORAGE_KEYS.walletNetwork;
+export const AUTH_TOKEN_STORAGE_KEY = STORAGE_KEYS.authToken;
 
 export const TOAST_DEFAULT_DURATION_MS = 4000;
 export const COPY_FEEDBACK_DURATION_MS  = 2000;
