@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { usePathname } from 'next/navigation';
 import { Loader2, Search, X } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { MAX_INPUT_LENGTHS } from '@/lib/constants';
 
 interface SearchBarProps {
   onSearch:   (query: string) => void;
@@ -83,6 +84,7 @@ export const SearchBar = memo(function SearchBar({
         aria-busy={isPending}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        maxLength={MAX_INPUT_LENGTHS.search}
         placeholder={placeholder}
         aria-label={label}
         aria-controls={resultsId}

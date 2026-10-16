@@ -156,3 +156,21 @@ export const ORACLE_REFRESH_INTERVAL_MS = 60_000;
 export const CLAIMS_REFRESH_INTERVAL_MS = 15_000;
 export const CLAIM_POLL_INTERVAL_MS    = 3000;
 export const CLAIM_POLL_MAX_ATTEMPTS   = 20;
+
+/**
+ * Hard input length caps (#736). Enforced both via `maxLength` on the field
+ * and in submit-time validation, so a paste or programmatic set cannot smuggle
+ * unbounded strings into the UI or API.
+ */
+export const MAX_INPUT_LENGTHS = {
+  /** Search queries. */
+  search: 80,
+  /** Short free-text labels (wallet label, policy label). */
+  label: 64,
+  /** Flight numbers / PNR-style references. */
+  reference: 16,
+  /** Oracle parameter strings like "rainfall:1.5,36.8:2026-06". */
+  oracleParams: 64,
+  /** Numeric amount strings (covers "123456.78" with headroom). */
+  amount: 16,
+} as const;
