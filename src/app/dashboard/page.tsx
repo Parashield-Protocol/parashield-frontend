@@ -203,23 +203,25 @@ export default function DashboardPage() {
             actionHref="/policies"
           />
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02]">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
-                  <th className="px-6 py-3">Claim ID</th>
-                  <th className="px-6 py-3">Submitted</th>
-                  <th className="px-6 py-3">Payout</th>
-                  <th className="px-6 py-3">Status</th>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] max-md:border-0 max-md:bg-transparent">
+            {/* Stacks into cards below `md` while keeping table semantics (#754). */}
+            <table role="table" className="responsive-table w-full text-sm">
+              <thead role="rowgroup">
+                <tr role="row" className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
+                  <th role="columnheader" scope="col" className="px-6 py-3">Claim ID</th>
+                  <th role="columnheader" scope="col" className="px-6 py-3">Submitted</th>
+                  <th role="columnheader" scope="col" className="px-6 py-3">Payout</th>
+                  <th role="columnheader" scope="col" className="px-6 py-3">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup">
                 {recentClaims.map((claim) => (
                   <tr
                     key={claim.id}
+                    role="row"
                     className="border-b border-white/5 transition-colors hover:bg-white/[0.02]"
                   >
-                    <td className="px-6 py-4 font-mono text-xs text-gray-400">
+                    <td role="cell" data-label="Claim ID" className="px-6 py-4 font-mono text-xs text-gray-400">
                       <Link
                         href={`/policies/${claim.policyId}`}
                         aria-label={`View policy for claim ${claim.id}`}
@@ -228,13 +230,13 @@ export default function DashboardPage() {
                         {claim.id.slice(0, 8)}…
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-400">
+                    <td role="cell" data-label="Submitted" className="px-6 py-4 text-xs text-gray-400">
                       {formatDateTime(claim.submittedAt)}
                     </td>
-                    <td className="px-6 py-4 text-xs font-semibold text-emerald-400">
+                    <td role="cell" data-label="Payout" className="px-6 py-4 text-xs font-semibold text-emerald-400">
                       {claim.payoutAmount ? formatUSDC(claim.payoutAmount) : '—'}
                     </td>
-                    <td className="px-6 py-4">
+                    <td role="cell" data-label="Status" className="px-6 py-4">
                       <Badge label={claim.status} />
                     </td>
                   </tr>

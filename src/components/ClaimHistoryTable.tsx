@@ -94,171 +94,90 @@ function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProp
     );
   }
 
-  return (
-    <div className={`${className ?? ''}`}>
-      {/* Desktop table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
-              <th className="pb-3 pr-4">Claim ID</th>
-              <th className="pb-3 pr-4">Policy</th>
-              <th
-                className="pb-3 pr-4"
-                aria-sort={sort.column === 'triggerMet' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleSort('triggerMet')}
-                  className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
-                    sort.column === 'triggerMet' ? 'text-white' : ''
-                  }`}
-                >
-                  Trigger {sortIndicator('triggerMet')}
-                </button>
-              </th>
-              <th
-                className="pb-3 pr-4"
-                aria-sort={sort.column === 'payoutAmount' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleSort('payoutAmount')}
-                  className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
-                    sort.column === 'payoutAmount' ? 'text-white' : ''
-                  }`}
-                >
-                  Payout {sortIndicator('payoutAmount')}
-                </button>
-              </th>
-              <th
-                className="pb-3 pr-4"
-                aria-sort={sort.column === 'submittedAt' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleSort('submittedAt')}
-                  className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
-                    sort.column === 'submittedAt' ? 'text-white' : ''
-                  }`}
-                >
-                  Submitted {sortIndicator('submittedAt')}
-                </button>
-              </th>
-              <th className="pb-3 pr-4">Tx</th>
-              <th
-                className="pb-3"
-                aria-sort={sort.column === 'status' ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleSort('status')}
-                  className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
-                    sort.column === 'status' ? 'text-white' : ''
-                  }`}
-                >
-                  Status {sortIndicator('status')}
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedClaims.map((claim) => (
-              <tr
-                key={claim.id}
-                className="relative border-b border-white/5 transition-colors hover:bg-white/[0.02]"
-              >
-                <td className="py-4 pr-4 font-mono text-xs text-gray-400">
-                  <Link
-                    href={`/policies/${claim.policyId}`}
-                    aria-label={`View policy for claim ${claim.id}`}
-                    className="rounded-sm transition-colors before:absolute before:inset-0 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                  >
-                    {claim.id.slice(0, 8)}…
-                  </Link>
-                </td>
-                <td className="py-4 pr-4 font-mono text-xs">
-                  <Link
-                    href={`/policies/${claim.policyId}`}
-                    className="relative z-10 rounded-sm text-teal-400 transition-colors hover:text-teal-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
-                  >
-                    {claim.policyId.slice(0, 8)}…
-                  </Link>
-                </td>
-                <td className="py-4 pr-4">
-                  <span className={`text-xs font-semibold ${claim.triggerMet ? 'text-emerald-400' : 'text-gray-400'}`}>
-                    {claim.triggerMet ? '✓ Met' : '✕ Not met'}
-                  </span>
-                </td>
-                <td className="py-4 pr-4 text-xs font-semibold text-emerald-400">
-                  {claim.payoutAmount ? formatUSDC(claim.payoutAmount) : '—'}
-                </td>
-                <td className="py-4 pr-4 text-xs text-gray-400">
-                  {formatDateTime(claim.submittedAt)}
-                </td>
-                <td className="py-4 pr-4">
-                  {claim.txHash ? (
-                    <TransactionLink txHash={claim.txHash} className="relative z-10" />
-                  ) : (
-                    <span className="text-xs text-gray-400">—</span>
-                  )}
-                </td>
-                <td className="py-4">
-                  <Badge label={claim.status} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+  const ariaSort = (column: SortColumn) =>
+    sort.column === column ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none';
 
-      {/* Mobile card layout */}
-      <div className="md:hidden space-y-3">
-        {sortedClaims.map((claim) => (
-          <div
-            key={claim.id}
-            className="relative rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3 transition-colors hover:border-white/20"
-          >
-            <div className="flex items-center justify-between">
-              <Link
-                href={`/policies/${claim.policyId}`}
-                aria-label={`View policy for claim ${claim.id}`}
-                className="rounded-sm font-mono text-xs text-gray-400 before:absolute before:inset-0 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
-              >
-                {claim.id.slice(0, 8)}…
-              </Link>
-              <Badge label={claim.status} />
-            </div>
-            <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
-              <span className="text-gray-400">Policy</span>
-              <Link
-                href={`/policies/${claim.policyId}`}
-                className="relative z-10 truncate rounded-sm font-mono text-teal-400 transition-colors hover:text-teal-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
-              >
-                {claim.policyId.slice(0, 8)}…
-              </Link>
-              <span className="text-gray-400">Trigger</span>
-              <span className={claim.triggerMet ? 'font-semibold text-emerald-400' : 'text-gray-400'}>
-                {claim.triggerMet ? '✓ Met' : '✕ Not met'}
-              </span>
-              <span className="text-gray-400">Payout</span>
-              <span className="font-semibold text-emerald-400">
+  const sortHeader = (column: SortColumn, label: string, className: string) => (
+    <th role="columnheader" scope="col" className={className} aria-sort={ariaSort(column)}>
+      <button
+        type="button"
+        onClick={() => toggleSort(column)}
+        className={`inline-flex items-center gap-1 transition-colors hover:text-white ${
+          sort.column === column ? 'text-white' : ''
+        }`}
+      >
+        {label} {sortIndicator(column)}
+      </button>
+    </th>
+  );
+
+  // One <table> at every viewport: below `md` the `.responsive-table` CSS
+  // stacks each row into a card and renders each cell's `data-label`, so
+  // screen readers keep table navigation on mobile (#754). Explicit roles
+  // guard against engines that drop semantics when `display` changes.
+  return (
+    <div className={`overflow-x-auto ${className ?? ''}`}>
+      <table role="table" className="responsive-table w-full text-sm">
+        <thead role="rowgroup">
+          <tr role="row" className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
+            <th role="columnheader" scope="col" className="pb-3 pr-4">Claim ID</th>
+            <th role="columnheader" scope="col" className="pb-3 pr-4">Policy</th>
+            {sortHeader('triggerMet', 'Trigger', 'pb-3 pr-4')}
+            {sortHeader('payoutAmount', 'Payout', 'pb-3 pr-4')}
+            {sortHeader('submittedAt', 'Submitted', 'pb-3 pr-4')}
+            <th role="columnheader" scope="col" className="pb-3 pr-4">Tx</th>
+            {sortHeader('status', 'Status', 'pb-3')}
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          {sortedClaims.map((claim) => (
+            <tr
+              key={claim.id}
+              role="row"
+              className="relative border-b border-white/5 transition-colors hover:bg-white/[0.02]"
+            >
+              <td role="cell" data-label="Claim ID" className="py-4 pr-4 font-mono text-xs text-gray-400">
+                <Link
+                  href={`/policies/${claim.policyId}`}
+                  aria-label={`View policy for claim ${claim.id}`}
+                  className="rounded-sm transition-colors before:absolute before:inset-0 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                >
+                  {claim.id.slice(0, 8)}…
+                </Link>
+              </td>
+              <td role="cell" data-label="Policy" className="py-4 pr-4 font-mono text-xs">
+                <Link
+                  href={`/policies/${claim.policyId}`}
+                  className="relative z-10 rounded-sm text-teal-400 transition-colors hover:text-teal-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+                >
+                  {claim.policyId.slice(0, 8)}…
+                </Link>
+              </td>
+              <td role="cell" data-label="Trigger" className="py-4 pr-4">
+                <span className={`text-xs font-semibold ${claim.triggerMet ? 'text-emerald-400' : 'text-gray-400'}`}>
+                  {claim.triggerMet ? '✓ Met' : '✕ Not met'}
+                </span>
+              </td>
+              <td role="cell" data-label="Payout" className="py-4 pr-4 text-xs font-semibold text-emerald-400">
                 {claim.payoutAmount ? formatUSDC(claim.payoutAmount) : '—'}
-              </span>
-              <span className="text-gray-400">Submitted</span>
-              <span className="text-gray-400">{formatDateTime(claim.submittedAt)}</span>
-              <span className="text-gray-400">Tx</span>
-              <span>
+              </td>
+              <td role="cell" data-label="Submitted" className="py-4 pr-4 text-xs text-gray-400">
+                {formatDateTime(claim.submittedAt)}
+              </td>
+              <td role="cell" data-label="Tx" className="py-4 pr-4">
                 {claim.txHash ? (
                   <TransactionLink txHash={claim.txHash} className="relative z-10" />
                 ) : (
-                  <span className="text-gray-400">—</span>
+                  <span className="text-xs text-gray-400">—</span>
                 )}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+              </td>
+              <td role="cell" data-label="Status" className="py-4">
+                <Badge label={claim.status} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
