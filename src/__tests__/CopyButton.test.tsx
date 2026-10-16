@@ -41,6 +41,44 @@ describe('CopyButton', () => {
     expect(writeText).toHaveBeenCalledWith('hello world');
   });
 
+  it('shows a success toast containing the full copied value (#739)', async () => {
+    const fullAddress = 'GDXFJ6LPYXIR7TQXJZ7PY4M5G6R2V3T4U5W6X7Y8Z9A0B1C2D3E4F5G6H7';
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    Object.defineProperty(window, 'isSecureContext', { value: true, writable: true });
+
+    render(<CopyButton text={fullAddress} label="Copy" />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button'));
+    });
+    expect(writeText).toHaveBeenCalledWith(fullAddress);
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.stringContaining(fullAddress),
+      'success',
+    );
+  });
+
+  it('prefers a custom successMessage over the default toast (#739)', async () => {
+    const fullAddress = 'GABC';
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    Object.defineProperty(window, 'isSecureContext', { value: true, writable: true });
+
+    render(
+      <CopyButton
+        text={fullAddress}
+        successMessage={`Copied full address: ${fullAddress}`}
+      />,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button'));
+    });
+    expect(mockShowToast).toHaveBeenCalledWith(
+      `Copied full address: ${fullAddress}`,
+      'success',
+    );
+  });
+
   it('shows "Copied" temporarily after click', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });

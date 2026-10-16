@@ -162,6 +162,7 @@ export function DepositModal({ pool, onClose }: Props) {
             placeholder="0.00"
             min={0}
             step="0.01"
+            maxLength={16}
             className={INPUT_CLASS}
             aria-invalid={!!error}
             aria-describedby={error ? 'deposit-amount-error' : undefined}

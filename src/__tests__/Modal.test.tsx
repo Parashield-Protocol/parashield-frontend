@@ -119,4 +119,22 @@ describe('Modal', () => {
     rerender(<Modal {...defaultProps} open={false} />);
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('marks the app root aria-hidden while open and restores it on close (#738)', () => {
+    const root = document.createElement('div');
+    root.id = '__next';
+    document.body.appendChild(root);
+    const { rerender } = render(<Modal {...defaultProps} />);
+    expect(root.getAttribute('aria-hidden')).toBe('true');
+
+    rerender(<Modal {...defaultProps} open={false} />);
+    expect(root.getAttribute('aria-hidden')).toBeNull();
+    root.remove();
+  });
+
+  it('portals the dialog to document.body so hiding the app root does not hide it (#738)', () => {
+    render(<Modal {...defaultProps} />);
+    const dialog = screen.getByRole('dialog');
+    expect(document.body.contains(dialog)).toBe(true);
+  });
 });

@@ -8,9 +8,14 @@ interface CopyButtonProps {
   text:      string;
   label?:    string;
   className?: string;
+  /**
+   * Toast shown after a successful copy. Defaults to a generic confirmation.
+   * Pass the full value when the visible label is truncated (#739).
+   */
+  successMessage?: string;
 }
 
-export function CopyButton({ text, label, className }: CopyButtonProps) {
+export function CopyButton({ text, label, className, successMessage }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
   const { show: showToast } = useToast();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,6 +43,7 @@ export function CopyButton({ text, label, className }: CopyButtonProps) {
         }
       }
       setCopied(true);
+      showToast(successMessage ?? `Copied: ${text}`, 'success');
       timerRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS);
     } catch {
       showToast('Copy failed – please copy the text manually', 'error');
