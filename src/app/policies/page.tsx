@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useWallet } from '@/hooks/useWallet';
 import { usePolicies } from '@/hooks/usePolicies';
 import { PolicyCard } from '@/components/PolicyCard';
@@ -31,13 +32,38 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 export default function PoliciesPage() {
   const { address, connected } = useWallet();
   const { policies, loading, error, refetch } = usePolicies(address);
-  const [filter, setFilter] = useState<Filter>('All');
-  const [page, setPage] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Initialize state from URL query params (#746)
+  const [filter, setFilter] = useState<Filter>(
+    () => (searchParams.get('status') as Filter) || 'All'
+  );
+  const [page, setPage] = useState(() => Number(searchParams.get('page')) || 0);
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
+  const [sortBy, setSortBy] = useState<SortOption>(
+    () => (searchParams.get('sort') as SortOption) || 'newest'
+  );
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    () => (searchParams.get('view') as ViewMode) || 'grid'
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const POLICIES_PER_PAGE = 12;
+
+  // Sync filter state to URL query params (#746)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filter !== 'All') params.set('status', filter);
+    if (searchQuery) params.set('q', searchQuery);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    if (viewMode !== 'grid') params.set('view', viewMode);
+    if (page > 0) params.set('page', String(page));
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
+    router.replace(newUrl, { scroll: false });
+  }, [filter, searchQuery, sortBy, viewMode, page, pathname, router]);
 
   // Early return for disconnected wallet
   if (!connected) {

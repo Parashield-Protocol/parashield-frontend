@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
 import { NavBar } from '@/components/NavBar';
 import { ToastContainer } from '@/components/Toast';
@@ -9,6 +9,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { Analytics } from '@/components/Analytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { validateConfig } from '@/lib/constants';
+import { ErrorBoundaryWrapper } from '@/components/ErrorBoundaryWrapper';
 import Link from 'next/link';
 import { LogoWordmark } from '@/components/Logo';
 
@@ -71,21 +72,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <WalletProvider>
           <ToastProvider>
             <NetworkBanner />
-            <ErrorBoundary fallback={NavBarFallback}>
+            <ErrorBoundaryWrapper fallback={NavBarFallback}>
               <NavBar />
             </ErrorBoundary>
             <main id="main-content">
-              <ErrorBoundary>
+              <ErrorBoundaryWrapper>
                 {children}
-              </ErrorBoundary>
+              </ErrorBoundaryWrapper>
             </main>
-            <ErrorBoundary fallback={null}>
+            <ErrorBoundaryWrapper fallback={null}>
               <ToastContainer />
             </ErrorBoundary>
           </ToastProvider>
         </WalletProvider>
         </ThemeProvider>
-        <ErrorBoundary fallback={FooterFallback}>
+        <ErrorBoundaryWrapper fallback={FooterFallback}>
           <footer className="border-t border-gray-200 dark:border-white/10 py-8 text-center text-xs text-gray-500 dark:text-gray-400">
             © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
           </footer>

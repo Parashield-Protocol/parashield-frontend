@@ -1,12 +1,15 @@
 'use client';
 
 import { Component, type ReactNode, type ErrorInfo } from 'react';
+import { usePathname } from 'next/navigation';
 import { track } from '@/lib/analytics';
 import { devError } from '@/lib/devConsole';
 
 interface Props {
   children:  ReactNode;
   fallback?: ReactNode;
+  /** Current pathname for route-based error boundary reset (#748) */
+  pathname?: string;
 }
 
 interface State {
@@ -25,7 +28,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.children !== this.props.children && this.state.hasError) {
+    // Reset on children change OR pathname change (#748)
+    if ((prevProps.children !== this.props.children || prevProps.pathname !== this.props.pathname) && this.state.hasError) {
       this.setState({ hasError: false, error: null });
     }
   }
