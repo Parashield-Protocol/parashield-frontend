@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useModalOverflow } from '@/hooks/useModalOverflow';
 
 interface ModalProps {
@@ -81,6 +82,27 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md', d
     return () => unlock();
   }, [open, lock, unlock]);
 
+  // Hide the app root from assistive tech and prevent focus on it (#738).
+  // The dialog itself is portaled to document.body so it stays reachable.
+  // `inert` is preferred where supported; `aria-hidden` is the fallback.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.getElementById('__next');
+    if (!root) return;
+    const previousAriaHidden = root.getAttribute('aria-hidden');
+    root.setAttribute('aria-hidden', 'true');
+    if ('inert' in root) {
+      (root as HTMLElement & { inert: boolean }).inert = true;
+    }
+    return () => {
+      if (previousAriaHidden === null) root.removeAttribute('aria-hidden');
+      else root.setAttribute('aria-hidden', previousAriaHidden);
+      if ('inert' in root) {
+        (root as HTMLElement & { inert: boolean }).inert = false;
+      }
+    };
+  }, [open]);
+
   // Focus management
   useEffect(() => {
     if (!open) return;
@@ -101,9 +123,11 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md', d
   }, [open]);
 
   if (!shouldRender) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
+      data-modal-overlay=""
       className={`fixed inset-0 z-50 flex items-center justify-center overscroll-contain p-4 transition-all duration-300 ease-out ${
         visible
           ? 'bg-black/50 dark:bg-black/70 backdrop-blur-sm opacity-100'
@@ -150,6 +174,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md', d
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

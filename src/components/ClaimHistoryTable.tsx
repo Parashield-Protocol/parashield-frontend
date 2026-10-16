@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { memo, useMemo, useState } from 'react';
@@ -17,6 +17,9 @@ function ClaimHistoryTableComponent({ claims, className }: ClaimHistoryTableProp
   type SortColumn = 'submittedAt' | 'status' | 'payoutAmount' | 'triggerMet';
   type SortDirection = 'asc' | 'desc';
 
+  // Presentational only: claims are fetched by useClaims in the page. Sorting is
+  // derived via useMemo so parent re-renders reuse the same ordered array
+  // identity whenever `claims` and `sort` are unchanged (#737).
   const [sort, setSort] = useState<{ column: SortColumn; direction: SortDirection }>({
     column: 'submittedAt',
     direction: 'desc',

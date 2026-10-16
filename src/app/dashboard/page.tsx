@@ -195,9 +195,13 @@ export default function DashboardPage() {
             <Skeleton className="h-40 w-full" />
           </div>
         ) : recentClaims.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center text-sm text-gray-400">
-            No claims submitted yet.
-          </div>
+          <EmptyState
+            icon="📋"
+            title="No claims yet"
+            description="When you file a claim on one of your active policies, it will appear here."
+            actionLabel="Browse policies"
+            actionHref="/policies"
+          />
         ) : (
           <div className="rounded-2xl border border-white/10 bg-white/[0.02]">
             <table className="w-full text-sm">

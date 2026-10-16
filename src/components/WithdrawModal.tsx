@@ -143,7 +143,9 @@ export function WithdrawModal({ pool, onClose }: Props) {
             placeholder="0.00"
             min={0}
             step="0.01"
+            maxLength={16}
             aria-invalid={invalidFormat || belowMinimum}
+            aria-describedby="withdraw-amount-error"
             className={`${INPUT_CLASS} ${invalidFormat || belowMinimum ? 'border-red-500' : ''}`}
           />
           {invalidFormat && (
@@ -189,7 +191,7 @@ export function WithdrawModal({ pool, onClose }: Props) {
         {paused && (
           <p className="text-sm text-amber-400">This pool is paused. Withdrawals are temporarily disabled.</p>
         )}
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p id="withdraw-amount-error" className="text-sm text-red-400" aria-live="polite">{error}</p>}
       </div>
 
       <button

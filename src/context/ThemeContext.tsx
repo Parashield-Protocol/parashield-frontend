@@ -12,14 +12,23 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 const STORAGE_KEY = 'ps_theme';
 
+// Cache the initial theme so localStorage is read only once (#732).
+// React's useState lazy initializer calls this during the first render;
+// the module-level cache ensures a single read even across provider remounts.
+let cachedInitialTheme: Theme | null = null;
+
 function getInitialTheme(): Theme {
+  if (cachedInitialTheme !== null) return cachedInitialTheme;
   if (typeof window === 'undefined') return 'dark';
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'light' || stored === 'dark') return stored;
+    if (stored === 'light' || stored === 'dark') {
+      cachedInitialTheme = stored;
+      return stored;
+    }
   } catch { /* ignore */ }
-  if (window.matchMedia?.('(prefers-color-scheme: light)').matches) return 'light';
-  return 'dark';
+  cachedInitialTheme = window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  return cachedInitialTheme;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

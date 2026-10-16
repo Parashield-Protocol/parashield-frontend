@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import type { Product } from '@/types';
@@ -12,6 +12,7 @@ import { Modal } from './Modal';
 import { StepProgress } from './ProgressBar';
 import { useToast } from '@/context/ToastContext';
 import { INPUT_CLASS, SELECT_CLASS, LABEL_CLASS, ERROR_TEXT, INFO_TEXT, CARD_PANEL } from '@/lib/styles';
+import { MAX_INPUT_LENGTHS } from '@/lib/constants';
 
 interface Props {
   product: Product;
@@ -236,6 +237,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 max={maxDisplay}
                 value={coverage}
                 onChange={(e) => { setCoverage(e.target.value); setCoverageError(''); }}
+                maxLength={MAX_INPUT_LENGTHS.amount}
                 placeholder={`${minDisplay} – ${maxDisplay}`}
                 className={`${INPUT_CLASS} ${coverageError ? 'border-red-500' : ''}`}
               />
@@ -251,6 +253,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                 onChange={(e) => { setDuration(e.target.value); setDurationError(''); }}
                 min={1}
                 max={product.maxDuration}
+                maxLength={MAX_INPUT_LENGTHS.amount}
                 className={`${INPUT_CLASS} ${durationError ? 'border-red-500' : ''}`}
               />
               {durationError && <p className="mt-1 text-xs text-red-400">{durationError}</p>}
@@ -268,6 +271,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       step="0.0001"
                       value={lat}
                       onChange={(e) => { setLat(e.target.value); setLatError(''); }}
+                      maxLength={16}
                       placeholder="e.g. -0.0917"
                       className={`${INPUT_CLASS} ${latError ? 'border-red-500' : ''}`}
                     />
@@ -341,7 +345,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                     // Strip colons at the source: a ':' is the oracle-key delimiter,
                     // so one inside the flight number would break key parsing (#223).
                     onChange={(e) => { setFlightNumber(e.target.value.replace(/:/g, '')); setFlightNumberError(''); }}
-                    maxLength={16}
+                    maxLength={MAX_INPUT_LENGTHS.reference}
                     pattern="[^:]*"
                     placeholder="e.g. KQ100"
                     className={`${INPUT_CLASS} ${flightNumberError ? 'border-red-500' : ''}`}
@@ -388,7 +392,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                   value={oracleKey}
                   onChange={(e) => { setManualOracleKey(e.target.value); setOracleKeyError(''); }}
                   placeholder='e.g. rainfall:1.5,36.8:2026-06'
-                  maxLength={32}
+                  maxLength={MAX_INPUT_LENGTHS.oracleParams}
                   className={`${INPUT_CLASS} ${oracleKeyError ? 'border-red-500' : ''}`}
                 />
                 <p className="mt-1 text-[10px] text-gray-400">Max 32 chars</p>
@@ -436,7 +440,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
           </div>
         )}
 
-        {error && <p className={ERROR_TEXT}>{error}</p>}
+        {error && <p className={ERROR_TEXT} aria-live="polite">{error}</p>}
       </div>
 
       <div className="mt-6 flex gap-3">

@@ -38,6 +38,7 @@ const STATUS_ICONS: Record<string, string> = {
   Claimed:   '◆',
   Cancelled: '✕',
   Pending:   '◐',
+  Processing:'◌',
   Paid:      '✓',
   Rejected:  '✕',
 };

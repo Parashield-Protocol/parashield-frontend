@@ -42,6 +42,11 @@ export default function HomePage() {
   const [compareOpen, setCompareOpen]   = useState(false);
   const handleCloseCompare = useCallback(() => setCompareOpen(false), []);
 
+  // #742 — clear comparison selection when the page unmounts (route change away)
+  useEffect(() => {
+    return () => setCompareIds(new Set());
+  }, []);
+
   const toggleCompare = useCallback((product: Product) => {
     setCompareIds((prev) => {
       const next = new Set(prev);
