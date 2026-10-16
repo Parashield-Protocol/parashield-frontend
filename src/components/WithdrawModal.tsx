@@ -7,6 +7,7 @@ import { fetchPoolShares, fetchPoolUserShares } from '@/lib/api';
 import { buildWithdrawTx, submitSignedTransaction, withStateRestore } from '@/lib/contract';
 import { signTransaction } from '@/lib/stellar';
 import { displayToStroops, stroopsToDisplay } from '@/lib/format';
+import { amountInputGuards, isPlainDecimal } from '@/lib/numberInput';
 import { ContractError, toUserMessage } from '@/lib/errors';
 import { CATEGORY_LABELS, MIN_WITHDRAW_STROOPS } from '@/lib/constants';
 import { Modal } from './Modal';
@@ -80,7 +81,7 @@ export function WithdrawModal({ pool, onClose }: Props) {
   // silently below and treated as "0 shares", which just disables the submit
   // button with no explanation of why (#520).
   const trimmedAmount = amount.trim();
-  const invalidFormat = trimmedAmount !== '' && !/^\d+(\.\d+)?$/.test(trimmedAmount);
+  const invalidFormat = trimmedAmount !== '' && !isPlainDecimal(trimmedAmount);
   let   withdrawShares = 0n;
   try {
     withdrawShares = amount && !invalidFormat ? displayToStroops(amount) : 0n;
@@ -140,6 +141,7 @@ export function WithdrawModal({ pool, onClose }: Props) {
             type="number"
             value={amount}
             onChange={(e) => { setAmount(e.target.value); setError(''); }}
+            {...amountInputGuards}
             placeholder="0.00"
             min={0}
             step="0.01"

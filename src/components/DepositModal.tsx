@@ -7,6 +7,7 @@ import { fetchPoolShares } from '@/lib/api';
 import { buildDepositTx, submitSignedTransaction, withStateRestore } from '@/lib/contract';
 import { signTransaction } from '@/lib/stellar';
 import { displayToStroops, formatUSDC, stroopsToDisplay } from '@/lib/format';
+import { amountInputGuards, isPlainDecimal } from '@/lib/numberInput';
 import { ContractError, toUserMessage } from '@/lib/errors';
 import { CATEGORY_LABELS, MIN_DEPOSIT_STROOPS } from '@/lib/constants';
 import { Modal } from './Modal';
@@ -83,9 +84,13 @@ export function DepositModal({ pool, onClose }: Props) {
   }, [loadShares]);
 
   const amountNum     = parseFloat(amount) || 0;
+  // Same plain-decimal rule as WithdrawModal/BuyPolicyModal (#782): "1e10"
+  // parses as a huge positive number but displayToStroops rejects it, which
+  // used to surface as a misleading "Minimum deposit" error.
+  const invalidFormat = amount.trim() !== '' && !isPlainDecimal(amount);
   let   depositStroops = 0n;
   try {
-    depositStroops = amount ? displayToStroops(amount) : 0n;
+    depositStroops = amount && !invalidFormat ? displayToStroops(amount) : 0n;
   } catch {
     // Negative or otherwise invalid input — keep depositStroops at 0n so
     // the render doesn't throw. handleDeposit surfaces the user-facing
@@ -101,6 +106,7 @@ export function DepositModal({ pool, onClose }: Props) {
     if (!address) return;
     if (!sharesAvailable) { setError('Pool data is unavailable — retry loading before depositing.'); return; }
     if (paused) { setError('This pool is currently paused. Deposits are not accepted.'); return; }
+    if (invalidFormat) { setError('Enter a plain positive number (no scientific notation).'); return; }
     if (amountNum <= 0) { setError('Enter a valid USDC amount.'); return; }
     if (depositStroops < MIN_DEPOSIT_STROOPS) { 
       setError(`Minimum deposit is ${stroopsToDisplay(MIN_DEPOSIT_STROOPS, 2)} USDC`);
@@ -159,6 +165,7 @@ export function DepositModal({ pool, onClose }: Props) {
             type="number"
             value={amount}
             onChange={(e) => { setAmount(e.target.value); setError(''); }}
+            {...amountInputGuards}
             placeholder="0.00"
             min={0}
             step="0.01"
