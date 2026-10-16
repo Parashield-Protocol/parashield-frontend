@@ -27,6 +27,10 @@ export function useClaims(walletAddress: string | null) {
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
 
+  // Stabilised load identity: only walletAddress is a real input. Re-renders of
+  // the parent (export menu, countdown ticks, unrelated state) must not recreate
+  // this callback or re-arm the effect below, or every parent render would
+  // refetch claims (#737).
   const load = useCallback(async (signal: AbortSignal) => {
     if (!walletAddress) return;
     const isFirst = isFirstLoad.current;
