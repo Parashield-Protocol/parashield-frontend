@@ -436,7 +436,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
           </div>
         )}
 
-        {error && <p className={ERROR_TEXT}>{error}</p>}
+        {error && <p className={ERROR_TEXT} aria-live="polite">{error}</p>}
       </div>
 
       <div className="mt-6 flex gap-3">

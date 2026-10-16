@@ -125,7 +125,7 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
         </div>
         <div>
           <dt className="text-gray-400">Premium paid</dt>
-          <dd className="mt-0.5 font-semibold">{formatUSDC(policy.premiumPaid)}</dd>
+          <dd className="mt-0.5 font-semibold">{policy.premiumPaid != null ? formatUSDC(policy.premiumPaid) : '—'}</dd>
         </div>
         <div>
           <dt className="text-gray-400">Start date</dt>
@@ -172,7 +172,7 @@ function PolicyCardComponent({ policy }: PolicyCardProps) {
           </div>
           <div className="flex justify-between gap-2">
             <dt className="text-gray-400 shrink-0">Premium</dt>
-            <dd className="text-gray-200">{formatUSDC(policy.premiumPaid)}</dd>
+            <dd className="text-gray-200">{policy.premiumPaid != null ? formatUSDC(policy.premiumPaid) : '—'}</dd>
           </div>
           <div className="flex justify-between gap-2">
             <dt className="text-gray-400 shrink-0">Oracle</dt>
