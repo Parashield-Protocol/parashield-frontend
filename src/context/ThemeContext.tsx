@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { STORAGE_KEYS } from '@/lib/storageKeys';
 
 type Theme = 'dark' | 'light';
 
@@ -10,7 +11,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
-const STORAGE_KEY = 'ps_theme';
+const STORAGE_KEY = STORAGE_KEYS.theme;
 
 // Cache the initial theme so localStorage is read only once (#732).
 // React's useState lazy initializer calls this during the first render;

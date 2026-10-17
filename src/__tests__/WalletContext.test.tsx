@@ -93,7 +93,7 @@ describe('WalletProvider logout cleanup (#687)', () => {
     act(() => wallet.ctx.disconnect());
 
     expect(storage.clearSession).toHaveBeenCalledWith(
-      ['ps_auth_token', 'ps_wallet_id', 'ps_wallet_address', 'ps_wallet_network'],
+      ['ps_auth_token', 'ps_wallet_id', 'ps_wallet_address', 'ps_wallet_network', '@StellarWalletsKit/usedWalletsIds'],
       ['ps_expiry_notified_'],
     );
   });

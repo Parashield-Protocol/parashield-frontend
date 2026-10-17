@@ -13,7 +13,7 @@ import {
   WALLET_STORAGE_KEY,
   networkLabelForPassphrase,
 } from '@/lib/constants';
-import { EXPIRY_NOTIFIED_PREFIX } from '@/lib/storageKeys';
+import { EXPIRY_NOTIFIED_PREFIX, WALLET_KIT_STORAGE_KEY, migrateLegacyStorage } from '@/lib/storageKeys';
 import type { WalletState } from '@/types';
 
 /** Storage keys tied to the connected wallet / signed-in session (#687). */
@@ -22,6 +22,7 @@ const SESSION_STORAGE_KEYS = [
   WALLET_STORAGE_KEY,
   ADDRESS_STORAGE_KEY,
   NETWORK_STORAGE_KEY,
+  WALLET_KIT_STORAGE_KEY,
 ] as const;
 
 interface WalletContextValue {
@@ -107,6 +108,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function initWallet() {
+      migrateLegacyStorage();
       const stored = getStoredAddress();
       if (!stored) return;
 

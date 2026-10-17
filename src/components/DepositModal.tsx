@@ -12,6 +12,9 @@ import { ContractError, toUserMessage } from '@/lib/errors';
 import { CATEGORY_LABELS, MIN_DEPOSIT_STROOPS } from '@/lib/constants';
 import { Modal } from './Modal';
 import { useToast } from '@/context/ToastContext';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { ButtonSpinner } from './LoadingSpinner';
 import { INPUT_CLASS, LABEL_CLASS, ERROR_TEXT, WARNING_TEXT, CARD_PANEL } from '@/lib/styles';
 
 interface Props {
@@ -53,6 +56,8 @@ export function DepositModal({ pool, onClose }: Props) {
   const [sharesFetchError, setSharesFetchError] = useState('');
   const [busy,         setBusy]         = useState(false);
   const [error,        setError]        = useState('');
+  const { guard, pending } = useSubmitGuard();
+  const online = useOnlineStatus();
 
   const loadShares = useCallback(
     (signal: { cancelled: boolean }) => {
@@ -208,11 +213,13 @@ export function DepositModal({ pool, onClose }: Props) {
       </div>
 
       <button
-        onClick={handleDeposit}
-        disabled={busy || loadingShares || paused}
-        className="mt-6 w-full rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
+        onClick={guard(handleDeposit)}
+        disabled={busy || pending || loadingShares || paused || !online}
+        aria-busy={busy}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
       >
-        {busy ? 'Confirming on chain…' : 'Confirm deposit'}
+        {busy && <ButtonSpinner />}
+        {busy ? 'Confirming on chain…' : !online ? 'Offline — waiting for connection' : 'Confirm deposit'}
       </button>
     </Modal>
   );

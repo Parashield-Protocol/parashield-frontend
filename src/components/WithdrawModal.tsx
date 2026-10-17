@@ -12,6 +12,7 @@ import { ContractError, toUserMessage } from '@/lib/errors';
 import { CATEGORY_LABELS, MIN_WITHDRAW_STROOPS } from '@/lib/constants';
 import { Modal } from './Modal';
 import { useToast } from '@/context/ToastContext';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { INPUT_CLASS, LABEL_CLASS } from '@/lib/styles';
 
 interface Props {
@@ -49,6 +50,7 @@ export function WithdrawModal({ pool, onClose }: Props) {
   const [paused,       setPaused]       = useState(false);
   const [loading,      setLoading]      = useState(true);
   const [busy,         setBusy]         = useState(false);
+  const online = useOnlineStatus();
   const [error,        setError]        = useState('');
 
   useEffect(() => {
@@ -198,10 +200,10 @@ export function WithdrawModal({ pool, onClose }: Props) {
 
       <button
         onClick={handleWithdraw}
-        disabled={busy || loading || paused || withdrawShares === 0n || belowMinimum}
+        disabled={busy || loading || paused || withdrawShares === 0n || belowMinimum || !online}
         className="mt-6 w-full rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
       >
-        {busy ? 'Confirming on chain…' : 'Confirm withdrawal'}
+        {busy ? 'Confirming on chain…' : !online ? 'Offline — waiting for connection' : 'Confirm withdrawal'}
       </button>
     </Modal>
   );

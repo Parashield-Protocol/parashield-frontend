@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@/hooks/useWallet';
 import { useClaims } from '@/hooks/useClaims';
 import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
@@ -26,14 +26,56 @@ export default function ClaimsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const exportMenuRef   = useRef<HTMLDivElement>(null);
+  // Which item to focus when the menu opens: ArrowUp on the trigger opens on
+  // the last item, everything else on the first (WAI-ARIA menu button).
+  const exportFocusRef  = useRef<'first' | 'last'>('first');
+
+  const closeExport = useCallback((restoreFocus: boolean) => {
+    setExportOpen(false);
+    if (restoreFocus) exportButtonRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     if (!exportOpen) return;
+    const items = exportMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+    items?.[exportFocusRef.current === 'last' ? items.length - 1 : 0]?.focus();
+    exportFocusRef.current = 'first';
+
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExportOpen(false);
+      if (e.key === 'Escape') closeExport(true);
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [exportOpen]);
+  }, [exportOpen, closeExport]);
+
+  const handleExportTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      exportFocusRef.current = e.key === 'ArrowUp' ? 'last' : 'first';
+      setExportOpen(true);
+    }
+  };
+
+  const handleExportMenuKeyDown = (e: React.KeyboardEvent) => {
+    const items = Array.from(
+      exportMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    );
+    if (items.length === 0) return;
+    const current = items.indexOf(document.activeElement as HTMLElement);
+    let next: number | null = null;
+    if (e.key === 'ArrowDown') next = (current + 1) % items.length;
+    else if (e.key === 'ArrowUp') next = (current - 1 + items.length) % items.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = items.length - 1;
+    else if (e.key === 'Tab') closeExport(false);
+
+    if (next !== null) {
+      e.preventDefault();
+      items[next].focus();
+    }
+  };
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -69,7 +111,9 @@ export default function ClaimsPage() {
             {claims.length > 0 && (
               <div className="relative">
                 <button
+                  ref={exportButtonRef}
                   onClick={() => setExportOpen((o) => !o)}
+                  onKeyDown={handleExportTriggerKeyDown}
                   disabled={loading}
                   aria-haspopup="menu"
                   aria-expanded={exportOpen}
@@ -83,19 +127,24 @@ export default function ClaimsPage() {
                     {/* Left-anchored on mobile (the controls are left-aligned there) and
                         capped to the viewport so it never overflows the screen edge (#546). */}
                     <div className="absolute left-0 z-30 mt-1 w-40 max-w-[calc(100vw-3rem)] rounded-xl border border-white/10 bg-gray-900 py-1 shadow-xl sm:left-auto sm:right-0"
+                      ref={exportMenuRef}
                       role="menu"
+                      aria-label="Export format"
+                      onKeyDown={handleExportMenuKeyDown}
                     >
                       <button
                         role="menuitem"
-                        onClick={() => { downloadClaimsCSV(claims); setExportOpen(false); }}
-                        className="w-full px-4 py-2 text-left text-xs text-gray-300 hover:bg-white/[0.05] hover:text-white transition-colors"
+                        tabIndex={-1}
+                        onClick={() => { downloadClaimsCSV(claims); closeExport(true); }}
+                        className="w-full px-4 py-2 text-left text-xs text-gray-300 hover:bg-white/[0.05] hover:text-white focus:bg-white/[0.05] focus:text-white focus:outline-none transition-colors"
                       >
                         Download CSV
                       </button>
                       <button
                         role="menuitem"
-                        onClick={() => { downloadClaimsJSON(claims); setExportOpen(false); }}
-                        className="w-full px-4 py-2 text-left text-xs text-gray-300 hover:bg-white/[0.05] hover:text-white transition-colors"
+                        tabIndex={-1}
+                        onClick={() => { downloadClaimsJSON(claims); closeExport(true); }}
+                        className="w-full px-4 py-2 text-left text-xs text-gray-300 hover:bg-white/[0.05] hover:text-white focus:bg-white/[0.05] focus:text-white focus:outline-none transition-colors"
                       >
                         Download JSON
                       </button>

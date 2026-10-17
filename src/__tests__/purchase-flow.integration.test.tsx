@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { ProductCard } from '../components/ProductCard';
 import { BuyPolicyModal } from '../components/BuyPolicyModal';
 import { useWallet } from '@/hooks/useWallet';
+import { SUBMIT_COOLDOWN_MS } from '@/hooks/useSubmitGuard';
 import type { Product } from '../types';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -180,10 +181,14 @@ describe('Purchase flow integration', () => {
     expect(screen.getAllByText('Crop Insurance').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('5.00 USDC')).toBeInTheDocument();
 
-    // Step 1: Confirm details → Sign
+    // Step 1: Confirm details → Sign. A real user reads the review first;
+    // clicks within the double-click cooldown of the last one are dropped.
+    const later = Date.now() + SUBMIT_COOLDOWN_MS + 1;
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(later);
     await act(async () => {
       fireEvent.click(screen.getByText('Confirm details'));
     });
+    nowSpy.mockRestore();
 
     expect(screen.getByText('Sign & Confirm')).toBeInTheDocument();
     expect(screen.getByText(/Your Stellar wallet will prompt you/)).toBeInTheDocument();

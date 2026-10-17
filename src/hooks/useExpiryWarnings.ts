@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import type { Policy } from '@/types';
+import { expiryNotifiedStorageKey } from '@/lib/storageKeys';
 
 export const EXPIRY_WARNING_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -47,7 +48,8 @@ export function useExpiryWarnings(
   useEffect(() => {
     if (!ready || !address) return;
 
-    const storageKey = `ps_expiry_notified_${address}`;
+    // Fingerprinted, so the raw address never appears in a key name (#548).
+    const storageKey = expiryNotifiedStorageKey(address);
     if (notifiedRef.current.address !== address) {
       notifiedRef.current = { address, ids: new Set(readNotified(storageKey)) };
     }

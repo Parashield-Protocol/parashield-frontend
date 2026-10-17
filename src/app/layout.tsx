@@ -4,6 +4,7 @@ import './globals.css';
 import { NavBar } from '@/components/NavBar';
 import { ToastContainer } from '@/components/Toast';
 import { NetworkBanner } from '@/components/NetworkBanner';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { WalletProvider } from '@/context/WalletContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -82,10 +83,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
         <WalletProvider>
           <ToastProvider>
+            <OfflineBanner />
             <NetworkBanner />
             <ErrorBoundaryWrapper fallback={NavBarFallback}>
               <NavBar />
-            </ErrorBoundary>
+            </ErrorBoundaryWrapper>
             <main id="main-content">
               <ErrorBoundaryWrapper>
                 {children}
@@ -93,7 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </main>
             <ErrorBoundaryWrapper fallback={null}>
               <ToastContainer />
-            </ErrorBoundary>
+            </ErrorBoundaryWrapper>
           </ToastProvider>
         </WalletProvider>
         </ThemeProvider>
@@ -101,7 +103,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <footer className="border-t border-gray-200 dark:border-white/10 py-8 text-center text-xs text-gray-500 dark:text-gray-400">
             © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
           </footer>
-        </ErrorBoundary>
+        </ErrorBoundaryWrapper>
       </body>
     </html>
   );

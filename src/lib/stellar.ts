@@ -25,13 +25,16 @@ const NETWORK: WalletNetwork = IS_MAINNET ? WalletNetwork.PUBLIC : WalletNetwork
  */
 export const EXPECTED_NETWORK_PASSPHRASE: string = NETWORK_PASSPHRASE;
 
+// Wallet id/address/network are kept in sessionStorage, not localStorage:
+// restoring a connection needs the session-scoped auth token anyway, so a
+// persisted copy only left the raw address lying around after the tab closed.
 let _kit: StellarWalletsKit | null = null;
 
 function getKit(): StellarWalletsKit {
   if (!_kit) {
     _kit = new StellarWalletsKit({
       network: NETWORK,
-      selectedWalletId: storage.get(WALLET_STORAGE_KEY) ?? undefined,
+      selectedWalletId: storage.getSession(WALLET_STORAGE_KEY) ?? undefined,
       modules: allowAllModules(),
     });
   }
@@ -48,13 +51,13 @@ export async function connectWallet(): Promise<WalletConnection> {
           kit.setWallet(option.id);
           const { address } = await kit.getAddress();
           if (!address) throw new WalletError('No address returned from wallet');
-          storage.set(WALLET_STORAGE_KEY, option.id);
-          storage.set(ADDRESS_STORAGE_KEY, address);
+          storage.setSession(WALLET_STORAGE_KEY, option.id);
+          storage.setSession(ADDRESS_STORAGE_KEY, address);
           let networkPassphrase: string | null = null;
           try {
             const net = await kit.getNetwork();
             networkPassphrase = net.networkPassphrase ?? net.network ?? null;
-            if (net.network) storage.set(NETWORK_STORAGE_KEY, net.networkPassphrase ?? net.network);
+            if (net.network) storage.setSession(NETWORK_STORAGE_KEY, net.networkPassphrase ?? net.network);
           } catch { /* network read is best-effort */ }
           resolve({ address, networkPassphrase });
         } catch (err) {
@@ -67,7 +70,7 @@ export async function connectWallet(): Promise<WalletConnection> {
 }
 
 export async function getConnectedAddress(): Promise<WalletAddress | null> {
-  const saved = storage.get(ADDRESS_STORAGE_KEY);
+  const saved = storage.getSession(ADDRESS_STORAGE_KEY);
   if (!saved) return null;
   try {
     const kit = getKit();
@@ -84,12 +87,12 @@ export async function getConnectedAddress(): Promise<WalletAddress | null> {
  * cached value in storage; returns null if the wallet can't report it.
  */
 export async function getWalletNetworkPassphrase(): Promise<string | null> {
-  if (!storage.get(ADDRESS_STORAGE_KEY)) return null;
+  if (!storage.getSession(ADDRESS_STORAGE_KEY)) return null;
   try {
     const net = await getKit().getNetwork();
     const passphrase = net.networkPassphrase ?? net.network ?? null;
-    if (passphrase) storage.set(NETWORK_STORAGE_KEY, passphrase);
-    else storage.remove(NETWORK_STORAGE_KEY);
+    if (passphrase) storage.setSession(NETWORK_STORAGE_KEY, passphrase);
+    else storage.removeSession(NETWORK_STORAGE_KEY);
     return passphrase;
   } catch {
     return null;
@@ -97,15 +100,15 @@ export async function getWalletNetworkPassphrase(): Promise<string | null> {
 }
 
 export function getStoredAddress(): WalletAddress | null {
-  return storage.get(ADDRESS_STORAGE_KEY);
+  return storage.getSession(ADDRESS_STORAGE_KEY);
 }
 
 export function disconnectWallet(): void {
   try { getKit().disconnect(); } catch { /* ignore */ }
   _kit = null;
-  storage.remove(WALLET_STORAGE_KEY);
-  storage.remove(ADDRESS_STORAGE_KEY);
-  storage.remove(NETWORK_STORAGE_KEY);
+  storage.removeSession(WALLET_STORAGE_KEY);
+  storage.removeSession(ADDRESS_STORAGE_KEY);
+  storage.removeSession(NETWORK_STORAGE_KEY);
 }
 
 export async function signTransaction(xdrEnvelope: string): Promise<string> {
