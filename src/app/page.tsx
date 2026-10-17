@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { CompareModal } from '@/components/CompareModal';
 import { CATEGORY_LABELS } from '@/lib/constants';
 import { STORAGE_KEYS } from '@/lib/storageKeys';
+import { serializeJsonLd } from '@/lib/queryParams';
 import type { Category, Product } from '@/types';
 
 type CategoryFilterValue = Category | 'all';
@@ -141,7 +142,7 @@ export default function HomePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializeJsonLd({
             '@context': 'https://schema.org',
             '@type': 'ItemList',
             name: 'Parashield Insurance Products',
