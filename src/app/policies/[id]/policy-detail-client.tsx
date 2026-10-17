@@ -13,6 +13,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClaimStatus } from "@/components/ClaimStatus";
 import { Skeleton, SkeletonText } from "@/components/Skeleton";
+import { LoadingRegion } from "@/components/LoadingRegion";
 import { CATEGORY_ICONS } from "@/lib/constants";
 
 export default function PolicyDetailClient({
@@ -27,6 +28,7 @@ export default function PolicyDetailClient({
   if (loading) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-12">
+        <LoadingRegion loading label="Loading policy details">
         <div className="mb-6 flex items-center gap-4">
           <Skeleton className="h-8 flex-1 rounded-xl" />
           <Skeleton className="h-6 w-20 rounded-full" />
@@ -61,6 +63,7 @@ export default function PolicyDetailClient({
             <SkeletonText count={3} />
           </div>
         </div>
+        </LoadingRegion>
       </main>
     );
   }

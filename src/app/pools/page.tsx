@@ -7,6 +7,7 @@ import { Badge } from '@/components/Badge';
 import { ProgressBar } from '@/components/ProgressBar';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DepositModal } from '@/components/DepositModal';
 import { WithdrawModal } from '@/components/WithdrawModal';
@@ -46,6 +47,7 @@ export default function PoolsPage() {
         </button>
       </div>
 
+      <LoadingRegion loading={loading} label="Loading risk pools">
       {loading && (
         <div className="mt-8 grid-fluid-cards gap-6">
           {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
@@ -138,6 +140,7 @@ export default function PoolsPage() {
           ))}
         </div>
       )}
+      </LoadingRegion>
 
       {depositPool && (
         <DepositModal pool={depositPool} onClose={() => setDepositPool(null)} />

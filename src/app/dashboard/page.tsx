@@ -8,6 +8,7 @@ import { ConnectWalletPrompt } from "@/components/ConnectWalletPrompt";
 import { PolicyCard } from "@/components/PolicyCard";
 import { Badge } from "@/components/Badge";
 import { Skeleton, SkeletonCard } from "@/components/Skeleton";
+import { LoadingRegion } from "@/components/LoadingRegion";
 import { EmptyState } from "@/components/EmptyState";
 import { formatUSDC, formatDateTime, safeBigInt } from "@/lib/format";
 import { StatsCard } from "@/components/StatsCard";
@@ -95,6 +96,7 @@ export default function DashboardPage() {
         </button>
       </div>
 
+      <LoadingRegion loading={loading} label="Loading your policies">
       {/* Stats */}
       {error ? (
         <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
@@ -177,6 +179,7 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+      </LoadingRegion>
 
       {/* Recent claims */}
       <div className="mt-10">
@@ -190,6 +193,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
+        <LoadingRegion loading={claimsLoading} label="Loading recent claims">
         {claimsLoading ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
             <Skeleton className="h-40 w-full" />
@@ -245,6 +249,7 @@ export default function DashboardPage() {
             </table>
           </div>
         )}
+        </LoadingRegion>
       </div>
 
       {/* Quick links */}
