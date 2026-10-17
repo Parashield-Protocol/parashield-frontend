@@ -378,7 +378,7 @@ export default function PoliciesPage() {
 
       {loading ? (
         <div 
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid-fluid-cards gap-4"
           role="status"
           aria-label="Loading policies"
         >
@@ -437,7 +437,7 @@ export default function PoliciesPage() {
             id="policies-grid"
             className={
               viewMode === 'grid'
-                ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+                ? 'grid-fluid-cards gap-4'
                 : 'flex flex-col gap-3'
             }
             role="region"
