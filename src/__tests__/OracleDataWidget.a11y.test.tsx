@@ -53,6 +53,20 @@ describe('OracleDataWidget accessibility', () => {
     vi.clearAllMocks();
   });
 
+  it('announces loading and marks the widget busy while loading', () => {
+    const { container } = setup({ loading: true });
+    expect(screen.getByRole('status')).toHaveTextContent('Loading oracle data');
+    expect(container.querySelector('[aria-busy="true"]')).toContainElement(
+      screen.getAllByTestId('skeleton')[0],
+    );
+  });
+
+  it('clears the busy state once the reading has loaded', () => {
+    const { container } = setup({ reading: baseReading });
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(container.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+
   it('refresh button is not marked busy when idle', () => {
     setup();
     const button = screen.getByRole('button', { name: 'Refresh oracle data' });

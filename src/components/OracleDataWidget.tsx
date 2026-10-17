@@ -3,6 +3,7 @@
 import { memo, useState, useCallback, useRef } from 'react';
 import { useOracleReading } from '@/hooks/useOracle';
 import { Skeleton } from './Skeleton';
+import { LoadingRegion } from './LoadingRegion';
 import { formatOracleValue, formatDateTime, formatUtcDateTime } from '@/lib/format';
 import { oracleKeyLabel, confidenceLabel, confidenceColour, parseOracleKey } from '@/lib/oracle';
 
@@ -11,8 +12,19 @@ interface OracleDataWidgetProps {
   className?: string;
 }
 
+type OracleDataWidgetBodyProps = OracleDataWidgetProps & ReturnType<typeof useOracleReading>;
+
 function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetProps) {
-  const { reading, loading, error, refetch } = useOracleReading(oracleKey);
+  const state = useOracleReading(oracleKey);
+
+  return (
+    <LoadingRegion loading={state.loading} label="Loading oracle data">
+      <OracleDataWidgetBody oracleKey={oracleKey} className={className} {...state} />
+    </LoadingRegion>
+  );
+}
+
+function OracleDataWidgetBody({ oracleKey, className, reading, loading, error, refetch }: OracleDataWidgetBodyProps) {
   const [refreshing, setRefreshing] = useState(false);
 
   // Keep a stable refetch reference so handleRefresh doesn't change identity

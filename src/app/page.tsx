@@ -8,6 +8,7 @@ import { fetchProtocolStats } from '@/lib/api';
 import { formatUSDC, stroopsToDisplay } from '@/lib/format';
 import { ProductCard } from '@/components/ProductCard';
 import { Skeleton, SkeletonCard } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
 import { LogoWordmark } from '@/components/Logo';
 import { SearchBar } from '@/components/SearchBar';
 import { CategoryFilter } from '@/components/CategoryFilter';
@@ -214,6 +215,7 @@ export default function HomePage() {
         />
 
         <div id="product-results">
+        <LoadingRegion loading={loading} label="Loading insurance products">
         {loading ? (
           <div className="grid-fluid-cards gap-6">
             {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
@@ -248,6 +250,7 @@ export default function HomePage() {
             ))}
           </div>
         )}
+        </LoadingRegion>
         </div>
 
         {compareIds.size > 0 && (
@@ -304,7 +307,11 @@ export default function HomePage() {
 
       {/* Stats */}
       <section className="border-t border-gray-200 dark:border-white/10 px-6 py-12">
-        <div className="mx-auto grid max-w-4xl grid-cols-2 gap-6 text-center sm:grid-cols-4">
+        <LoadingRegion
+          loading={statsLoading || loading}
+          label="Loading protocol stats"
+          className="mx-auto grid max-w-4xl grid-cols-2 gap-6 text-center sm:grid-cols-4"
+        >
           <div>
             <StatValue loading={statsLoading} failed={statsError}>
               {totalCoverage !== null ? formatUSDC(totalCoverage, false) : null}
@@ -327,7 +334,7 @@ export default function HomePage() {
             <p className="text-3xl font-black text-teal-400">{stroopsToDisplay(BASE_FEE, 5)} XLM</p>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Per transaction (network base fee)</p>
           </div>
-        </div>
+        </LoadingRegion>
         {statsLastUpdated && !statsLoading && (
           <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
             Updated {timeAgo(statsLastUpdated)}

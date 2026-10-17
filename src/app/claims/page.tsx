@@ -7,6 +7,7 @@ import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
 import { ClaimHistoryTable } from '@/components/ClaimHistoryTable';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { SkeletonTable } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { downloadClaimsCSV, downloadClaimsJSON } from '@/lib/claimsExport';
 
@@ -181,6 +182,7 @@ export default function ClaimsPage() {
         </div>
       </div>
 
+      <LoadingRegion loading={loading} label="Loading claims">
       {loading ? (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <SkeletonTable rows={5} />
@@ -217,6 +219,7 @@ export default function ClaimsPage() {
           </div>
         </>
       )}
+      </LoadingRegion>
     </main>
   );
 }

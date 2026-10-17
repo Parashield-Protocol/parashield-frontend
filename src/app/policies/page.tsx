@@ -7,6 +7,7 @@ import { usePolicies } from '@/hooks/usePolicies';
 import { PolicyCard } from '@/components/PolicyCard';
 import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
 import { SkeletonCard } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
 import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/Badge';
 import { Listbox, type ListboxOption } from '@/components/Listbox';
@@ -362,12 +363,9 @@ export default function PoliciesPage() {
         </div>
       )}
 
+      <LoadingRegion loading={loading} label="Loading policies">
       {loading ? (
-        <div 
-          className="grid-fluid-cards gap-4"
-          role="status"
-          aria-label="Loading policies"
-        >
+        <div className="grid-fluid-cards gap-4">
           {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -497,6 +495,7 @@ export default function PoliciesPage() {
           )}
         </>
       )}
+      </LoadingRegion>
     </main>
   );
 }
