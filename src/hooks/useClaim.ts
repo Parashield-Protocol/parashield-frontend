@@ -4,13 +4,19 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { fetchClaim, fetchUserClaims, submitClaim as recordClaimSubmission } from '@/lib/api';
 import type { Claim } from '@/types';
 import { toUserMessage } from '@/lib/errors';
-import { invokeSubmitClaim } from '@/lib/contract';
+import { invokeSubmitClaim, type TxStage } from '@/lib/contract';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/context/ToastContext';
 import { CLAIM_POLL_INTERVAL_MS, CLAIM_POLL_MAX_ATTEMPTS } from '@/lib/constants';
 import { devError } from '@/lib/devConsole';
 
 type ClaimStep = 'idle' | 'submitting' | 'polling' | 'done' | 'timeout' | 'error';
+
+/**
+ * Finer-grained progress for a claim submitted in this session, for the
+ * step-by-step tracker. Stays null for a claim loaded from history.
+ */
+export type ClaimProgress = TxStage | 'recording' | 'processing' | 'complete';
 
 export function useClaim(policyId?: string) {
   const { address } = useWallet();
@@ -19,6 +25,7 @@ export function useClaim(policyId?: string) {
   const [claimId, setClaimId] = useState<string | null>(null);
   const [claim,   setClaim]   = useState<Claim | null>(null);
   const [error,   setError]   = useState<string | null>(null);
+  const [progress, setProgress] = useState<ClaimProgress | null>(null);
 
   const cancelledRef = useRef(false);
 
@@ -89,6 +96,7 @@ export function useClaim(policyId?: string) {
           setClaim(result);
           if (result.status === 'Paid' || result.status === 'Rejected') {
             setStep('done');
+            setProgress((p) => (p ? 'complete' : p));
             return;
           }
         }
@@ -123,10 +131,14 @@ export function useClaim(policyId?: string) {
   const submit = useCallback(async (claimant: string, submitPolicyId: string) => {
     cancelledRef.current = false;
     setStep('submitting');
+    setProgress('preparing');
     setError(null);
     try {
-      const txHash = await invokeSubmitClaim(claimant, submitPolicyId);
+      const txHash = await invokeSubmitClaim(claimant, submitPolicyId, (stage) => {
+        if (!cancelledRef.current) setProgress(stage);
+      });
       if (cancelledRef.current) return { error: null };
+      setProgress('recording');
 
       // The claim is already final on-chain at this point; the backend still
       // needs to be told about it or the claim never shows up in the UI, which
@@ -143,12 +155,14 @@ export function useClaim(policyId?: string) {
 
       setClaimId(txHash);
       setStep('polling');
+      setProgress('processing');
       return { error: null };
     } catch (err) {
       if (cancelledRef.current) return { error: null };
       const errorMsg = toUserMessage(err);
       setError(errorMsg);
       setStep('error');
+      setProgress(null);
       return { error: errorMsg };
     }
   }, [showToast]);
@@ -159,7 +173,8 @@ export function useClaim(policyId?: string) {
     setClaimId(null);
     setClaim(null);
     setError(null);
+    setProgress(null);
   }, []);
 
-  return { step, claimId, claim, error, submit, reset };
+  return { step, progress, claimId, claim, error, submit, reset };
 }

@@ -149,4 +149,58 @@ describe('useClaim', () => {
     expect(result.current.claim).toBeNull();
     expect(result.current.error).toBeNull();
   });
+  it('reports per-step progress through to completion', async () => {
+    let report: (stage: string) => void = () => {};
+    let finish: (hash: string) => void = () => {};
+    mockInvokeSubmitClaim.mockImplementation(
+      (_claimant: string, _policyId: string, onProgress: (stage: string) => void) =>
+        new Promise<string>((resolve) => { report = onProgress; finish = resolve; }),
+    );
+    mockRecordClaimSubmission.mockResolvedValue('claim-1');
+    mockFetchClaim.mockResolvedValue({ id: 'claim-1', status: 'Paid', policyId: 'policy-1' });
+
+    const { result } = renderHook(() => useClaim('policy-1'));
+    await flushPromises();
+    expect(result.current.progress).toBeNull();
+
+    let submitted: Promise<unknown> = Promise.resolve();
+    act(() => { submitted = result.current.submit('GTESTADDRESS1234', 'policy-1'); });
+    expect(result.current.step).toBe('submitting');
+    expect(result.current.progress).toBe('preparing');
+
+    for (const stage of ['signing', 'submitting', 'confirming']) {
+      act(() => report(stage));
+      expect(result.current.progress).toBe(stage);
+    }
+
+    await act(async () => {
+      finish('txhash123');
+      await submitted;
+    });
+    expect(result.current.step).toBe('polling');
+    expect(result.current.progress).toBe('processing');
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 3100));
+    });
+
+    await waitFor(() => {
+      expect(result.current.step).toBe('done');
+      expect(result.current.progress).toBe('complete');
+    });
+  });
+
+  it('clears progress when submission fails', async () => {
+    mockInvokeSubmitClaim.mockRejectedValue(new Error('boom'));
+
+    const { result } = renderHook(() => useClaim('policy-1'));
+    await flushPromises();
+
+    await act(async () => {
+      await result.current.submit('GTESTADDRESS1234', 'policy-1');
+    });
+
+    expect(result.current.step).toBe('error');
+    expect(result.current.progress).toBeNull();
+  });
 });
