@@ -84,6 +84,35 @@ describe('ClaimStatus', () => {
     expect(html).toContain('Processing claim');
   });
 
+  it('shows the current on-chain step while submitting', () => {
+    useClaim.mockReturnValue({
+      step: 'submitting',
+      progress: 'confirming',
+      claim: null,
+      error: null,
+      submit: vi.fn(),
+      reset: vi.fn(),
+    });
+
+    const html = renderToStaticMarkup(<ClaimStatus policyId="policy-1" />);
+    expect(html).toContain('Confirming transaction…');
+    expect(html).toContain('Oracle evaluation');
+  });
+
+  it('shows a completion state for a claim submitted this session', () => {
+    useClaim.mockReturnValue({
+      step: 'done',
+      progress: 'complete',
+      claim: { id: 'c1', policyId: 'policy-1', status: 'Paid', triggerMet: true },
+      error: null,
+      submit: vi.fn(),
+      reset: vi.fn(),
+    });
+
+    const html = renderToStaticMarkup(<ClaimStatus policyId="policy-1" />);
+    expect(html).toContain('Complete! Your claim has been processed.');
+  });
+
   it('renders error state with error message and try again button', () => {
     useClaim.mockReturnValue({
       step: 'error',
