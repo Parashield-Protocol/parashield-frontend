@@ -128,7 +128,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md', d
   return createPortal(
     <div
       data-modal-overlay=""
-      className={`fixed inset-0 z-50 flex items-center justify-center overscroll-contain p-4 transition-all duration-300 ease-out ${
+      className={`fixed inset-0 z-(--z-modal) flex items-center justify-center overscroll-contain p-4 transition-all duration-300 ease-out ${
         visible
           ? 'bg-black/50 dark:bg-black/70 backdrop-blur-sm opacity-100'
           : 'bg-black/0 dark:bg-black/0 backdrop-blur-0 opacity-0'

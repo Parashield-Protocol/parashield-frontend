@@ -1,6 +1,7 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import type { Toast as ToastType } from '@/types';
@@ -47,9 +48,18 @@ export function ToastContainer() {
   // announce content added to a region that already exists, so rendering it
   // together with the first toast meant nothing was announced (#589). Only
   // additions are announced, so stacking a new toast doesn't re-read the others.
-  return (
+  //
+  // Portaled to <body> on the --z-toast layer (#785): rendered in place it
+  // shared z-50 with the Modal overlay, which is portaled *after* it, so any
+  // toast raised while a modal was open painted underneath the backdrop.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
     <div
-      className="pointer-events-none fixed inset-0 z-50"
+      data-toast-container=""
+      className="pointer-events-none fixed inset-0 z-(--z-toast)"
       role="status"
       aria-live="polite"
       aria-relevant="additions"
@@ -59,6 +69,7 @@ export function ToastContainer() {
           <ToastItem key={t.id} toast={t} />
         ))}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

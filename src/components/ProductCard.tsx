@@ -29,9 +29,18 @@ function ProductCardComponent({ product, compareSelected, onCompareToggle }: Pro
           assistive tech, which hid the nested Compare checkbox from screen
           readers. Clicking anywhere still opens the modal for mouse users;
           keyboard users get the real "Buy Policy" button below. */}
+      {/* Clickable affordance (#783): active cards get a pointer cursor, lift
+          and teal border on hover. The card itself isn't focusable (see above),
+          so keyboard users get the same border + ring via has-[:focus-visible]
+          when any control inside it has keyboard focus. */}
       <div
+        data-testid="product-card"
         onClick={() => isActive && setOpen(true)}
-        className={`flex flex-col rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.03] p-6 transition-all hover:border-gray-300 dark:hover:border-white/20 hover:bg-gray-100 dark:hover:bg-white/[0.05] ${!isActive ? 'opacity-60' : ''}`}
+        className={`flex flex-col rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.03] p-6 transition-all duration-200 motion-reduce:transition-none ${
+          isActive
+            ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg hover:shadow-teal-500/10 hover:border-teal-500/40 dark:hover:border-teal-400/40 hover:bg-gray-100 dark:hover:bg-white/[0.05] motion-reduce:hover:translate-y-0 has-[:focus-visible]:border-teal-500/60 dark:has-[:focus-visible]:border-teal-400/60 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal-400/40'
+            : 'cursor-default opacity-60'
+        }`}
       >
         <div className="flex items-start justify-between gap-3">
           <span className="text-3xl">{icon}</span>
