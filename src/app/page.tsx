@@ -214,7 +214,7 @@ export default function HomePage() {
 
         <div id="product-results">
         {loading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid-fluid-cards gap-6">
             {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
           </div>
         ) : error ? (
@@ -236,7 +236,7 @@ export default function HomePage() {
               : 'No products in this category yet.'}
           />
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid-fluid-cards gap-6">
             {filteredProducts.map((p) => (
               <ProductCard
                 key={p.id}

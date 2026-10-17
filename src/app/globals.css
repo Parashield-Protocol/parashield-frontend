@@ -139,3 +139,15 @@ html.modal-scroll-locked body {
     color: rgb(156 163 175);
   }
 }
+
+/*
+ * Fluid card grid for product/policy/pool listings. Fixed sm/lg column
+ * counts left cards too narrow (overflowing their stat rows) or stranded
+ * empty space between breakpoints; auto-fill lets the column count follow
+ * the available width. min(100%, …) keeps a single column from overflowing
+ * on viewports narrower than the minimum card width.
+ */
+@utility grid-fluid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+}
