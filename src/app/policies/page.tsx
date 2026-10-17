@@ -10,6 +10,7 @@ import { SkeletonCard } from '@/components/Skeleton';
 import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/Badge';
 import { Listbox, type ListboxOption } from '@/components/Listbox';
+import { parseEnumParam, parsePageParam, sanitizeSearchParam, MAX_SEARCH_QUERY_LENGTH } from '@/lib/queryParams';
 import Link from 'next/link';
 
 type Filter = 'All' | 'Active' | 'Pending' | 'Processing' | 'Expired' | 'Claimed' | 'Cancelled';
@@ -17,6 +18,8 @@ type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'expiry';
 type ViewMode = 'grid' | 'list';
 
 const FILTERS: Filter[] = ['All', 'Active', 'Pending', 'Processing', 'Expired', 'Claimed', 'Cancelled'];
+const SORT_VALUES: SortOption[] = ['newest', 'oldest', 'amount-high', 'amount-low', 'expiry'];
+const VIEW_MODES: ViewMode[] = ['grid', 'list'];
 
 // Loading skeleton count for better perceived performance
 const SKELETON_COUNT = 6;
@@ -37,17 +40,18 @@ export default function PoliciesPage() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Initialize state from URL query params (#746)
+  // Initialize state from URL query params (#746). Params are untrusted, so
+  // each one is validated against its allowed format before use.
   const [filter, setFilter] = useState<Filter>(
-    () => (searchParams.get('status') as Filter) || 'All'
+    () => parseEnumParam(searchParams.get('status'), FILTERS, 'All')
   );
-  const [page, setPage] = useState(() => Number(searchParams.get('page')) || 0);
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
+  const [page, setPage] = useState(() => parsePageParam(searchParams.get('page')));
+  const [searchQuery, setSearchQuery] = useState(() => sanitizeSearchParam(searchParams.get('q')));
   const [sortBy, setSortBy] = useState<SortOption>(
-    () => (searchParams.get('sort') as SortOption) || 'newest'
+    () => parseEnumParam(searchParams.get('sort'), SORT_VALUES, 'newest')
   );
   const [viewMode, setViewMode] = useState<ViewMode>(
-    () => (searchParams.get('view') as ViewMode) || 'grid'
+    () => parseEnumParam(searchParams.get('view'), VIEW_MODES, 'grid')
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const POLICIES_PER_PAGE = 12;
@@ -292,6 +296,7 @@ export default function PoliciesPage() {
               type="text"
               value={searchQuery}
               onChange={handleSearchChange}
+              maxLength={MAX_SEARCH_QUERY_LENGTH}
               placeholder="Search policies by ID, status, or product..."
               aria-label="Search policies"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 pl-10 text-sm text-white placeholder-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
