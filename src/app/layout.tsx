@@ -10,14 +10,12 @@ import { ToastProvider } from '@/context/ToastContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Analytics } from '@/components/Analytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { validateConfig } from '@/lib/constants';
+import { ConfigValidator } from '@/components/ConfigValidator';
 import { ErrorBoundaryWrapper } from '@/components/ErrorBoundaryWrapper';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { LogoWordmark } from '@/components/Logo';
 import { resolveLocale } from '@/lib/i18n';
-
-validateConfig();
 
 // Self-hosted at build time by next/font (#780): no render-blocking request to
 // a font CDN, the woff2 is preloaded, and `swap` paints immediately with a
@@ -84,6 +82,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="bg-gray-950 text-white dark:bg-gray-950 dark:text-white bg-white text-gray-950 antialiased">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:bg-teal-500 focus:px-4 focus:py-2 focus:text-white">Skip to main content</a>
         <Analytics />
+        <ConfigValidator />
         <ThemeProvider>
         <WalletProvider>
           <ToastProvider>

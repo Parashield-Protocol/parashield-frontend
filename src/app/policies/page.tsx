@@ -19,6 +19,14 @@ type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'expiry';
 type ViewMode = 'grid' | 'list';
 
 const FILTERS: Filter[] = ['All', 'Active', 'Pending', 'Processing', 'Expired', 'Claimed', 'Cancelled'];
+
+/** Statuses the page has a filter for; anything else the backend sends is "other" (#934). */
+type KnownStatus = Exclude<Filter, 'All'>;
+const KNOWN_STATUSES = FILTERS.filter((f): f is KnownStatus => f !== 'All');
+
+function isKnownStatus(status: string): status is KnownStatus {
+  return (KNOWN_STATUSES as readonly string[]).includes(status);
+}
 const SORT_VALUES: SortOption[] = ['newest', 'oldest', 'amount-high', 'amount-low', 'expiry'];
 const VIEW_MODES: ViewMode[] = ['grid', 'list'];
 
@@ -98,26 +106,31 @@ export default function PoliciesPage() {
     }
   }, [refetch]);
 
-  // Memoize status counts to prevent recalculation on every render
-  const statusCounts = useMemo(
-    () =>
-      policies.reduce<Record<string, number>>((acc, p) => {
-        acc[p.status] = (acc[p.status] ?? 0) + 1;
-        return acc;
-      }, {}),
-    [policies]
-  );
+  // Status counts keyed by the statuses that have a filter (#934). A status
+  // the backend adds later (e.g. 'Disputed') is counted as "other" instead of
+  // getting a badge with no matching filter, so the badges always add up to
+  // the "All" count.
+  const { statusCounts, otherStatusCount } = useMemo(() => {
+    const counts: Partial<Record<KnownStatus, number>> = {};
+    let other = 0;
+    for (const p of policies) {
+      const status: string = p.status;
+      if (isKnownStatus(status)) counts[status] = (counts[status] ?? 0) + 1;
+      else other += 1;
+    }
+    return { statusCounts: counts, otherStatusCount: other };
+  }, [policies]);
 
   // Memoize filter counts for performance
   const filterCounts: Record<Filter, number> = useMemo(
     () => ({
       All: policies.length,
-      Active: statusCounts['Active'] ?? 0,
-      Pending: statusCounts['Pending'] ?? 0,
-      Processing: statusCounts['Processing'] ?? 0,
-      Expired: statusCounts['Expired'] ?? 0,
-      Claimed: statusCounts['Claimed'] ?? 0,
-      Cancelled: statusCounts['Cancelled'] ?? 0,
+      Active: statusCounts.Active ?? 0,
+      Pending: statusCounts.Pending ?? 0,
+      Processing: statusCounts.Processing ?? 0,
+      Expired: statusCounts.Expired ?? 0,
+      Claimed: statusCounts.Claimed ?? 0,
+      Cancelled: statusCounts.Cancelled ?? 0,
     }),
     [policies.length, statusCounts]
   );
@@ -282,7 +295,12 @@ export default function PoliciesPage() {
       {/* Status Summary Badges */}
       {!loading && policies.length > 0 && (
         <div className="mb-6 flex flex-wrap gap-2" role="status" aria-label="Policy status summary">
-          {Object.entries(statusCounts).map(([status, count]) => (
+          {[
+            ...KNOWN_STATUSES.filter((status) => (statusCounts[status] ?? 0) > 0).map(
+              (status) => [status, statusCounts[status] ?? 0] as const,
+            ),
+            ...(otherStatusCount > 0 ? [['Other', otherStatusCount] as const] : []),
+          ].map(([status, count]) => (
             <span
               key={status}
               className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs"
