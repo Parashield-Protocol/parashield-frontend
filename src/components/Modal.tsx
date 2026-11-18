@@ -38,8 +38,9 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
     }
   }, [open, shouldRender]);
 
-  // Unmount after close animation finishes
-  const handleTransitionEnd = () => {
+  // Unmount after close animation finishes — guard against bubbled events from child transitions
+  const handleTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
     if (!open) {
       setShouldRender(false);
       setVisible(false);
