@@ -76,10 +76,11 @@ export interface PoolShareInfo {
   paused?:        boolean;
 }
 
+/** Each metric is `null` when its own sub-request failed (#900). */
 export interface ProtocolStats {
-  totalCoverage:  string;  // stroops — sum of active policy coverage
-  activeProducts: number;
-  totalPayouts:   string;  // stroops — cumulative paid claims
+  totalCoverage:  string | null;  // stroops — sum of active policy coverage
+  activeProducts: number | null;
+  totalPayouts:   string | null;  // stroops — cumulative paid claims
 }
 
 export type WalletState =

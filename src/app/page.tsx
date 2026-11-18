@@ -314,7 +314,7 @@ export default function HomePage() {
           className="mx-auto grid max-w-4xl grid-cols-2 gap-6 text-center sm:grid-cols-4"
         >
           <div>
-            <StatValue loading={statsLoading} failed={statsError}>
+            <StatValue loading={statsLoading} failed={statsError || totalCoverage === null}>
               {totalCoverage !== null ? formatUSDC(totalCoverage, false) : null}
             </StatValue>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total coverage issued</p>
@@ -326,7 +326,7 @@ export default function HomePage() {
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Active products</p>
           </div>
           <div>
-            <StatValue loading={statsLoading} failed={statsError}>
+            <StatValue loading={statsLoading} failed={statsError || totalPayouts === null}>
               {totalPayouts !== null ? formatUSDC(totalPayouts, false) : null}
             </StatValue>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total payouts</p>
