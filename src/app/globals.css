@@ -127,8 +127,12 @@ html.modal-scroll-locked body {
  * an inline caption. Components also set explicit ARIA table roles because
  * some engines (notably WebKit) drop native table semantics once `display`
  * is changed away from `table-*`.
+ *
+ * `width < 48rem` is the exact complement of Tailwind v4's `md` (`width >= 48rem`),
+ * so there is no sub-pixel width where neither layout applies (#925); the old
+ * `max-width: 47.999rem` left a gap between 47.999rem and 48rem.
  */
-@media (max-width: 47.999rem) {
+@media (width < 48rem) {
   .responsive-table,
   .responsive-table tbody,
   .responsive-table tr,

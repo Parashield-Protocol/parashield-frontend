@@ -56,8 +56,10 @@ export function reportRequestSuccess(): void {
 async function probe(): Promise<void> {
   try {
     // Same origin, so it is always allowed by the CSP; no-store so a cached
-    // response can't fake a recovery.
-    await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
+    // response can't fake a recovery. GET, not HEAD (#906): some deployments
+    // (e.g. a static export on GitHub Pages) don't answer HEAD for the root,
+    // which left the offline banner stuck even with the network back.
+    await fetch(window.location.origin, { method: 'GET', cache: 'no-store' });
     reportRequestSuccess();
   } catch {
     // Still unreachable; try again next tick.

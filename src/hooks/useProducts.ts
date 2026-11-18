@@ -6,25 +6,31 @@ import type { Product } from '@/types';
 import { POLLING_INTERVAL_MS } from '@/lib/constants';
 
 export function useProducts() {
-  const [products,  setProducts]  = useState<Product[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState<string | null>(null);
-  const requestId = useRef(0);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState<string | null>(null);
+  // One AbortController per load, the same pattern as usePolicies/useClaims
+  // (#929): starting a load aborts the previous one, so a late response from
+  // it is discarded, and unmounting aborts whatever is still in flight.
+  const controllerRef = useRef<AbortController | null>(null);
   const isFirstLoad = useRef(true);
 
   const load = useCallback(async () => {
-    const id = ++requestId.current;
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    const { signal } = controller;
     if (isFirstLoad.current) setLoading(true);
     setError(null);
     try {
       const data = await fetchProducts();
-      if (id !== requestId.current) return;
+      if (signal.aborted) return;
       setProducts(data);
     } catch (err) {
-      if (id !== requestId.current) return;
+      if (signal.aborted) return;
       setError(err instanceof Error ? err.message : 'Failed to load products');
     } finally {
-      if (id === requestId.current) {
+      if (!signal.aborted) {
         isFirstLoad.current = false;
         setLoading(false);
       }
@@ -39,6 +45,7 @@ export function useProducts() {
     const onVisible = () => { if (!document.hidden) void load(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
+      controllerRef.current?.abort();
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };

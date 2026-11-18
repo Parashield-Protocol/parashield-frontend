@@ -17,11 +17,17 @@ import { ContractError, StateArchivedError } from './errors';
 import { invalidatePolicyCache } from './policyCache';
 
 // Cached singleton — avoids allocating a new HTTP connection pool on every
-// contract call (issue #129). Reset to null if the URL changes at runtime.
+// contract call (issue #129). The URL it was built for is kept alongside it,
+// so a different URL (a network switch, or a test pointing elsewhere) builds
+// a fresh server instead of silently reusing the old endpoint (#903).
 let _rpc: StellarRpc.Server | null = null;
+let _rpcUrl = '';
 
-function getRpc(): StellarRpc.Server {
-  if (!_rpc) _rpc = new StellarRpc.Server(SOROBAN_RPC_URL);
+export function getRpc(url: string = SOROBAN_RPC_URL): StellarRpc.Server {
+  if (!_rpc || _rpcUrl !== url) {
+    _rpc = new StellarRpc.Server(url);
+    _rpcUrl = url;
+  }
   return _rpc;
 }
 
@@ -64,11 +70,22 @@ async function buildRestoreFootprintTx(
  * recovery path (issue #230), so that case is surfaced as a StateArchivedError
  * carrying a ready-to-sign restore transaction instead.
  */
-async function simulateAndAssemble(
+export async function simulateAndAssemble(
   tx: Transaction,
   simFailureMessage: string,
 ): Promise<Transaction> {
-  const simResult = await getRpc().simulateTransaction(tx);
+  // A transport failure (offline, timeout, unreachable RPC) would otherwise
+  // surface as raw RPC/HTTP error text (#922).
+  let simResult: StellarRpc.Api.SimulateTransactionResponse;
+  try {
+    simResult = await getRpc().simulateTransaction(tx);
+  } catch (err) {
+    throw new ContractError(
+      'Unable to reach the Stellar network. Please check your connection and try again.',
+      undefined,
+      err,
+    );
+  }
 
   if (StellarRpc.Api.isSimulationError(simResult)) {
     throw new ContractError(simFailureMessage, undefined, simResult.error);
@@ -91,9 +108,54 @@ async function simulateAndAssemble(
  * Resolves once the restore is confirmed, at which point the original call can
  * be retried.
  */
-async function restoreArchivedState(err: StateArchivedError): Promise<string> {
+export async function restoreArchivedState(err: StateArchivedError): Promise<string> {
   const signedXdr = await signTransaction(err.restoreXdr);
-  return submitSignedTransaction(signedXdr);
+  try {
+    return await submitSignedTransaction(signedXdr);
+  } catch (submitErr) {
+    // The restore was built at simulation time with the account's next
+    // sequence number. If another transaction landed in between (e.g. from a
+    // second tab), that number is gone and the network answers txBadSeq
+    // (#936). Rebuild once against a freshly fetched account and resubmit;
+    // any other failure — or a second txBadSeq — surfaces as-is.
+    if (!isBadSequenceError(submitErr)) throw submitErr;
+    const rebuilt = await rebuildRestoreWithFreshSequence(err.restoreXdr);
+    const resigned = await signTransaction(rebuilt.toXDR());
+    return submitSignedTransaction(resigned);
+  }
+}
+
+/**
+ * True when a submission was rejected with `txBadSeq`. `sendTransaction`
+ * surfaces the parsed `TransactionResult` as `errorResult`, which
+ * submitSignedTransaction carries in ContractError.details.
+ */
+export function isBadSequenceError(err: unknown): boolean {
+  if (!(err instanceof ContractError)) return false;
+  const details = err.details as
+    | { result?: () => { switch?: () => { name?: string } } }
+    | undefined;
+  try {
+    return details?.result?.().switch?.().name === 'txBadSeq';
+  } catch {
+    return false;
+  }
+}
+
+/** Same restore operation and resource footprint, with the account's current sequence number. */
+async function rebuildRestoreWithFreshSequence(restoreXdr: string): Promise<Transaction> {
+  const previous = TransactionBuilder.fromXDR(restoreXdr, NETWORK_PASSPHRASE) as Transaction;
+  const sorobanData = previous.toEnvelope().v1().tx().ext().sorobanData();
+  const account = await getRpc().getAccount(previous.source);
+  // build() adds sorobanData's resource fee on top of the fee passed in, so
+  // pass the previous inclusion fee only — the rebuilt total then matches.
+  const inclusionFee = BigInt(previous.fee) - BigInt(sorobanData.resourceFee().toString());
+
+  return new TransactionBuilder(account, { fee: inclusionFee.toString(), networkPassphrase: NETWORK_PASSPHRASE })
+    .setSorobanData(sorobanData)
+    .addOperation(Operation.restoreFootprint({}))
+    .setTimeout(RESTORE_TX_TIMEOUT_SECONDS)
+    .build();
 }
 
 export interface StateRestoreOptions {
@@ -200,19 +262,30 @@ export async function buildBuyPolicyTx(
 }
 
 const TX_POLL_INTERVAL_MS = 3_000;
-const TX_POLL_MAX_ATTEMPTS = 10;
+/** One confirmation budget shared by every submit path (#904). */
+export const TX_CONFIRM_TIMEOUT_MS = 30_000;
 
-async function waitForConfirmation(hash: string): Promise<string> {
+/**
+ * Polls `getTransaction` until the transaction succeeds, fails, or
+ * `timeoutMs` passes. The single confirmation routine for every submit path
+ * (#904): same polling interval, same timeout, same error messages.
+ */
+export async function confirmTransaction(
+  hash: string,
+  timeoutMs: number = TX_CONFIRM_TIMEOUT_MS,
+): Promise<string> {
   const rpc = getRpc();
-  for (let attempt = 0; attempt < TX_POLL_MAX_ATTEMPTS; attempt++) {
-    await new Promise((r) => setTimeout(r, TX_POLL_INTERVAL_MS));
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
     const status = await rpc.getTransaction(hash);
     if (status.status === StellarRpc.Api.GetTransactionStatus.SUCCESS) return hash;
     if (status.status === StellarRpc.Api.GetTransactionStatus.FAILED) {
       throw new ContractError('Transaction failed on-chain.', hash, status.resultXdr ?? status);
     }
+    if (Date.now() + TX_POLL_INTERVAL_MS > deadline) break;
+    await new Promise<void>((r) => setTimeout(r, TX_POLL_INTERVAL_MS));
   }
-  throw new ContractError(`Transaction not confirmed after ${TX_POLL_MAX_ATTEMPTS * TX_POLL_INTERVAL_MS / 1000}s — hash: ${hash}`);
+  throw new ContractError(`Transaction not confirmed after ${timeoutMs / 1_000}s — hash: ${hash}`, hash);
 }
 
 /**
@@ -252,7 +325,7 @@ export async function invokeBuyPolicy(
       throw new ContractError('Transaction rejected by the network.', submitResult.hash, submitResult.errorResult);
     }
     onProgress?.('confirming');
-    const txHash = await waitForConfirmation(submitResult.hash);
+    const txHash = await confirmTransaction(submitResult.hash);
     invalidatePolicyCache(); // #730 — the new policy must not be masked by cached reads
     return { txHash, signedXdr };
   });
@@ -305,10 +378,21 @@ async function submitClaimOnce(
     throw new ContractError('Claim transaction rejected by the network.', submitResult.hash, submitResult.errorResult);
   }
   onProgress?.('confirming');
-  return waitForConfirmation(submitResult.hash);
+  return confirmTransaction(submitResult.hash);
 }
 
-export async function buildDepositTx(
+/**
+ * Builds and simulates a pool deposit, restoring archived contract state and
+ * rebuilding if the simulation reports it (#928). Wrapping here, like
+ * invokeBuyPolicy/invokeSubmitClaim, means no caller can forget the restore:
+ * StateArchivedError is only ever raised during simulation, so nothing has
+ * been signed when the retry happens.
+ */
+export function buildDepositTx(poolId: string, amount: bigint, wallet: string): Promise<string> {
+  return withStateRestore(() => buildDepositTxOnce(poolId, amount, wallet));
+}
+
+async function buildDepositTxOnce(
   poolId: string,
   amount: bigint,
   wallet: string,
@@ -335,7 +419,12 @@ export async function buildDepositTx(
   return assembled.toXDR();
 }
 
-export async function buildWithdrawTx(
+/** Builds and simulates a pool withdrawal, with the same built-in state restore as buildDepositTx (#928). */
+export function buildWithdrawTx(poolId: string, shares: bigint, wallet: string): Promise<string> {
+  return withStateRestore(() => buildWithdrawTxOnce(poolId, shares, wallet));
+}
+
+async function buildWithdrawTxOnce(
   poolId: string,
   shares: bigint,
   wallet: string,
@@ -362,7 +451,10 @@ export async function buildWithdrawTx(
   return assembled.toXDR();
 }
 
-export async function submitSignedTransaction(signedXdr: string, confirmTimeoutMs = 30_000): Promise<string> {
+export async function submitSignedTransaction(
+  signedXdr: string,
+  confirmTimeoutMs: number = TX_CONFIRM_TIMEOUT_MS,
+): Promise<string> {
   const rpc          = getRpc();
   const signedTx     = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
   const submitResult = await rpc.sendTransaction(signedTx);
@@ -371,17 +463,5 @@ export async function submitSignedTransaction(signedXdr: string, confirmTimeoutM
     throw new ContractError('Transaction rejected by the network.', submitResult.hash, submitResult.errorResult);
   }
 
-  const hash     = submitResult.hash;
-  const deadline = Date.now() + confirmTimeoutMs;
-
-  while (Date.now() < deadline) {
-    const txResult = await rpc.getTransaction(hash);
-    if (txResult.status === StellarRpc.Api.GetTransactionStatus.SUCCESS) return hash;
-    if (txResult.status === StellarRpc.Api.GetTransactionStatus.FAILED) {
-      throw new ContractError('Transaction failed on-chain', hash);
-    }
-    await new Promise<void>((r) => setTimeout(r, 2_000));
-  }
-
-  throw new ContractError(`Transaction confirmation timed out after ${confirmTimeoutMs / 1_000}s`, hash);
+  return confirmTransaction(submitResult.hash, confirmTimeoutMs);
 }

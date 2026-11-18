@@ -137,7 +137,7 @@ describe('ClaimHistoryTable', () => {
       expect(screen.getByRole('table')).toHaveClass('responsive-table');
 
       const css = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8');
-      expect(css).toMatch(/@media \(max-width: 47\.999rem\)[\s\S]*\.responsive-table td\[data-label\]::before[\s\S]*content: attr\(data-label\)/);
+      expect(css).toMatch(/@media \(width < 48rem\)[\s\S]*\.responsive-table td\[data-label\]::before[\s\S]*content: attr\(data-label\)/);
     });
   });
 });

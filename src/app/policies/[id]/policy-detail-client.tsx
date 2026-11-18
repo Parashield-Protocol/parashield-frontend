@@ -96,7 +96,9 @@ export default function PolicyDetailClient({
   const coverageStroops = safeBigInt(policy.coverage);
   const premiumRateBps =
     coverageStroops > 0n
-      ? (safeBigInt(policy.premiumPaid) * 10_000n) / coverageStroops
+      ? policy.premiumPaid != null
+        ? (safeBigInt(policy.premiumPaid) * 10_000n) / coverageStroops
+        : null
       : null;
 
   const categoryKey = policy.product?.category as keyof typeof CATEGORY_ICONS | undefined;
@@ -150,7 +152,7 @@ export default function PolicyDetailClient({
 
         {[
           { label: "Coverage", value: formatUSDC(policy.coverage) },
-          { label: "Premium paid", value: formatUSDC(policy.premiumPaid) },
+          { label: "Premium paid", value: policy.premiumPaid != null ? formatUSDC(policy.premiumPaid) : "—" },
           {
             label: "Premium rate",
             value: premiumRateBps !== null ? basisPointsToPercent(Number(premiumRateBps)) : "N/A",

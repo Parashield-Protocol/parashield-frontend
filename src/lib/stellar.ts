@@ -155,8 +155,9 @@ export async function signAuthMessage(message: string): Promise<string> {
   // Fallback: the connected wallet does not support SEP-43 signMessage.
   // A signTransaction-based challenge path requires backend support to verify
   // a signed transaction envelope, so for now we surface a clear error.
+  // Plain language for users (#932); the SEP-43 detail stays in this comment.
   throw new WalletError(
-    'Your wallet does not support the signing method required for login. ' +
-    'Please use Freighter or another SEP-43-compatible wallet.',
+    "Your wallet doesn't support message signing. " +
+    'Please use Freighter or another compatible wallet.',
   );
 }

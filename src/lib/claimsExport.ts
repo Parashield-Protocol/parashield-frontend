@@ -12,11 +12,21 @@ const CSV_HEADERS = [
   'Transaction Hash',
 ];
 
-function escapeCSV(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
+/**
+ * Cells starting with one of these are evaluated as formulas by Excel, Google
+ * Sheets and LibreOffice (OWASP "CSV injection"), so `=HYPERLINK(...)` in a
+ * claim or policy id would run when the export is opened (#901). Tab and
+ * carriage return are included because spreadsheets strip them before
+ * checking for a formula prefix.
+ */
+const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
+export function escapeCSV(value: string): string {
+  const safe = FORMULA_PREFIX.test(value) ? `'${value}` : value;
+  if (safe.includes(',') || safe.includes('"') || safe.includes('\n') || safe.includes('\r')) {
+    return `"${safe.replace(/"/g, '""')}"`;
   }
-  return value;
+  return safe;
 }
 
 function claimToRow(claim: Claim): string[] {

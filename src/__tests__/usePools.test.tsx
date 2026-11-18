@@ -71,6 +71,24 @@ describe('usePools', () => {
     expect(hook.current.error).toBeNull();
   });
 
+  it('drops a late response from a superseded load (#929)', async () => {
+    let resolveFirst!: (value: PoolStats[]) => void;
+    const stale = [makePoolStats({ id: 'stale' })];
+    const fresh = [makePoolStats({ id: 'fresh' })];
+    fetchPoolStats
+      .mockImplementationOnce(() => new Promise<PoolStats[]>((r) => (resolveFirst = r)))
+      .mockResolvedValueOnce(fresh);
+
+    const hook = renderHook(() => usePools());
+    await hook.current.refetch();
+    expect(hook.current.pools).toEqual(fresh);
+
+    resolveFirst(stale);
+    await flushMicrotasks();
+
+    expect(hook.current.pools).toEqual(fresh);
+  });
+
   it('returns empty pools array on initial load before data arrives', () => {
     fetchPoolStats.mockImplementation(
       () => new Promise(() => {}),

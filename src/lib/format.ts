@@ -16,13 +16,19 @@ export function safeBigInt(value: string | bigint | null | undefined): bigint {
  * value for a specific call site, round at that call site instead of
  * changing this shared truncation behavior.
  */
-export function stroopsToDisplay(stroops: string | bigint | null | undefined, decimals = 2): string {
+export function stroopsToDisplay(
+  stroops: string | bigint | number | null | undefined,
+  decimals = 2,
+): string {
   if (stroops === null || stroops === undefined) return '—';
   if (typeof stroops === 'string') {
     const trimmed = stroops.trim();
     if (trimmed === '' || !/^-?\d+$/.test(trimmed)) return '—';
   }
-  const n = BigInt(stroops as string | bigint);
+  // BigInt() throws a RangeError for a non-integer number (1.5, NaN,
+  // Infinity); treat those like the invalid strings above (#924).
+  if (typeof stroops === 'number' && !Number.isInteger(stroops)) return '—';
+  const n = BigInt(stroops);
   const negative = n < 0n;
   const abs = negative ? -n : n;
   const whole = abs / STROOPS_PER_UNIT;
@@ -44,8 +50,21 @@ export function displayToStroops(display: string): bigint {
   return BigInt(whole) * STROOPS_PER_UNIT + BigInt(fracPadded || '0');
 }
 
-export function formatUSDC(stroops: string | bigint, showSymbol = true): string {
+/** Placeholder returned for a missing or unparseable amount. */
+export const MISSING_AMOUNT = '—';
+
+/**
+ * Formats a stroop amount as USDC with 2 decimals (truncated, see
+ * stroopsToDisplay), e.g. `"1.50 USDC"`.
+ *
+ * Contract (#937): zero is a real amount and renders `"0.00 USDC"`; `null`,
+ * `undefined` and unparseable input render `MISSING_AMOUNT` (`'—'`) with no
+ * symbol, so "no data" never looks like a priced value such as `"— USDC"`.
+ * Callers no longer need their own `!= null ? formatUSDC(x) : '—'` guard.
+ */
+export function formatUSDC(stroops: string | bigint | null | undefined, showSymbol = true): string {
   const value = stroopsToDisplay(stroops, 2);
+  if (value === MISSING_AMOUNT) return MISSING_AMOUNT;
   return showSymbol ? `${value} USDC` : value;
 }
 
