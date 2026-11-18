@@ -17,39 +17,48 @@ interface EventProperties {
   [key: string]: string | number | boolean | undefined;
 }
 
-interface BufferedPageview {
-  properties?: EventProperties;
+interface BufferedEvent {
+  event: EventName | '$pageview';
   /**
-   * Captured at page() time, not at flush time — by the time PostHog is ready
-   * the browser is already on a later route, so reading window.location.href
-   * during the flush would attribute every buffered pageview to the last URL.
+   * For pageviews this already holds `$current_url`, captured at page() time,
+   * not at flush time — by the time PostHog is ready the browser is already
+   * on a later route, so reading window.location.href during the flush would
+   * attribute every buffered pageview to the last URL.
    */
-  url: string;
+  properties: EventProperties;
 }
 
-// PostHog's loaded callback can take hundreds of ms to fire, and the user can
-// navigate client-side several times in that window. A single slot silently
-// dropped all but the most recent navigation (issue #228), so pending pageviews
-// queue up and are flushed in order. Capped so a page that never becomes ready
-// can't grow the queue without bound.
-const MAX_BUFFERED_PAGEVIEWS = 50;
+// PostHog's loaded callback can take hundreds of ms to fire (and Analytics.tsx
+// defers init until idle, up to ~1.5s), and the user can navigate or trigger
+// tracked actions in that window. A single slot silently dropped all but the
+// most recent navigation (issue #228), and track() events were sent before
+// PostHog was ready and lost (#896), so pageviews and events share one queue
+// that is flushed in order. Capped so a page that never becomes ready can't
+// grow the queue without bound.
+const MAX_BUFFERED_EVENTS = 50;
 
 let posthogReady = false;
-let bufferedPageviews: BufferedPageview[] = [];
+let bufferedEvents: BufferedEvent[] = [];
+
+function enqueue(entry: BufferedEvent): void {
+  if (bufferedEvents.length >= MAX_BUFFERED_EVENTS) {
+    // Keep the oldest, drop the newest: the queue only ever fills when PostHog
+    // never loads, in which case the entry navigations matter most.
+    return;
+  }
+  bufferedEvents.push(entry);
+}
 
 export function setPostHogReady(ready: boolean): void {
   posthogReady = ready;
   if (!ready) return;
 
-  // Drain before capturing so a throwing capture() can't replay pageviews that
+  // Drain before capturing so a throwing capture() can't replay entries that
   // were already sent on a subsequent call.
-  const pending = bufferedPageviews;
-  bufferedPageviews = [];
-  for (const { properties, url } of pending) {
-    posthog.capture('$pageview', {
-      $current_url: url,
-      ...properties
-    });
+  const pending = bufferedEvents;
+  bufferedEvents = [];
+  for (const { event, properties } of pending) {
+    posthog.capture(event, properties);
   }
 }
 
@@ -70,7 +79,11 @@ export function track(event: EventName, properties?: EventProperties): void {
     console.debug('[analytics]', event, sanitizedProperties);
   }
   
-  posthog.capture(event, sanitizedProperties);
+  if (posthogReady) {
+    posthog.capture(event, sanitizedProperties);
+    return;
+  }
+  enqueue({ event, properties: sanitizedProperties });
 }
 
 export function page(name: string, properties?: EventProperties): void {
@@ -88,12 +101,10 @@ export function page(name: string, properties?: EventProperties): void {
     return;
   }
 
-  if (bufferedPageviews.length >= MAX_BUFFERED_PAGEVIEWS) {
-    // Keep the oldest, drop the newest: the queue only ever fills when PostHog
-    // never loads, in which case the entry navigations matter most.
-    return;
-  }
-  bufferedPageviews.push({ properties, url: window.location.href });
+  enqueue({
+    event: '$pageview',
+    properties: { $current_url: window.location.href, ...properties },
+  });
 }
 
 // Last route a pageview was recorded for (#711). The route-change effect is the

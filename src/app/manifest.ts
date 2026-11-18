@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { PWA_ICON_SIZES, pwaIconPath } from '@/lib/pwa-icon';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -9,17 +10,12 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     background_color: '#030712',
     theme_color: '#14b8a6',
-    icons: [
-      {
-        src: '/assets/parashield-logo-dark.png',
-        sizes: '192x192',
-        type: 'image/png',
-      },
-      {
-        src: '/assets/parashield-logo-dark.png',
-        sizes: '512x512',
-        type: 'image/png',
-      },
-    ],
+    // Each entry points at an icon rendered at exactly its declared size
+    // (#897), not at the 1680x600 wordmark logo.
+    icons: PWA_ICON_SIZES.map((size) => ({
+      src: pwaIconPath(size),
+      sizes: `${size}x${size}`,
+      type: 'image/png',
+    })),
   };
 }
