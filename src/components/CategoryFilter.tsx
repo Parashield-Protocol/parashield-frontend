@@ -31,8 +31,7 @@ const CategoryTab = memo(function CategoryTab({
   return (
     <button
       ref={(el) => setRef(index, el)}
-      role="tab"
-      aria-selected={selected}
+      aria-pressed={selected}
       tabIndex={selected ? 0 : -1}
       onClick={() => onSelect(index)}
       onKeyDown={(e) => onKeyDown(e, index)}
@@ -88,7 +87,7 @@ export function CategoryFilter({ value, onChange, className }: CategoryFilterPro
 
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label="Category filter"
       className={`flex flex-wrap gap-2 ${className ?? ''}`}
     >
