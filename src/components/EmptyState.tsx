@@ -1,9 +1,49 @@
+import Link from 'next/link';
+
 interface EmptyStateProps {
   icon?:        string;
   title:        string;
   description?: string;
   action?:      React.ReactNode;
   className?:   string;
+}
+
+interface DefaultActionProps {
+  label:     string;
+  href?:     string;
+  onAction?: () => void;
+}
+
+/**
+ * Convenience CTA for EmptyState. When both href and onAction are supplied,
+ * onAction fires and navigation is prevented — use href-only for plain links.
+ */
+export function DefaultAction({ label, href, onAction }: DefaultActionProps) {
+  if (href) {
+    return (
+      <Link
+        href={href}
+        onClick={(e) => {
+          if (onAction) {
+            e.preventDefault();
+            onAction();
+          }
+        }}
+        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+      >
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      onClick={onAction}
+      className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+    >
+      {label}
+    </button>
+  );
 }
 
 export function EmptyState({ icon = '📭', title, description, action, className }: EmptyStateProps) {
