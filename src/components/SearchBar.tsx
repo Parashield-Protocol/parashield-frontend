@@ -77,6 +77,12 @@ export const SearchBar = memo(function SearchBar({
     emit(debouncedQuery);
   }, [debouncedQuery, emit]);
 
+  function handleClear() {
+    clearedRef.current = true;
+    setQuery('');
+    onSearchRef.current('');
+  }
+
   return (
     <div className={`relative ${className ?? ''}`}>
       {isPending ? (
