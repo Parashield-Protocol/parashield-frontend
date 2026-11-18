@@ -93,15 +93,15 @@ export const CLAIMS_CONTRACT_ID =
 
 /**
  * Warn (never throw) if a required contract ID is missing or malformed.
- * Call once at app startup (e.g. from layout.tsx) so misconfiguration is
- * loudly logged instead of surfacing silently deep in a purchase/claim flow.
+ * Called once at app startup by `ConfigValidator` (rendered in layout.tsx) so
+ * misconfiguration is loudly logged instead of surfacing silently deep in a
+ * purchase/claim flow.
  *
- * Deliberately non-fatal (#454): `layout.tsx` evaluates this at module load,
- * which Next.js also runs during `next build` to statically analyze routes --
- * throwing here previously crashed the entire build (and blocked preview
- * deployments and local dev) whenever contract-ID env vars weren't set,
- * which is expected for those environments. Logging keeps genuine
- * misconfiguration visible in server logs without blocking the build.
+ * Deliberately non-fatal (#454): throwing here once crashed the entire build
+ * (and blocked preview deployments and local dev) whenever contract-ID env
+ * vars weren't set, which is expected for those environments. It no longer
+ * runs at module load (#931), so `next build` doesn't repeat the errors for
+ * every statically generated route; it logs in the browser console instead.
  */
 export function validateConfig(): void {
   for (const [envKey, label] of [

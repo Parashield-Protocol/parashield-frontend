@@ -7,6 +7,7 @@ import { displayToStroops, stroopsToDisplay, estimatePremium, basisPointsToPerce
 import { amountInputGuards, isPlainDecimal, numberScrollGuards } from '@/lib/numberInput';
 import { NumberInput } from '@/components/NumberInput';
 import { toUserMessage } from '@/lib/errors';
+import { devError } from '@/lib/devConsole';
 import { invokeBuyPolicy, type TxStage } from '@/lib/contract';
 import { buyPolicy as recordPolicyPurchase } from '@/lib/api';
 import { buildRainfallKey, buildFlightKey } from '@/lib/oracle';
@@ -40,11 +41,19 @@ const PURCHASE_STEPS: TransactionStep[] = [
 // estimatePremium throws on anything displayToStroops rejects (empty, negative,
 // partially-typed numbers). It runs on every keystroke — outside validate() —
 // so a single '-' used to blow up the whole modal (issue #197).
+//
+// Nothing typed yet is still a plain '—'; any other failure (e.g. an edge-case
+// value that overflows) is logged in dev and shown as "Unable to estimate", so
+// the user can tell the premium couldn't be calculated (#933).
+const PREMIUM_UNAVAILABLE = 'Unable to estimate';
+
 function safeEstimatePremium(coverageDisplay: string, premiumRateBps: number): string {
+  if (coverageDisplay.trim() === '') return '—';
   try {
     return estimatePremium(coverageDisplay, premiumRateBps);
-  } catch {
-    return '—';
+  } catch (err) {
+    devError('estimatePremium failed:', err);
+    return PREMIUM_UNAVAILABLE;
   }
 }
 
@@ -100,6 +109,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
   const maxDisplay = stroopsToDisplay(product.coverageMax, 2);
   const coverageNum   = parseFloat(coverage) || 0;
   const estimatedPrem = safeEstimatePremium(coverage, product.premiumRate);
+  const premiumLabel = estimatedPrem === PREMIUM_UNAVAILABLE ? estimatedPrem : `${estimatedPrem} USDC`;
 
   // Derive the oracle key during render (#543). It used to be synced into
   // state from a useEffect, so every keystroke in lat/lng/flight fields
@@ -464,7 +474,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
             </div>
             <div className="flex justify-between border-t border-gray-200 dark:border-white/10 pt-3 text-gray-500 dark:text-gray-400">
               <span>Premium ({basisPointsToPercent(product.premiumRate)})</span>
-              <span className="font-bold text-gray-950 dark:text-white">{estimatedPrem} USDC</span>
+              <span className="font-bold text-gray-950 dark:text-white">{premiumLabel}</span>
             </div>
           </div>
         )}
@@ -481,7 +491,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
           <div className="space-y-3 text-sm text-gray-500 dark:text-gray-400">
             <p>Your Stellar wallet will prompt you to sign the policy transaction.</p>
             <p className="text-xs">
-              Premium of <strong className="text-gray-950 dark:text-white">{estimatedPrem} USDC</strong> will be deducted from your wallet balance.
+              Premium of <strong className="text-gray-950 dark:text-white">{premiumLabel}</strong> will be deducted from your wallet balance.
             </p>
           </div>
         )}
