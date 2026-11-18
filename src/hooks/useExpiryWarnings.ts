@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Policy } from '@/types';
 import { expiryNotifiedStorageKey } from '@/lib/storageKeys';
 
@@ -35,6 +35,21 @@ function writeNotified(storageKey: string, ids: Set<string>): void {
  * re-run of the effect (policy polling, re-renders) fired the toast again.
  * sessionStorage is now only best-effort persistence across reloads.
  */
+/**
+ * Latches `loaded` per wallet (#935): returns true once the first load for
+ * `address` has finished and stays true through later background refreshes
+ * (when `loaded` briefly goes false again), so useExpiryWarnings keeps
+ * evaluating refreshed policies instead of toggling `ready` off and on around
+ * every refetch. Switching wallets resets it until that wallet's first load.
+ */
+export function useLoadedOnce(loaded: boolean, address: string | null): boolean {
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (loaded && address) setLoadedFor(address);
+  }, [loaded, address]);
+  return address !== null && (loadedFor === address || (loaded && loadedFor === null));
+}
+
 export function useExpiryWarnings(
   policies: Policy[],
   ready: boolean,

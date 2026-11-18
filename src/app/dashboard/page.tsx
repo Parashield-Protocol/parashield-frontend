@@ -15,7 +15,7 @@ import { StatsCard } from "@/components/StatsCard";
 import { TREND_PERIOD_SECONDS, computeTrend, policyStatsAt } from "@/lib/statsTrend";
 import { WalletAddressDisplay } from "@/components/WalletAddressDisplay";
 import { useToast } from "@/context/ToastContext";
-import { useExpiryWarnings } from "@/hooks/useExpiryWarnings";
+import { useExpiryWarnings, useLoadedOnce } from "@/hooks/useExpiryWarnings";
 import type { Claim } from "@/types";
 import Link from "next/link";
 
@@ -47,8 +47,11 @@ export default function DashboardPage() {
     }
   }, [connected, loading, loadRecentClaims]);
 
-  // Warn (once per policy per session) about policies expiring within 24 hours
-  useExpiryWarnings(policies, connected && !loading, address, showToast);
+  // Warn (once per policy per session) about policies expiring within 24 hours.
+  // `ready` latches after the first load for this wallet (#935), so a
+  // background refetch no longer toggles it off and on mid-effect.
+  const policiesLoadedOnce = useLoadedOnce(connected && !loading, address);
+  useExpiryWarnings(policies, policiesLoadedOnce, address, showToast);
 
   const active = useMemo(() => policies.filter((p) => p.status === "Active"), [policies]);
   const totalCov = useMemo(() => active.reduce((sum, p) => sum + safeBigInt(p.coverage), 0n), [active]);

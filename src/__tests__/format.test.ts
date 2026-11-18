@@ -99,6 +99,24 @@ describe('formatUSDC', () => {
   it('omits symbol when showSymbol is false', () => {
     expect(formatUSDC('10000000', false)).toBe('1.00');
   });
+
+  // #937 — zero is an amount; missing data is a placeholder, never "— USDC".
+  it('renders zero as a real amount', () => {
+    expect(formatUSDC('0')).toBe('0.00 USDC');
+    expect(formatUSDC(0n, false)).toBe('0.00');
+  });
+
+  it('renders null and undefined as the bare placeholder', () => {
+    expect(formatUSDC(null)).toBe('—');
+    expect(formatUSDC(undefined)).toBe('—');
+    expect(formatUSDC(null, false)).toBe('—');
+  });
+
+  it('renders unparseable input as the bare placeholder, not "— USDC"', () => {
+    expect(formatUSDC('')).toBe('—');
+    expect(formatUSDC('1.5')).toBe('—');
+    expect(formatUSDC('abc')).not.toContain('USDC');
+  });
 });
 
 describe('shortenAddress', () => {

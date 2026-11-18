@@ -70,7 +70,7 @@ async function buildRestoreFootprintTx(
  * recovery path (issue #230), so that case is surfaced as a StateArchivedError
  * carrying a ready-to-sign restore transaction instead.
  */
-async function simulateAndAssemble(
+export async function simulateAndAssemble(
   tx: Transaction,
   simFailureMessage: string,
 ): Promise<Transaction> {
@@ -97,9 +97,54 @@ async function simulateAndAssemble(
  * Resolves once the restore is confirmed, at which point the original call can
  * be retried.
  */
-async function restoreArchivedState(err: StateArchivedError): Promise<string> {
+export async function restoreArchivedState(err: StateArchivedError): Promise<string> {
   const signedXdr = await signTransaction(err.restoreXdr);
-  return submitSignedTransaction(signedXdr);
+  try {
+    return await submitSignedTransaction(signedXdr);
+  } catch (submitErr) {
+    // The restore was built at simulation time with the account's next
+    // sequence number. If another transaction landed in between (e.g. from a
+    // second tab), that number is gone and the network answers txBadSeq
+    // (#936). Rebuild once against a freshly fetched account and resubmit;
+    // any other failure — or a second txBadSeq — surfaces as-is.
+    if (!isBadSequenceError(submitErr)) throw submitErr;
+    const rebuilt = await rebuildRestoreWithFreshSequence(err.restoreXdr);
+    const resigned = await signTransaction(rebuilt.toXDR());
+    return submitSignedTransaction(resigned);
+  }
+}
+
+/**
+ * True when a submission was rejected with `txBadSeq`. `sendTransaction`
+ * surfaces the parsed `TransactionResult` as `errorResult`, which
+ * submitSignedTransaction carries in ContractError.details.
+ */
+export function isBadSequenceError(err: unknown): boolean {
+  if (!(err instanceof ContractError)) return false;
+  const details = err.details as
+    | { result?: () => { switch?: () => { name?: string } } }
+    | undefined;
+  try {
+    return details?.result?.().switch?.().name === 'txBadSeq';
+  } catch {
+    return false;
+  }
+}
+
+/** Same restore operation and resource footprint, with the account's current sequence number. */
+async function rebuildRestoreWithFreshSequence(restoreXdr: string): Promise<Transaction> {
+  const previous = TransactionBuilder.fromXDR(restoreXdr, NETWORK_PASSPHRASE) as Transaction;
+  const sorobanData = previous.toEnvelope().v1().tx().ext().sorobanData();
+  const account = await getRpc().getAccount(previous.source);
+  // build() adds sorobanData's resource fee on top of the fee passed in, so
+  // pass the previous inclusion fee only — the rebuilt total then matches.
+  const inclusionFee = BigInt(previous.fee) - BigInt(sorobanData.resourceFee().toString());
+
+  return new TransactionBuilder(account, { fee: inclusionFee.toString(), networkPassphrase: NETWORK_PASSPHRASE })
+    .setSorobanData(sorobanData)
+    .addOperation(Operation.restoreFootprint({}))
+    .setTimeout(RESTORE_TX_TIMEOUT_SECONDS)
+    .build();
 }
 
 export interface StateRestoreOptions {
