@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import posthog from 'posthog-js';
-import { page, resetPageviewTracking, setPostHogReady, trackPageview } from '@/lib/analytics';
+import { page, resetPageviewTracking, setPostHogReady, track, trackPageview } from '@/lib/analytics';
 
 // Mock posthog capture
 // analytics.ts uses the default export (`import posthog from 'posthog-js'`).
@@ -67,7 +67,7 @@ describe('analytics page buffering', () => {
     window.history.pushState({}, '', originalHref);
   });
 
-  it('drops newest entry when buffer is full (MAX_BUFFERED_PAGEVIEWS = 50)', () => {
+  it('drops newest entry when buffer is full (MAX_BUFFERED_EVENTS = 50)', () => {
     setPostHogReady(false);
     // Fill the buffer to capacity
     for (let i = 0; i < 50; i++) {
@@ -155,5 +155,42 @@ describe('trackPageview deduplication (#711)', () => {
     trackPageview('/claims');
     trackPageview('/');
     expect(pageviews()).toBe(4);
+  });
+});
+
+describe('track() before PostHog is ready (#896)', () => {
+  beforeEach(() => {
+    vi.mocked(posthog.capture).mockReset();
+    setPostHogReady(false);
+  });
+
+  it('buffers events instead of sending them to an uninitialised PostHog', () => {
+    track('wallet_connect', { network: 'testnet' });
+    expect(posthog.capture).not.toHaveBeenCalled();
+
+    setPostHogReady(true);
+    expect(posthog.capture).toHaveBeenCalledWith('wallet_connect', { network: 'testnet' });
+  });
+
+  it('flushes events and pageviews in the order they happened', () => {
+    page('home');
+    track('wallet_connect');
+    track('policy_buy_start', { product: 'flight' });
+
+    setPostHogReady(true);
+
+    expect(vi.mocked(posthog.capture).mock.calls.map(([event]) => event)).toEqual([
+      '$pageview',
+      'wallet_connect',
+      'policy_buy_start',
+    ]);
+  });
+
+  it('still truncates the wallet address of a buffered event', () => {
+    track('wallet_connect', { wallet: 'GABCDEFGHIJKLMNOP' });
+    setPostHogReady(true);
+
+    const [, props] = vi.mocked(posthog.capture).mock.calls[0];
+    expect((props as { wallet: string }).wallet).toBe('GABCDEFG');
   });
 });

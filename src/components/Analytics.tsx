@@ -32,8 +32,9 @@ export function Analytics() {
         posthog.init(posthogKey, {
           api_host: posthogHost,
           capture_pageview: false,
-          loaded: (ph) => {
-            ph.identify();
+          // No identify() here (#895): there is no user ID at load time, and
+          // identify() without a distinct ID is a no-op or throws.
+          loaded: () => {
             setPostHogReady(true);
           },
         });
