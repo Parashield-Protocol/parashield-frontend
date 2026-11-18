@@ -177,6 +177,7 @@ export default function PoliciesPage() {
     setPage(0);
   }, []);
 
+  // stable ref: setSearchQuery/setPage are state dispatchers, no deps needed
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setPage(0);
