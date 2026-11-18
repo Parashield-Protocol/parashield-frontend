@@ -1,3 +1,4 @@
+import { afterEach, describe, expect, it } from 'vitest';
 import { useModalOverflow, resetModalOverflow, SCROLL_LOCK_CLASS } from '../hooks/useModalOverflow';
 import { renderHook } from './renderHook';
 

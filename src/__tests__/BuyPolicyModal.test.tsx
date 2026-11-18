@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BuyPolicyModal } from '../components/BuyPolicyModal';

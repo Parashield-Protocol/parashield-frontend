@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { renderHook } from './renderHook';

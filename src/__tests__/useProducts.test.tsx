@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useProducts } from '../hooks/useProducts';
 import { renderHook, flushMicrotasks } from './renderHook';
 import type { Product } from '../types';

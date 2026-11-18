@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ClaimStatus } from '../components/ClaimStatus';
 import type { Claim } from '../types';

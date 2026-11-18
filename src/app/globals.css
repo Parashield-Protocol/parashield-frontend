@@ -65,6 +65,14 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
+/*
+ * Couples to @creit.tech/stellar-wallets-kit's shadow DOM (#909): `overlay`
+ * is an internal `part` name of the <stellar-wallets-modal> element, verified
+ * against kit v1.9.5 (yarn.lock). Prefer a kit-provided CSS custom property for
+ * the backdrop if a later version offers one. If the kit renames the part (e.g.
+ * on a major upgrade) this rule silently stops matching and the modal renders
+ * over the page without the dimmed, blurred backdrop: re-check it on upgrade.
+ */
 stellar-wallets-modal::part(overlay) {
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);

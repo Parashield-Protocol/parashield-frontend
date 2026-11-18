@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { WithdrawModal } from '../components/WithdrawModal';
 import { fetchPoolUserShares } from '@/lib/api';
