@@ -66,6 +66,55 @@ describe('analytics page buffering', () => {
     });
     window.history.pushState({}, '', originalHref);
   });
+
+  it('drops newest entry when buffer is full (MAX_BUFFERED_PAGEVIEWS = 50)', () => {
+    setPostHogReady(false);
+    // Fill the buffer to capacity
+    for (let i = 0; i < 50; i++) {
+      window.history.pushState({}, '', `/route-${i}`);
+      page(`route-${i}`);
+    }
+    // This 51st call should be silently dropped
+    window.history.pushState({}, '', '/dropped');
+    page('overflow');
+
+    setPostHogReady(true);
+
+    expect(posthog.capture).toHaveBeenCalledTimes(50);
+    const urls = vi.mocked(posthog.capture).mock.calls.map(([, props]) => (props as { $current_url: string }).$current_url);
+    expect(urls.some(u => u.includes('/dropped'))).toBe(false);
+    expect(urls[0]).toContain('/route-0');
+  });
+
+  it('setPostHogReady(false) allows the buffer to be populated again', () => {
+    setPostHogReady(true);
+    setPostHogReady(false);
+    page('after-reset');
+    expect(posthog.capture).not.toHaveBeenCalled();
+
+    setPostHogReady(true);
+    expect(posthog.capture).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('analytics track', () => {
+  beforeEach(() => {
+    vi.mocked(posthog.capture).mockReset();
+    setPostHogReady(false);
+  });
+
+  it('calls posthog.capture with the event name and properties', () => {
+    setPostHogReady(true);
+    track('wallet_connect', { network: 'testnet' });
+    expect(posthog.capture).toHaveBeenCalledWith('wallet_connect', { network: 'testnet' });
+  });
+
+  it('truncates wallet address to first 8 chars', () => {
+    setPostHogReady(true);
+    track('wallet_connect', { wallet: 'GABCDEFGHIJKLMNOP' });
+    const [, props] = vi.mocked(posthog.capture).mock.calls[0];
+    expect((props as { wallet: string }).wallet).toBe('GABCDEFG');
+  });
 });
 
 describe('trackPageview deduplication (#711)', () => {
