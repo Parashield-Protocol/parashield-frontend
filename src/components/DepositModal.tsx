@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { PoolStats } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
 import { fetchPoolShares } from '@/lib/api';
-import { buildDepositTx, submitSignedTransaction, withStateRestore } from '@/lib/contract';
+import { buildDepositTx, submitSignedTransaction } from '@/lib/contract';
 import { signTransaction } from '@/lib/stellar';
 import { displayToStroops, formatUSDC, stroopsToDisplay } from '@/lib/format';
 import { amountInputGuards, isPlainDecimal } from '@/lib/numberInput';
@@ -122,13 +122,11 @@ export function DepositModal({ pool, onClose }: Props) {
     setBusy(true);
     setError('');
     try {
-      // Wrapped so an archived pool entry is restored and the deposit retried,
-      // rather than failing with an opaque "entry archived" error (issue #230).
-      await withStateRestore(async () => {
-        const unsignedXdr = await buildDepositTx(pool.poolId, depositStroops, address);
-        const signedXdr   = await signTransaction(unsignedXdr);
-        await submitSignedTransaction(signedXdr);
-      });
+      // buildDepositTx restores an archived pool entry and rebuilds itself, so
+      // there is no opaque "entry archived" error to guard against here (#230, #928).
+      const unsignedXdr = await buildDepositTx(pool.poolId, depositStroops, address);
+      const signedXdr   = await signTransaction(unsignedXdr);
+      await submitSignedTransaction(signedXdr);
       showToast(`Deposited — ${stroopsToDisplay(estimatedShares.toString(), 4)} LP shares minted`, 'success');
       setAmount('');
       onClose();

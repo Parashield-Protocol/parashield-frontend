@@ -325,7 +325,18 @@ async function submitClaimOnce(
   return confirmTransaction(submitResult.hash);
 }
 
-export async function buildDepositTx(
+/**
+ * Builds and simulates a pool deposit, restoring archived contract state and
+ * rebuilding if the simulation reports it (#928). Wrapping here, like
+ * invokeBuyPolicy/invokeSubmitClaim, means no caller can forget the restore:
+ * StateArchivedError is only ever raised during simulation, so nothing has
+ * been signed when the retry happens.
+ */
+export function buildDepositTx(poolId: string, amount: bigint, wallet: string): Promise<string> {
+  return withStateRestore(() => buildDepositTxOnce(poolId, amount, wallet));
+}
+
+async function buildDepositTxOnce(
   poolId: string,
   amount: bigint,
   wallet: string,
@@ -352,7 +363,12 @@ export async function buildDepositTx(
   return assembled.toXDR();
 }
 
-export async function buildWithdrawTx(
+/** Builds and simulates a pool withdrawal, with the same built-in state restore as buildDepositTx (#928). */
+export function buildWithdrawTx(poolId: string, shares: bigint, wallet: string): Promise<string> {
+  return withStateRestore(() => buildWithdrawTxOnce(poolId, shares, wallet));
+}
+
+async function buildWithdrawTxOnce(
   poolId: string,
   shares: bigint,
   wallet: string,

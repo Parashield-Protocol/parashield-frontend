@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { usePathname } from 'next/navigation';
 import { Loader2, Search, X } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
+import { SHORTCUTS, isFocusSearchChord } from '@/lib/shortcuts';
 import { MAX_INPUT_LENGTHS } from '@/lib/constants';
 
 interface SearchBarProps {
@@ -47,18 +49,16 @@ export const SearchBar = memo(function SearchBar({
   // same value don't trigger a redundant parent re-filter.
   const lastEmitted = useRef<string | null>(null);
 
-  // Ctrl+K / Cmd+K focuses the search input from anywhere on the page (#740).
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+  // Ctrl+K / Cmd+K focuses the search input from anywhere on the page (#740),
+  // registered through the shared shortcut registry the help modal reads (#930).
+  useKeyboardShortcut(
+    SHORTCUTS.focusSearch.key,
+    () => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    },
+    { shouldHandle: isFocusSearchChord },
+  );
 
   const emit = useCallback((value: string) => {
     if (lastEmitted.current === value) return;

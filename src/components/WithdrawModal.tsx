@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import type { PoolStats } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
 import { fetchPoolShares, fetchPoolUserShares } from '@/lib/api';
-import { buildWithdrawTx, submitSignedTransaction, withStateRestore } from '@/lib/contract';
+import { buildWithdrawTx, submitSignedTransaction } from '@/lib/contract';
 import { signTransaction } from '@/lib/stellar';
 import { displayToStroops, stroopsToDisplay } from '@/lib/format';
 import { amountInputGuards, isPlainDecimal } from '@/lib/numberInput';
@@ -117,11 +117,10 @@ export function WithdrawModal({ pool, onClose }: Props) {
     setBusy(true);
     setError('');
     try {
-      await withStateRestore(async () => {
-        const unsignedXdr = await buildWithdrawTx(pool.poolId, withdrawShares, address);
-        const signedXdr   = await signTransaction(unsignedXdr);
-        await submitSignedTransaction(signedXdr);
-      });
+      // buildWithdrawTx restores archived state and rebuilds itself (#928).
+      const unsignedXdr = await buildWithdrawTx(pool.poolId, withdrawShares, address);
+      const signedXdr   = await signTransaction(unsignedXdr);
+      await submitSignedTransaction(signedXdr);
       showToast(`Withdrawn — ${stroopsToDisplay(estimatedUsdc.toString(), 4)} USDC redeemed`, 'success');
       onClose();
     } catch (err) {
