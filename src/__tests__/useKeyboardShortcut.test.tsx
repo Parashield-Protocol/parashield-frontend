@@ -97,4 +97,50 @@ describe('useKeyboardShortcut', () => {
 
     expect(handler).not.toHaveBeenCalled();
   });
+
+  it('skips the handler when the target is an INPUT element (default editable guard)', () => {
+    const handler = vi.fn();
+    renderHook(() => useKeyboardShortcut('k', handler));
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    act(() => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true }));
+    });
+    document.body.removeChild(input);
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('skips the handler when the target is a TEXTAREA element', () => {
+    const handler = vi.fn();
+    renderHook(() => useKeyboardShortcut('k', handler));
+
+    const textarea = document.createElement('textarea');
+    document.body.appendChild(textarea);
+    act(() => {
+      textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true }));
+    });
+    document.body.removeChild(textarea);
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('invokes the handler when shouldHandle returns true', () => {
+    const handler = vi.fn();
+    renderHook(() => useKeyboardShortcut('k', handler, { shouldHandle: () => true }));
+
+    pressKey('k');
+
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips the handler when shouldHandle returns false', () => {
+    const handler = vi.fn();
+    renderHook(() => useKeyboardShortcut('k', handler, { shouldHandle: () => false }));
+
+    pressKey('k');
+
+    expect(handler).not.toHaveBeenCalled();
+  });
 });
