@@ -8,14 +8,18 @@ import { ConnectWalletPrompt } from "@/components/ConnectWalletPrompt";
 import { PolicyCard } from "@/components/PolicyCard";
 import { Badge } from "@/components/Badge";
 import { Skeleton, SkeletonCard } from "@/components/Skeleton";
+import { LoadingRegion } from "@/components/LoadingRegion";
 import { EmptyState } from "@/components/EmptyState";
 import { formatUSDC, formatDateTime, safeBigInt } from "@/lib/format";
 import { StatsCard } from "@/components/StatsCard";
+import { TREND_PERIOD_SECONDS, computeTrend, policyStatsAt } from "@/lib/statsTrend";
 import { WalletAddressDisplay } from "@/components/WalletAddressDisplay";
 import { useToast } from "@/context/ToastContext";
 import { useExpiryWarnings } from "@/hooks/useExpiryWarnings";
 import type { Claim } from "@/types";
 import Link from "next/link";
+
+const TREND_SUBLABEL = "vs. 30 days ago";
 
 export default function DashboardPage() {
   const { address, connected } = useWallet();
@@ -46,6 +50,23 @@ export default function DashboardPage() {
   // Warn (once per policy per session) about policies expiring within 24 hours
   useExpiryWarnings(policies, connected && !loading, address, showToast);
 
+  const active = useMemo(() => policies.filter((p) => p.status === "Active"), [policies]);
+  const totalCov = useMemo(() => active.reduce((sum, p) => sum + safeBigInt(p.coverage), 0n), [active]);
+  const totalPaid = useMemo(() => active.reduce((sum, p) => sum + safeBigInt(p.premiumPaid), 0n), [active]);
+
+  // Trend vs. TREND_PERIOD_SECONDS ago, rebuilt from policy timestamps (#688).
+  const trends = useMemo(() => {
+    const previous = policyStatsAt(policies, Math.floor(Date.now() / 1000) - TREND_PERIOD_SECONDS);
+    return {
+      active:   computeTrend(active.length, previous.active),
+      total:    computeTrend(policies.length, previous.total),
+      coverage: computeTrend(totalCov, previous.coverage),
+      premiums: computeTrend(totalPaid, previous.premiums),
+    };
+  }, [policies, active, totalCov, totalPaid]);
+
+  // Must stay below every hook: returning earlier changed the hook count
+  // between renders whenever the wallet connected or disconnected.
   if (!connected) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-20">
@@ -54,9 +75,6 @@ export default function DashboardPage() {
     );
   }
 
-  const active = useMemo(() => policies.filter((p) => p.status === "Active"), [policies]);
-  const totalCov = useMemo(() => active.reduce((sum, p) => sum + safeBigInt(p.coverage), 0n), [active]);
-  const totalPaid = useMemo(() => active.reduce((sum, p) => sum + safeBigInt(p.premiumPaid), 0n), [active]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -78,6 +96,7 @@ export default function DashboardPage() {
         </button>
       </div>
 
+      <LoadingRegion loading={loading} label="Loading your policies">
       {/* Stats */}
       {error ? (
         <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
@@ -91,13 +110,30 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatsCard label="Active policies" value={loading ? <Skeleton className="h-8 w-20" /> : active.length.toString()} />
+          <StatsCard
+            label="Active policies"
+            value={loading ? <Skeleton className="h-8 w-20" /> : active.length.toString()}
+            {...(loading ? {} : trends.active)}
+            sublabel={loading ? undefined : TREND_SUBLABEL}
+          />
           <StatsCard
             label="Total policies"
             value={loading ? <Skeleton className="h-8 w-20" /> : policies.length.toString()}
+            {...(loading ? {} : trends.total)}
+            sublabel={loading ? undefined : TREND_SUBLABEL}
           />
-          <StatsCard label="Total coverage" value={loading ? <Skeleton className="h-8 w-24" /> : formatUSDC(totalCov)} />
-          <StatsCard label="Total premiums" value={loading ? <Skeleton className="h-8 w-24" /> : formatUSDC(totalPaid)} />
+          <StatsCard
+            label="Total coverage"
+            value={loading ? <Skeleton className="h-8 w-24" /> : formatUSDC(totalCov)}
+            {...(loading ? {} : trends.coverage)}
+            sublabel={loading ? undefined : TREND_SUBLABEL}
+          />
+          <StatsCard
+            label="Total premiums"
+            value={loading ? <Skeleton className="h-8 w-24" /> : formatUSDC(totalPaid)}
+            {...(loading ? {} : trends.premiums)}
+            sublabel={loading ? undefined : TREND_SUBLABEL}
+          />
         </div>
       )}
 
@@ -114,7 +150,7 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid-fluid-cards gap-4">
             {[1, 2, 3].map((i) => (
               <SkeletonCard key={i} />
             ))}
@@ -136,13 +172,14 @@ export default function DashboardPage() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid-fluid-cards gap-4">
             {active.slice(0, 6).map((p) => (
               <PolicyCard key={p.id} policy={p} />
             ))}
           </div>
         )}
       </div>
+      </LoadingRegion>
 
       {/* Recent claims */}
       <div className="mt-10">
@@ -156,32 +193,39 @@ export default function DashboardPage() {
           </Link>
         </div>
 
+        <LoadingRegion loading={claimsLoading} label="Loading recent claims">
         {claimsLoading ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
             <Skeleton className="h-40 w-full" />
           </div>
         ) : recentClaims.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center text-sm text-gray-400">
-            No claims submitted yet.
-          </div>
+          <EmptyState
+            icon="📋"
+            title="No claims yet"
+            description="When you file a claim on one of your active policies, it will appear here."
+            actionLabel="Browse policies"
+            actionHref="/policies"
+          />
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02]">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
-                  <th className="px-6 py-3">Claim ID</th>
-                  <th className="px-6 py-3">Submitted</th>
-                  <th className="px-6 py-3">Payout</th>
-                  <th className="px-6 py-3">Status</th>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] max-md:border-0 max-md:bg-transparent">
+            {/* Stacks into cards below `md` while keeping table semantics (#754). */}
+            <table role="table" className="responsive-table w-full text-sm">
+              <thead role="rowgroup">
+                <tr role="row" className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-400">
+                  <th role="columnheader" scope="col" className="px-6 py-3">Claim ID</th>
+                  <th role="columnheader" scope="col" className="px-6 py-3">Submitted</th>
+                  <th role="columnheader" scope="col" className="px-6 py-3">Payout</th>
+                  <th role="columnheader" scope="col" className="px-6 py-3">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup">
                 {recentClaims.map((claim) => (
                   <tr
                     key={claim.id}
+                    role="row"
                     className="border-b border-white/5 transition-colors hover:bg-white/[0.02]"
                   >
-                    <td className="px-6 py-4 font-mono text-xs text-gray-400">
+                    <td role="cell" data-label="Claim ID" className="px-6 py-4 font-mono text-xs text-gray-400">
                       <Link
                         href={`/policies/${claim.policyId}`}
                         aria-label={`View policy for claim ${claim.id}`}
@@ -190,13 +234,13 @@ export default function DashboardPage() {
                         {claim.id.slice(0, 8)}…
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-400">
+                    <td role="cell" data-label="Submitted" className="px-6 py-4 text-xs text-gray-400">
                       {formatDateTime(claim.submittedAt)}
                     </td>
-                    <td className="px-6 py-4 text-xs font-semibold text-emerald-400">
+                    <td role="cell" data-label="Payout" className="px-6 py-4 text-xs font-semibold text-emerald-400">
                       {claim.payoutAmount ? formatUSDC(claim.payoutAmount) : '—'}
                     </td>
-                    <td className="px-6 py-4">
+                    <td role="cell" data-label="Status" className="px-6 py-4">
                       <Badge label={claim.status} />
                     </td>
                   </tr>
@@ -205,6 +249,7 @@ export default function DashboardPage() {
             </table>
           </div>
         )}
+        </LoadingRegion>
       </div>
 
       {/* Quick links */}

@@ -53,4 +53,42 @@ describe('ClaimsPage export dropdown (#546)', () => {
 
     expect(screen.queryByRole('menu')).toBeNull();
   });
+
+  it('opens from the keyboard and moves focus with arrow keys, Home and End', () => {
+    render(<ClaimsPage />);
+    const trigger = screen.getByRole('button', { name: /Export/ });
+
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const [csv, json] = screen.getAllByRole('menuitem');
+    expect(csv).toHaveFocus();
+
+    const menu = screen.getByRole('menu');
+    fireEvent.keyDown(menu, { key: 'ArrowDown' });
+    expect(json).toHaveFocus();
+    fireEvent.keyDown(menu, { key: 'ArrowDown' }); // wraps
+    expect(csv).toHaveFocus();
+    fireEvent.keyDown(menu, { key: 'End' });
+    expect(json).toHaveFocus();
+    fireEvent.keyDown(menu, { key: 'Home' });
+    expect(csv).toHaveFocus();
+    fireEvent.keyDown(menu, { key: 'ArrowUp' }); // wraps
+    expect(json).toHaveFocus();
+  });
+
+  it('ArrowUp on the trigger opens on the last item', () => {
+    render(<ClaimsPage />);
+    fireEvent.keyDown(screen.getByRole('button', { name: /Export/ }), { key: 'ArrowUp' });
+    expect(screen.getByRole('menuitem', { name: /JSON/ })).toHaveFocus();
+  });
+
+  it('Escape closes the menu and returns focus to the trigger', () => {
+    render(<ClaimsPage />);
+    const trigger = screen.getByRole('button', { name: /Export/ });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
 });

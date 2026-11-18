@@ -8,12 +8,15 @@ import { fetchProtocolStats } from '@/lib/api';
 import { formatUSDC, stroopsToDisplay } from '@/lib/format';
 import { ProductCard } from '@/components/ProductCard';
 import { Skeleton, SkeletonCard } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
 import { LogoWordmark } from '@/components/Logo';
 import { SearchBar } from '@/components/SearchBar';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { CompareModal } from '@/components/CompareModal';
 import { CATEGORY_LABELS } from '@/lib/constants';
+import { STORAGE_KEYS } from '@/lib/storageKeys';
+import { serializeJsonLd } from '@/lib/queryParams';
 import type { Category, Product } from '@/types';
 
 type CategoryFilterValue = Category | 'all';
@@ -42,6 +45,11 @@ export default function HomePage() {
   const [compareOpen, setCompareOpen]   = useState(false);
   const handleCloseCompare = useCallback(() => setCompareOpen(false), []);
 
+  // #742 — clear comparison selection when the page unmounts (route change away)
+  useEffect(() => {
+    return () => setCompareIds(new Set());
+  }, []);
+
   const toggleCompare = useCallback((product: Product) => {
     setCompareIds((prev) => {
       const next = new Set(prev);
@@ -61,7 +69,7 @@ export default function HomePage() {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('ps_category_filter');
+      const stored = localStorage.getItem(STORAGE_KEYS.categoryFilter);
       if (stored) {
         setCategory(JSON.parse(stored) as CategoryFilterValue);
       }
@@ -72,7 +80,7 @@ export default function HomePage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('ps_category_filter', JSON.stringify(category));
+      localStorage.setItem(STORAGE_KEYS.categoryFilter, JSON.stringify(category));
     } catch {
       // ignore
     }
@@ -134,7 +142,7 @@ export default function HomePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializeJsonLd({
             '@context': 'https://schema.org',
             '@type': 'ItemList',
             name: 'Parashield Insurance Products',
@@ -201,11 +209,16 @@ export default function HomePage() {
         <SearchBar
           onSearch={setSearchQuery}
           placeholder="Search products…"
+          label="Search insurance products"
+          resultsId="product-results"
+          resultCount={loading || error ? undefined : filteredProducts.length}
           className="mb-8 max-w-md"
         />
 
+        <div id="product-results">
+        <LoadingRegion loading={loading} label="Loading insurance products">
         {loading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid-fluid-cards gap-6">
             {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
           </div>
         ) : error ? (
@@ -227,7 +240,7 @@ export default function HomePage() {
               : 'No products in this category yet.'}
           />
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid-fluid-cards gap-6">
             {filteredProducts.map((p) => (
               <ProductCard
                 key={p.id}
@@ -238,6 +251,8 @@ export default function HomePage() {
             ))}
           </div>
         )}
+        </LoadingRegion>
+        </div>
 
         {compareIds.size > 0 && (
           <div className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/10 bg-gray-900/95 px-6 py-3 shadow-2xl backdrop-blur-md">
@@ -293,7 +308,11 @@ export default function HomePage() {
 
       {/* Stats */}
       <section className="border-t border-gray-200 dark:border-white/10 px-6 py-12">
-        <div className="mx-auto grid max-w-4xl grid-cols-2 gap-6 text-center sm:grid-cols-4">
+        <LoadingRegion
+          loading={statsLoading || loading}
+          label="Loading protocol stats"
+          className="mx-auto grid max-w-4xl grid-cols-2 gap-6 text-center sm:grid-cols-4"
+        >
           <div>
             <StatValue loading={statsLoading} failed={statsError}>
               {totalCoverage !== null ? formatUSDC(totalCoverage, false) : null}
@@ -316,7 +335,7 @@ export default function HomePage() {
             <p className="text-3xl font-black text-teal-400">{stroopsToDisplay(BASE_FEE, 5)} XLM</p>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Per transaction (network base fee)</p>
           </div>
-        </div>
+        </LoadingRegion>
         {statsLastUpdated && !statsLoading && (
           <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
             Updated {timeAgo(statsLastUpdated)}

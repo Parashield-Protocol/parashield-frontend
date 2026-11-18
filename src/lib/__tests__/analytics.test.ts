@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import posthog from 'posthog-js';
-import { page, setPostHogReady, track } from '@/lib/analytics';
+import { page, resetPageviewTracking, setPostHogReady, trackPageview } from '@/lib/analytics';
 
 // Mock posthog capture
+// analytics.ts uses the default export (`import posthog from 'posthog-js'`).
 vi.mock('posthog-js', () => {
-  return {
-    capture: vi.fn(),
-  };
+  const capture = vi.fn();
+  return { default: { capture }, capture };
 });
 
 beforeEach(() => {
@@ -114,5 +114,31 @@ describe('analytics track', () => {
     track('wallet_connect', { wallet: 'GABCDEFGHIJKLMNOP' });
     const [, props] = vi.mocked(posthog.capture).mock.calls[0];
     expect((props as { wallet: string }).wallet).toBe('GABCDEFG');
+  });
+});
+
+describe('trackPageview deduplication (#711)', () => {
+  beforeEach(() => {
+    resetPageviewTracking();
+    setPostHogReady(true);
+    vi.mocked(posthog.capture).mockReset();
+  });
+
+  const pageviews = () =>
+    vi.mocked(posthog.capture).mock.calls.filter(([event]) => event === '$pageview').length;
+
+  it('records one pageview when the same route is reported twice', () => {
+    trackPageview('/policies');
+    trackPageview('/policies'); // e.g. Strict Mode re-running the effect
+    expect(pageviews()).toBe(1);
+  });
+
+  it('records exactly one pageview per navigation', () => {
+    trackPageview('/');
+    trackPageview('/policies');
+    trackPageview('/policies');
+    trackPageview('/claims');
+    trackPageview('/');
+    expect(pageviews()).toBe(4);
   });
 });

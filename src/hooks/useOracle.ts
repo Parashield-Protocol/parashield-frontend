@@ -16,7 +16,7 @@ function isStale(lastFetchAt: number): boolean {
 
 export function useOracleReading(key: string | null) {
   const [reading,  setReading]  = useState<OracleReading | null>(null);
-  const [loading,  setLoading]  = useState(false);
+  const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
   const isFirstLoad = useRef(true);
   const currentKeyRef = useRef(key);

@@ -67,9 +67,11 @@ export function CategoryFilter({ value, onChange, className }: CategoryFilterPro
   const handleKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
     let nextIndex: number | null = null;
 
-    if (e.key === 'ArrowRight') {
+    // Up/Down mirror Right/Left: the pills wrap onto several rows on narrow
+    // screens, where vertical arrows are the natural direction to reach for.
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       nextIndex = index === CATEGORIES.length - 1 ? 0 : index + 1;
-    } else if (e.key === 'ArrowLeft') {
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       nextIndex = index === 0 ? CATEGORIES.length - 1 : index - 1;
     } else if (e.key === 'Home') {
       nextIndex = 0;
@@ -93,22 +95,13 @@ export function CategoryFilter({ value, onChange, className }: CategoryFilterPro
       {CATEGORIES.map((cat, i) => (
         <CategoryTab
           key={cat}
-          ref={(el) => { tabRefs.current[i] = el; }}
-          role="tab"
-          aria-selected={value === cat}
-          aria-pressed={value === cat}
-          tabIndex={value === cat ? 0 : -1}
-          onClick={() => onChange(cat)}
-          onKeyDown={(e) => handleKeyDown(e, i)}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 ${
-            value === cat
-              ? 'bg-teal-500 text-white'
-              : 'border border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
-          }`}
-        >
-          {cat !== 'all' && <span>{CATEGORY_ICONS[cat]}</span>}
-          {cat === 'all' ? 'All policies' : CATEGORY_LABELS[cat]}
-        </button>
+          cat={cat}
+          index={i}
+          selected={value === cat}
+          onSelect={handleSelect}
+          onKeyDown={handleKeyDown}
+          setRef={setRef}
+        />
       ))}
     </div>
   );

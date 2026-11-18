@@ -1,13 +1,17 @@
-﻿'use client';
+'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useWallet } from '@/hooks/useWallet';
 import { usePolicies } from '@/hooks/usePolicies';
 import { PolicyCard } from '@/components/PolicyCard';
 import { ConnectWalletPrompt } from '@/components/ConnectWalletPrompt';
 import { SkeletonCard } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
 import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/Badge';
+import { Listbox, type ListboxOption } from '@/components/Listbox';
+import { parseEnumParam, parsePageParam, sanitizeSearchParam, MAX_SEARCH_QUERY_LENGTH } from '@/lib/queryParams';
 import Link from 'next/link';
 
 type Filter = 'All' | 'Active' | 'Pending' | 'Processing' | 'Expired' | 'Claimed' | 'Cancelled';
@@ -15,12 +19,14 @@ type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'expiry';
 type ViewMode = 'grid' | 'list';
 
 const FILTERS: Filter[] = ['All', 'Active', 'Pending', 'Processing', 'Expired', 'Claimed', 'Cancelled'];
+const SORT_VALUES: SortOption[] = ['newest', 'oldest', 'amount-high', 'amount-low', 'expiry'];
+const VIEW_MODES: ViewMode[] = ['grid', 'list'];
 
 // Loading skeleton count for better perceived performance
 const SKELETON_COUNT = 6;
 
 // Sort options for policy display
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+const SORT_OPTIONS: ListboxOption<SortOption>[] = [
   { value: 'newest', label: 'Newest First' },
   { value: 'oldest', label: 'Oldest First' },
   { value: 'amount-high', label: 'Highest Amount' },
@@ -31,13 +37,39 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 export default function PoliciesPage() {
   const { address, connected } = useWallet();
   const { policies, loading, error, refetch } = usePolicies(address);
-  const [filter, setFilter] = useState<Filter>('All');
-  const [page, setPage] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Initialize state from URL query params (#746). Params are untrusted, so
+  // each one is validated against its allowed format before use.
+  const [filter, setFilter] = useState<Filter>(
+    () => parseEnumParam(searchParams.get('status'), FILTERS, 'All')
+  );
+  const [page, setPage] = useState(() => parsePageParam(searchParams.get('page')));
+  const [searchQuery, setSearchQuery] = useState(() => sanitizeSearchParam(searchParams.get('q')));
+  const [sortBy, setSortBy] = useState<SortOption>(
+    () => parseEnumParam(searchParams.get('sort'), SORT_VALUES, 'newest')
+  );
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    () => parseEnumParam(searchParams.get('view'), VIEW_MODES, 'grid')
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const POLICIES_PER_PAGE = 12;
+
+  // Sync filter state to URL query params (#746)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filter !== 'All') params.set('status', filter);
+    if (searchQuery) params.set('q', searchQuery);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    if (viewMode !== 'grid') params.set('view', viewMode);
+    if (page > 0) params.set('page', String(page));
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
+    router.replace(newUrl, { scroll: false });
+  }, [filter, searchQuery, sortBy, viewMode, page, pathname, router]);
 
   // Early return for disconnected wallet
   if (!connected) {
@@ -95,12 +127,12 @@ export default function PoliciesPage() {
     
     const query = searchQuery.toLowerCase();
     return filteredByStatus.filter((p) => {
-      // Search in policy ID, status, and amount
+      // Search in policy ID, status, coverage, and product name
       return (
         p.id.toLowerCase().includes(query) ||
         p.status.toLowerCase().includes(query) ||
-        (p.amount && p.amount.toString().includes(query)) ||
-        (p.productName && p.productName.toLowerCase().includes(query))
+        (p.coverage && p.coverage.includes(query)) ||
+        (p.product?.name && p.product.name.toLowerCase().includes(query))
       );
     });
   }, [filteredByStatus, searchQuery]);
@@ -111,12 +143,12 @@ export default function PoliciesPage() {
     
     switch (sortBy) {
       case 'newest':
-        return sorted.sort((a, b) => 
-          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        return sorted.sort((a, b) =>
+          (b.createdAt ?? b.startTime) - (a.createdAt ?? a.startTime)
         );
       case 'oldest':
-        return sorted.sort((a, b) => 
-          new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+        return sorted.sort((a, b) =>
+          (a.createdAt ?? a.startTime) - (b.createdAt ?? b.startTime)
         );
       case 'amount-high':
         return sorted.sort((a, b) => (b.amount || 0) - (a.amount || 0));
@@ -145,13 +177,14 @@ export default function PoliciesPage() {
     setPage(0);
   }, []);
 
+  // stable ref: setSearchQuery/setPage are state dispatchers, no deps needed
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setPage(0);
   }, []);
 
-  const handleSortChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortBy(e.target.value as SortOption);
+  const handleSortChange = useCallback((value: SortOption) => {
+    setSortBy(value);
     setPage(0);
   }, []);
 
@@ -265,6 +298,7 @@ export default function PoliciesPage() {
               type="text"
               value={searchQuery}
               onChange={handleSearchChange}
+              maxLength={MAX_SEARCH_QUERY_LENGTH}
               placeholder="Search policies by ID, status, or product..."
               aria-label="Search policies"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 pl-10 text-sm text-white placeholder-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
@@ -295,29 +329,14 @@ export default function PoliciesPage() {
             )}
           </div>
 
-          {/* Sort Dropdown */}
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={handleSortChange}
-              aria-label="Sort policies"
-              className="appearance-none rounded-lg border border-white/10 bg-white/5 px-4 py-2 pr-10 text-sm text-white focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value} className="bg-gray-900">
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <svg
-              className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
+          {/* Sort Dropdown: keyboard-navigable listbox */}
+          <Listbox
+            value={sortBy}
+            options={SORT_OPTIONS}
+            onChange={handleSortChange}
+            label="Sort policies"
+            className="sm:w-48"
+          />
         </div>
       )}
 
@@ -350,12 +369,9 @@ export default function PoliciesPage() {
         </div>
       )}
 
+      <LoadingRegion loading={loading} label="Loading policies">
       {loading ? (
-        <div 
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          role="status"
-          aria-label="Loading policies"
-        >
+        <div className="grid-fluid-cards gap-4">
           {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -411,7 +427,7 @@ export default function PoliciesPage() {
             id="policies-grid"
             className={
               viewMode === 'grid'
-                ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+                ? 'grid-fluid-cards gap-4'
                 : 'flex flex-col gap-3'
             }
             role="region"
@@ -485,6 +501,7 @@ export default function PoliciesPage() {
           )}
         </>
       )}
+      </LoadingRegion>
     </main>
   );
 }

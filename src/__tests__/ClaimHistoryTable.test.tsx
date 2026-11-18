@@ -1,4 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { render, screen, within } from '@testing-library/react';
 import { ClaimHistoryTable } from '../components/ClaimHistoryTable';
 import type { Claim } from '../types';
 
@@ -35,12 +38,12 @@ describe('ClaimHistoryTable', () => {
     expect(html).toContain('Processing');
   });
 
-  it('links each claim row and mobile card to its policy details', () => {
+  it('links each claim row to its policy details', () => {
     const html = renderToStaticMarkup(
       <ClaimHistoryTable claims={[makeClaim({ id: 'claim-1', policyId: 'policy-123' })]} />,
     );
 
-    expect(html.match(/href="\/policies\/policy-123"/g)).toHaveLength(4);
+    expect(html.match(/href="\/policies\/policy-123"/g)).toHaveLength(2);
     expect(html).toContain('aria-label="View policy for claim claim-1"');
   });
 
@@ -91,5 +94,49 @@ describe('ClaimHistoryTable', () => {
     expect(html).toContain('Payout');
     expect(html).toContain('Submitted');
     expect(html).toContain('Status');
+  });
+
+  // #754: mobile used to swap the table for <div> cards, so screen readers
+  // announced cards instead of a table. The same <table> must now serve every
+  // viewport, with CSS doing the stacking.
+  describe('table semantics on mobile (#754)', () => {
+    const claims = [
+      makeClaim({ id: 'claim-1', txHash: 'tx-abc123' }),
+      makeClaim({ id: 'claim-2', status: 'Processing' }),
+    ];
+
+    it('renders a single table with no separate card layout', () => {
+      const { container } = render(<ClaimHistoryTable claims={claims} />);
+      expect(container.querySelectorAll('table')).toHaveLength(1);
+      expect(container.querySelector('.md\\:hidden, .hidden.md\\:block')).toBeNull();
+    });
+
+    it('exposes table, row, columnheader and cell roles', () => {
+      render(<ClaimHistoryTable claims={claims} />);
+      const table = screen.getByRole('table');
+      expect(within(table).getAllByRole('columnheader')).toHaveLength(7);
+      // header row + one row per claim
+      expect(within(table).getAllByRole('row')).toHaveLength(claims.length + 1);
+      expect(within(table).getAllByRole('cell')).toHaveLength(claims.length * 7);
+    });
+
+    it('gives every cell a data-label matching its column header', () => {
+      const { container } = render(<ClaimHistoryTable claims={claims} />);
+      const headers = Array.from(container.querySelectorAll('thead th')).map((th) =>
+        th.textContent?.replace(/[↑↓]/g, '').trim(),
+      );
+      for (const row of Array.from(container.querySelectorAll('tbody tr'))) {
+        const labels = Array.from(row.querySelectorAll('td')).map((td) => td.getAttribute('data-label'));
+        expect(labels).toEqual(headers);
+      }
+    });
+
+    it('uses the responsive-table class backed by a mobile stacking rule', () => {
+      render(<ClaimHistoryTable claims={claims} />);
+      expect(screen.getByRole('table')).toHaveClass('responsive-table');
+
+      const css = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8');
+      expect(css).toMatch(/@media \(max-width: 47\.999rem\)[\s\S]*\.responsive-table td\[data-label\]::before[\s\S]*content: attr\(data-label\)/);
+    });
   });
 });

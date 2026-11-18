@@ -1,18 +1,33 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { NavBar } from '@/components/NavBar';
 import { ToastContainer } from '@/components/Toast';
 import { NetworkBanner } from '@/components/NetworkBanner';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { WalletProvider } from '@/context/WalletContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Analytics } from '@/components/Analytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { validateConfig } from '@/lib/constants';
+import { ErrorBoundaryWrapper } from '@/components/ErrorBoundaryWrapper';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { LogoWordmark } from '@/components/Logo';
+import { resolveLocale } from '@/lib/i18n';
 
 validateConfig();
+
+// Self-hosted at build time by next/font (#780): no render-blocking request to
+// a font CDN, the woff2 is preloaded, and `swap` paints immediately with a
+// metric-adjusted fallback so the late swap doesn't shift layout.
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://parashield.app'),
@@ -46,7 +61,7 @@ export const metadata: Metadata = {
 const CURRENT_YEAR = new Date().getFullYear();
 
 const NavBarFallback = (
-  <nav className="sticky top-0 z-40 border-b border-gray-200 dark:border-white/10 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
+  <nav className="sticky top-0 z-(--z-sticky) border-b border-gray-200 dark:border-white/10 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
     <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
       <Link href="/">
         <LogoWordmark size={28} />
@@ -61,35 +76,38 @@ const FooterFallback = (
   </footer>
 );
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Set lang from the request so screen readers pronounce content correctly (#807).
+  const lang = resolveLocale((await headers()).get('accept-language'));
   return (
-    <html lang="en" className="dark">
+    <html lang={lang} className={`dark ${inter.variable}`}>
       <body className="bg-gray-950 text-white dark:bg-gray-950 dark:text-white bg-white text-gray-950 antialiased">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:bg-teal-500 focus:px-4 focus:py-2 focus:text-white">Skip to main content</a>
         <Analytics />
         <ThemeProvider>
         <WalletProvider>
           <ToastProvider>
+            <OfflineBanner />
             <NetworkBanner />
-            <ErrorBoundary fallback={NavBarFallback}>
+            <ErrorBoundaryWrapper fallback={NavBarFallback}>
               <NavBar />
-            </ErrorBoundary>
+            </ErrorBoundaryWrapper>
             <main id="main-content">
-              <ErrorBoundary>
+              <ErrorBoundaryWrapper>
                 {children}
-              </ErrorBoundary>
+              </ErrorBoundaryWrapper>
             </main>
-            <ErrorBoundary fallback={null}>
+            <ErrorBoundaryWrapper fallback={null}>
               <ToastContainer />
-            </ErrorBoundary>
+            </ErrorBoundaryWrapper>
           </ToastProvider>
         </WalletProvider>
         </ThemeProvider>
-        <ErrorBoundary fallback={FooterFallback}>
+        <ErrorBoundaryWrapper fallback={FooterFallback}>
           <footer className="border-t border-gray-200 dark:border-white/10 py-8 text-center text-xs text-gray-500 dark:text-gray-400">
             © {CURRENT_YEAR} Parashield · Built on Stellar · Powered by Soroban
           </footer>
-        </ErrorBoundary>
+        </ErrorBoundaryWrapper>
       </body>
     </html>
   );

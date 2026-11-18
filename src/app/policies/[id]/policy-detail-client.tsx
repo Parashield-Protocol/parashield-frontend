@@ -8,11 +8,12 @@ import { PolicyStatusTimeline, getPolicyLastUpdated } from "@/components/PolicyS
 import { TransactionLink } from "@/components/TransactionLink";
 import { Badge } from "@/components/Badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { formatUSDC, formatDate, formatDateTime, timeLeft, shortenAddress } from "@/lib/format";
+import { formatUSDC, formatDate, formatDateTime, timeLeft, shortenAddress, safeBigInt, basisPointsToPercent } from "@/lib/format";
 import { CopyButton } from "@/components/CopyButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClaimStatus } from "@/components/ClaimStatus";
 import { Skeleton, SkeletonText } from "@/components/Skeleton";
+import { LoadingRegion } from "@/components/LoadingRegion";
 import { CATEGORY_ICONS } from "@/lib/constants";
 
 export default function PolicyDetailClient({
@@ -27,6 +28,7 @@ export default function PolicyDetailClient({
   if (loading) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-12">
+        <LoadingRegion loading label="Loading policy details">
         <div className="mb-6 flex items-center gap-4">
           <Skeleton className="h-8 flex-1 rounded-xl" />
           <Skeleton className="h-6 w-20 rounded-full" />
@@ -61,6 +63,7 @@ export default function PolicyDetailClient({
             <SkeletonText count={3} />
           </div>
         </div>
+        </LoadingRegion>
       </main>
     );
   }
@@ -90,6 +93,12 @@ export default function PolicyDetailClient({
   const canClaim =
     policy.status === "Active" && address === policy.policyholder;
 
+  const coverageStroops = safeBigInt(policy.coverage);
+  const premiumRateBps =
+    coverageStroops > 0n
+      ? (safeBigInt(policy.premiumPaid) * 10_000n) / coverageStroops
+      : null;
+
   const categoryKey = policy.product?.category as keyof typeof CATEGORY_ICONS | undefined;
   const categoryIcon = categoryKey ? CATEGORY_ICONS[categoryKey] ?? '🛡️' : '🛡️';
 
@@ -111,8 +120,8 @@ export default function PolicyDetailClient({
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       {refetching && (
-        <div className="fixed inset-x-0 top-0 z-50 flex justify-center">
-          <div className="mt-4 flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs text-gray-400 backdrop-blur">
+        <div className="sticky top-0 z-50 flex justify-center py-2">
+          <div className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs text-gray-400 backdrop-blur">
             <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-300 border-t-teal-100" />
             Refreshing…
           </div>
@@ -135,7 +144,7 @@ export default function PolicyDetailClient({
             <span className="font-mono text-sm text-white">
               {shortenAddress(policy.policyholder)}
             </span>
-            <CopyButton text={policy.policyholder} label="Copy address" />
+            <CopyButton text={policy.policyholder} label={`Copy address ${shortenAddress(policy.policyholder)}`} />
           </div>
         </div>
 
@@ -144,9 +153,7 @@ export default function PolicyDetailClient({
           { label: "Premium paid", value: formatUSDC(policy.premiumPaid) },
           {
             label: "Premium rate",
-            value: policy.coverage > 0
-              ? `${((policy.premiumPaid / policy.coverage) * 100).toFixed(2)}%`
-              : "N/A",
+            value: premiumRateBps !== null ? basisPointsToPercent(Number(premiumRateBps)) : "N/A",
           },
         ].map(({ label, value }) => (
           <div
@@ -170,7 +177,7 @@ export default function PolicyDetailClient({
             <span className="font-mono text-sm text-white break-all">
               {policy.oracleKey}
             </span>
-            <CopyButton text={policy.oracleKey} label="Copy key" />
+            <CopyButton text={policy.oracleKey} label={`Copy key ${shortenAddress(policy.oracleKey)}`} />
           </div>
         </div>
 

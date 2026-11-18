@@ -124,6 +124,27 @@ describe('OracleDataWidget', () => {
     expect(html).toContain('mm');
   });
 
+  it('renders oracle metadata as escaped text', () => {
+    mockUseOracleReading.mockReturnValue({
+      reading: {
+        key: 'rainfall:1,1:2025-01',
+        value: '324000000',
+        confidence: 95,
+        timestamp: 1720000000,
+        source: '<script>alert(1)</script>',
+        dataType: 'weather',
+      },
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const html = renderToStaticMarkup(<OracleDataWidget oracleKey="rainfall:1,1:2025-01" />);
+    expect(html).toContain('Source: ');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).not.toContain('<script>alert(1)</script>');
+  });
+
   it('displays temperature value with °C unit', () => {
     mockUseOracleReading.mockReturnValue({
       reading: {

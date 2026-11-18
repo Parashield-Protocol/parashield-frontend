@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useWalletContext } from '@/context/WalletContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import { shortenAddress } from '@/lib/format';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 /** Delay before showing the connecting indicator (#486), so a connection
  * that resolves faster than this never flashes a loading state at all. */
@@ -18,6 +19,7 @@ interface WalletButtonProps {
 export function WalletButton({ className }: WalletButtonProps) {
   const { address, connected, connecting, error, connect, disconnect } = useWalletContext();
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const online = useOnlineStatus();
   const [dismissedError, setDismissedError] = useState<string | null>(null);
   const showConnecting = useDebounce(connecting, CONNECTING_INDICATOR_DELAY_MS) && connecting;
 
@@ -85,7 +87,8 @@ export function WalletButton({ className }: WalletButtonProps) {
     <div className={`flex flex-col items-start gap-1 ${className ?? ''}`}>
       <button
         onClick={connect}
-        disabled={connecting}
+        disabled={connecting || !online}
+        title={online ? undefined : 'You are offline'}
         className="rounded-full bg-teal-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
       >
         {showConnecting ? 'Connecting…' : 'Connect Wallet'}

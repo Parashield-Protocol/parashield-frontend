@@ -1,17 +1,24 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import type { Product } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
-import { displayToStroops, stroopsToDisplay, estimatePremium, basisPointsToPercent } from '@/lib/format';
+import { displayToStroops, stroopsToDisplay, estimatePremium, basisPointsToPercent, toDateInputValue, dateInputToEpoch } from '@/lib/format';
+import { amountInputGuards, isPlainDecimal, numberScrollGuards } from '@/lib/numberInput';
+import { NumberInput } from '@/components/NumberInput';
 import { toUserMessage } from '@/lib/errors';
-import { invokeBuyPolicy } from '@/lib/contract';
+import { invokeBuyPolicy, type TxStage } from '@/lib/contract';
 import { buyPolicy as recordPolicyPurchase } from '@/lib/api';
 import { buildRainfallKey, buildFlightKey } from '@/lib/oracle';
 import { Modal } from './Modal';
 import { StepProgress } from './ProgressBar';
 import { useToast } from '@/context/ToastContext';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { ButtonSpinner } from './LoadingSpinner';
+import { TransactionProgress, TX_COMPLETE, type TransactionStep } from './TransactionProgress';
 import { INPUT_CLASS, SELECT_CLASS, LABEL_CLASS, ERROR_TEXT, INFO_TEXT, CARD_PANEL } from '@/lib/styles';
+import { MAX_INPUT_LENGTHS } from '@/lib/constants';
 
 interface Props {
   product: Product;
@@ -19,6 +26,16 @@ interface Props {
 }
 
 const STEPS = ['Configure', 'Review', 'Sign'];
+
+type PurchaseStage = TxStage | 'recording' | typeof TX_COMPLETE;
+
+const PURCHASE_STEPS: TransactionStep[] = [
+  { id: 'preparing',  label: 'Prepare transaction', status: 'Preparing transaction…' },
+  { id: 'signing',    label: 'Sign in wallet',      status: 'Waiting for your wallet signature…' },
+  { id: 'submitting', label: 'Submit to network',   status: 'Submitting to the network…' },
+  { id: 'confirming', label: 'Confirm on-chain',    status: 'Confirming transaction…' },
+  { id: 'recording',  label: 'Activate policy',     status: 'Processing your policy…' },
+];
 
 // estimatePremium throws on anything displayToStroops rejects (empty, negative,
 // partially-typed numbers). It runs on every keystroke — outside validate() —
@@ -48,6 +65,16 @@ export function BuyPolicyModal({ product, onClose }: Props) {
   }, [product.id]);
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
+  // Where an in-flight purchase is; null when nothing has been submitted.
+  const [stage,     setStage]     = useState<PurchaseStage | null>(null);
+  const completed = stage === TX_COMPLETE;
+  // Drops repeat clicks while a request is in flight and right after a step
+  // advance, so a double-click on "Confirm details" can't also sign.
+  const { guard, pending } = useSubmitGuard();
+  const online = useOnlineStatus();
+  // Configure/Review are local; connecting the wallet and signing are not.
+  const needsNetwork = !address || step === 2;
+  const blockedOffline = !online && needsNetwork;
 
   const [coverageError, setCoverageError] = useState('');
   const [durationError, setDurationError] = useState('');
@@ -65,7 +92,9 @@ export function BuyPolicyModal({ product, onClose }: Props) {
 
   // Flight builder state
   const [flightNumber, setFlightNumber] = useState('');
-  const [flightDate, setFlightDate] = useState(new Date().toISOString().split('T')[0]);
+  // Default to the viewer's local "today", not the UTC day from toISOString(),
+  // which is still yesterday for users ahead of UTC (#778).
+  const [flightDate, setFlightDate] = useState(() => toDateInputValue());
 
   const minDisplay = stroopsToDisplay(product.coverageMin, 2);
   const maxDisplay = stroopsToDisplay(product.coverageMax, 2);
@@ -94,7 +123,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
     // #475) rather than relying on parseFloat/parseInt's lenient parsing:
     // parseFloat("5e8") happily returns 500000000, which could pass a naive
     // range check with a value the user never intended to type.
-    if (!/^\d+(\.\d+)?$/.test(coverage.trim())) {
+    if (!isPlainDecimal(coverage)) {
       setCoverageError('Coverage must be a plain positive number (no scientific notation)');
       isValid = false;
     } else {
@@ -152,6 +181,9 @@ export function BuyPolicyModal({ product, onClose }: Props) {
       if (!flightDate) {
         setFlightDateError('Flight date is required');
         isValid = false;
+      } else if (dateInputToEpoch(flightDate) === null) {
+        setFlightDateError('Enter a valid date');
+        isValid = false;
       } else {
         setFlightDateError('');
       }
@@ -180,6 +212,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
 
     setBusy(true);
     setError('');
+    setStage('preparing');
     try {
       const trimmedKey = oracleKey.trim();
       const { txHash, signedXdr } = await invokeBuyPolicy(
@@ -188,7 +221,9 @@ export function BuyPolicyModal({ product, onClose }: Props) {
         BigInt(displayToStroops(coverage)),
         trimmedKey,
         parseInt(duration, 10),
+        setStage,
       );
+      setStage('recording');
 
       // The purchase is already final on-chain at this point; the backend still
       // needs to be told about it or the policy never shows up in the UI, which
@@ -211,8 +246,10 @@ export function BuyPolicyModal({ product, onClose }: Props) {
       }
 
       showToast(`Policy activation transaction ${txHash.slice(0, 8)}… submitted`, 'success');
-      onClose();
+      // Hold the modal open on the completion state; the user dismisses it.
+      setStage(TX_COMPLETE);
     } catch (err) {
+      setStage(null);
       setError(toUserMessage(err));
     } finally {
       setBusy(false);
@@ -230,12 +267,13 @@ export function BuyPolicyModal({ product, onClose }: Props) {
               <label className={LABEL_CLASS}>
                 Coverage Amount (USDC)
               </label>
-              <input
-                type="number"
+              <NumberInput
                 min={minDisplay}
                 max={maxDisplay}
                 value={coverage}
                 onChange={(e) => { setCoverage(e.target.value); setCoverageError(''); }}
+                {...amountInputGuards}
+                maxLength={MAX_INPUT_LENGTHS.amount}
                 placeholder={`${minDisplay} – ${maxDisplay}`}
                 className={`${INPUT_CLASS} ${coverageError ? 'border-red-500' : ''}`}
               />
@@ -245,12 +283,13 @@ export function BuyPolicyModal({ product, onClose }: Props) {
               <label className={LABEL_CLASS}>
                 Duration (days, max {product.maxDuration})
               </label>
-              <input
-                type="number"
+              <NumberInput
                 value={duration}
                 onChange={(e) => { setDuration(e.target.value); setDurationError(''); }}
+                {...amountInputGuards}
                 min={1}
                 max={product.maxDuration}
+                maxLength={MAX_INPUT_LENGTHS.amount}
                 className={`${INPUT_CLASS} ${durationError ? 'border-red-500' : ''}`}
               />
               {durationError && <p className="mt-1 text-xs text-red-400">{durationError}</p>}
@@ -268,6 +307,8 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       step="0.0001"
                       value={lat}
                       onChange={(e) => { setLat(e.target.value); setLatError(''); }}
+                      {...numberScrollGuards}
+                      maxLength={16}
                       placeholder="e.g. -0.0917"
                       className={`${INPUT_CLASS} ${latError ? 'border-red-500' : ''}`}
                     />
@@ -282,6 +323,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                       step="0.0001"
                       value={lng}
                       onChange={(e) => { setLng(e.target.value); setLngError(''); }}
+                      {...numberScrollGuards}
                       placeholder="e.g. 34.7679"
                       className={`${INPUT_CLASS} ${lngError ? 'border-red-500' : ''}`}
                     />
@@ -341,7 +383,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                     // Strip colons at the source: a ':' is the oracle-key delimiter,
                     // so one inside the flight number would break key parsing (#223).
                     onChange={(e) => { setFlightNumber(e.target.value.replace(/:/g, '')); setFlightNumberError(''); }}
-                    maxLength={16}
+                    maxLength={MAX_INPUT_LENGTHS.reference}
                     pattern="[^:]*"
                     placeholder="e.g. KQ100"
                     className={`${INPUT_CLASS} ${flightNumberError ? 'border-red-500' : ''}`}
@@ -388,7 +430,7 @@ export function BuyPolicyModal({ product, onClose }: Props) {
                   value={oracleKey}
                   onChange={(e) => { setManualOracleKey(e.target.value); setOracleKeyError(''); }}
                   placeholder='e.g. rainfall:1.5,36.8:2026-06'
-                  maxLength={32}
+                  maxLength={MAX_INPUT_LENGTHS.oracleParams}
                   className={`${INPUT_CLASS} ${oracleKeyError ? 'border-red-500' : ''}`}
                 />
                 <p className="mt-1 text-[10px] text-gray-400">Max 32 chars</p>
@@ -427,7 +469,15 @@ export function BuyPolicyModal({ product, onClose }: Props) {
           </div>
         )}
 
-        {step === 2 && (
+        {step === 2 && stage && (
+          <TransactionProgress
+            steps={PURCHASE_STEPS}
+            current={stage}
+            completeText="Complete! Your policy is active."
+          />
+        )}
+
+        {step === 2 && !stage && (
           <div className="space-y-3 text-sm text-gray-500 dark:text-gray-400">
             <p>Your Stellar wallet will prompt you to sign the policy transaction.</p>
             <p className="text-xs">
@@ -436,42 +486,56 @@ export function BuyPolicyModal({ product, onClose }: Props) {
           </div>
         )}
 
-        {error && <p className={ERROR_TEXT}>{error}</p>}
+        {error && <p className={ERROR_TEXT} aria-live="polite">{error}</p>}
       </div>
 
-      <div className="mt-6 flex gap-3">
-        <button
-          onClick={onClose}
-          disabled={busy}
-          className="rounded-xl border border-gray-200 dark:border-white/10 px-4 py-2.5 font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-950 dark:hover:text-white disabled:opacity-60 transition-colors"
-        >
-          Cancel
-        </button>
-        {step > 0 && (
+      {completed ? (
+        <div className="mt-6 flex">
           <button
-            onClick={() => setStep((s) => s - 1)}
+            onClick={onClose}
+            className="flex flex-1 items-center justify-center rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 transition-colors"
+          >
+            Done
+          </button>
+        </div>
+      ) : (
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={onClose}
             disabled={busy}
             className="rounded-xl border border-gray-200 dark:border-white/10 px-4 py-2.5 font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-950 dark:hover:text-white disabled:opacity-60 transition-colors"
           >
-            Back
+            Cancel
           </button>
-        )}
-        <button
-          onClick={handleBuy}
-          disabled={busy || connecting}
-          className="flex-1 rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
-        >
-          {connecting  ? 'Connecting wallet…' :
-           busy        ? 'Submitting…' :
-           !address    ? 'Connect Wallet' :
-           step === 2  ? 'Sign & Confirm' :
-           step === 1  ? 'Confirm details' :
-           'Next'}
-        </button>
-        {walletError && !address && (
-          <p className="mt-2 text-sm text-red-500 dark:text-red-400">{walletError}</p>
-        )}
-      </div>
+          {step > 0 && (
+            <button
+              onClick={() => setStep((s) => s - 1)}
+              disabled={busy}
+              className="rounded-xl border border-gray-200 dark:border-white/10 px-4 py-2.5 font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-950 dark:hover:text-white disabled:opacity-60 transition-colors"
+            >
+              Back
+            </button>
+          )}
+          <button
+            onClick={guard(handleBuy)}
+            disabled={busy || pending || connecting || blockedOffline}
+            aria-busy={busy || connecting}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
+          >
+            {(busy || connecting) && <ButtonSpinner />}
+            {connecting     ? 'Connecting wallet…' :
+             busy           ? 'Submitting…' :
+             blockedOffline ? 'Offline — waiting for connection' :
+             !address    ? 'Connect Wallet' :
+             step === 2  ? 'Sign & Confirm' :
+             step === 1  ? 'Confirm details' :
+             'Next'}
+          </button>
+          {walletError && !address && (
+            <p className="mt-2 text-sm text-red-500 dark:text-red-400">{walletError}</p>
+          )}
+        </div>
+      )}
     </Modal>
   );
 }

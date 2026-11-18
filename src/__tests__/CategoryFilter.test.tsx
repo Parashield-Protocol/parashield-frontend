@@ -74,6 +74,37 @@ describe('CategoryFilter', () => {
     expect(html).toContain('custom');
   });
 
+  describe('keyboard navigation', () => {
+    function KeyboardHarness() {
+      const [value, setValue] = useState<'all' | 'crop' | 'flight' | 'disaster' | 'health' | 'defi'>('all');
+      return <CategoryFilter value={value} onChange={setValue} />;
+    }
+
+    it('moves selection and focus with ArrowDown/ArrowUp as well as Left/Right, wrapping', () => {
+      render(<KeyboardHarness />);
+      const all = screen.getByRole('tab', { name: /all policies/i });
+
+      fireEvent.keyDown(all, { key: 'ArrowDown' });
+      const crop = screen.getByRole('tab', { name: /crop/i });
+      expect(crop).toHaveAttribute('aria-selected', 'true');
+      expect(crop).toHaveFocus();
+
+      fireEvent.keyDown(crop, { key: 'ArrowUp' });
+      expect(all).toHaveFocus();
+      fireEvent.keyDown(all, { key: 'ArrowUp' });
+      expect(screen.getByRole('tab', { name: /defi/i })).toHaveFocus();
+    });
+
+    it('jumps to the ends with Home/End', () => {
+      render(<KeyboardHarness />);
+      fireEvent.keyDown(screen.getByRole('tab', { name: /all policies/i }), { key: 'End' });
+      const defi = screen.getByRole('tab', { name: /defi/i });
+      expect(defi).toHaveFocus();
+      fireEvent.keyDown(defi, { key: 'Home' });
+      expect(screen.getByRole('tab', { name: /all policies/i })).toHaveFocus();
+    });
+  });
+
   describe('re-rendering (#590)', () => {
     beforeEach(() => labelReads.clear());
 

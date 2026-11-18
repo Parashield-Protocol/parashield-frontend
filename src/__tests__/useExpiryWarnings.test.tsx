@@ -1,4 +1,5 @@
 import { useExpiryWarnings } from '../hooks/useExpiryWarnings';
+import { expiryNotifiedStorageKey } from '../lib/storageKeys';
 import { renderHook } from './renderHook';
 import type { Policy } from '../types';
 
@@ -56,7 +57,7 @@ describe('useExpiryWarnings (#532)', () => {
   });
 
   it('skips policies already recorded in sessionStorage', () => {
-    sessionStorage.setItem('ps_expiry_notified_GWALLET', JSON.stringify(['policy-1']));
+    sessionStorage.setItem(expiryNotifiedStorageKey('GWALLET'), JSON.stringify(['policy-1']));
     const toasts: string[] = [];
 
     renderHook(() => useExpiryWarnings([makePolicy()], true, 'GWALLET', (m) => { toasts.push(m); }));
@@ -78,5 +79,27 @@ describe('useExpiryWarnings (#532)', () => {
     ready = true;
     hook.rerender();
     expect(toasts).toEqual(['Policy #soon expires within 24 hours']);
+  });
+
+  it('keeps separate notified sets per wallet address (#916)', () => {
+    const toasts: string[] = [];
+    let address: string | null = 'GWALLET-A';
+    const hook = renderHook(() =>
+      useExpiryWarnings([makePolicy()], true, address, (m) => { toasts.push(m); }),
+    );
+    expect(toasts).toHaveLength(1);
+
+    address = 'GWALLET-B';
+    hook.rerender();
+    expect(toasts).toHaveLength(2);
+  });
+
+  it('treats malformed sessionStorage JSON as empty (#916)', () => {
+    sessionStorage.setItem(expiryNotifiedStorageKey('GWALLET'), '{not json');
+    const toasts: string[] = [];
+
+    renderHook(() => useExpiryWarnings([makePolicy()], true, 'GWALLET', (m) => { toasts.push(m); }));
+
+    expect(toasts).toHaveLength(1);
   });
 });

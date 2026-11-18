@@ -3,6 +3,7 @@
 import { memo, useState, useCallback, useRef } from 'react';
 import { useOracleReading } from '@/hooks/useOracle';
 import { Skeleton } from './Skeleton';
+import { LoadingRegion } from './LoadingRegion';
 import { formatOracleValue, formatDateTime, formatUtcDateTime } from '@/lib/format';
 import { oracleKeyLabel, confidenceLabel, confidenceColour, parseOracleKey } from '@/lib/oracle';
 
@@ -11,8 +12,19 @@ interface OracleDataWidgetProps {
   className?: string;
 }
 
+type OracleDataWidgetBodyProps = OracleDataWidgetProps & ReturnType<typeof useOracleReading>;
+
 function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetProps) {
-  const { reading, loading, error, refetch } = useOracleReading(oracleKey);
+  const state = useOracleReading(oracleKey);
+
+  return (
+    <LoadingRegion loading={state.loading} label="Loading oracle data">
+      <OracleDataWidgetBody oracleKey={oracleKey} className={className} {...state} />
+    </LoadingRegion>
+  );
+}
+
+function OracleDataWidgetBody({ oracleKey, className, reading, loading, error, refetch }: OracleDataWidgetBodyProps) {
   const [refreshing, setRefreshing] = useState(false);
 
   // Keep a stable refetch reference so handleRefresh doesn't change identity
@@ -48,6 +60,7 @@ function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetPro
         <button
           onClick={() => void handleRefresh()}
           disabled={refreshing}
+          aria-busy={refreshing}
           className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
         >
           {refreshing ? 'Retrying…' : 'Retry'}
@@ -63,6 +76,7 @@ function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetPro
         <button
           onClick={() => void handleRefresh()}
           disabled={refreshing}
+          aria-busy={refreshing}
           className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
           aria-label="Refresh oracle data"
         >
@@ -74,6 +88,7 @@ function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetPro
 
   const confLabel  = confidenceLabel(reading.confidence);
   const confColour = confidenceColour(reading.confidence);
+  const formattedOracleValue = String(formatOracleValue(reading.value, parseOracleKey(oracleKey).dataType));
 
   return (
     <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${className ?? ''}`}>
@@ -81,7 +96,7 @@ function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetPro
       <p className="mt-1 text-xs text-gray-400 truncate">{oracleKeyLabel(oracleKey)}</p>
 
       <p className="mt-3 text-2xl font-black text-white">
-        {formatOracleValue(reading.value, parseOracleKey(oracleKey).dataType)}
+        {formattedOracleValue}
       </p>
 
       <div className="mt-3 flex items-center justify-between text-[10px] text-gray-400">

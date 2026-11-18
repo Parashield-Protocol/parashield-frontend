@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useWalletContext } from '@/context/WalletContext';
 import { IS_MAINNET, NETWORK_PASSPHRASES } from '@/lib/constants';
+import { STORAGE_KEYS } from '@/lib/storageKeys';
 
-const DISMISS_KEY = 'parashield_testnet_banner_dismissed';
+const DISMISS_KEY = STORAGE_KEYS.testnetBannerDismissed;
 
 export function NetworkBanner() {
   const { connected, networkPassphrase } = useWalletContext();

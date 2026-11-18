@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { ToastContainer } from '../components/Toast';
+import { Modal } from '../components/Modal';
 import type { Toast as ToastType } from '../types';
 
 const mockDismiss = vi.fn();
@@ -98,5 +101,39 @@ describe('ToastContainer', () => {
     render(<ToastContainer />);
     const toast = screen.getByText('Error toast').parentElement!;
     expect(toast.className).toContain('border-red-500/30');
+  });
+
+  describe('stacking above modals (#785)', () => {
+    it('portals the container to <body> on the toast layer', () => {
+      const { container } = render(<ToastContainer />);
+      const region = screen.getByRole('status');
+      expect(container).not.toContainElement(region);
+      expect(region.parentElement).toBe(document.body);
+      expect(region.className).toContain('z-(--z-toast)');
+    });
+
+    it('stays visible on top when a toast fires while a modal is open', () => {
+      // The modal portals to <body> before the toast is raised.
+      render(<Modal open onClose={() => {}} title="Buy policy"><p>form</p></Modal>);
+      mockToasts.push({ id: '1', message: 'Submit failed', variant: 'error', duration: 5000 });
+      render(<ToastContainer />);
+
+      const overlay = document.querySelector('[data-modal-overlay]') as HTMLElement;
+      const region  = screen.getByRole('status');
+      expect(overlay.parentElement).toBe(document.body);
+      expect(region.parentElement).toBe(document.body);
+      expect(overlay.className).toContain('z-(--z-modal)');
+      expect(region).toHaveTextContent('Submit failed');
+      // Pointer events pass through the container so the modal backdrop still works.
+      expect(region.className).toContain('pointer-events-none');
+    });
+
+    it('defines a toast layer above the modal layer in the z-index scale', () => {
+      const css = readFileSync(resolve(__dirname, '../app/globals.css'), 'utf8');
+      const z = (name: string) => Number(css.match(new RegExp(`--z-${name}:\\s*(\\d+)`))?.[1]);
+      expect(z('toast')).toBeGreaterThan(z('modal'));
+      expect(z('modal')).toBeGreaterThan(z('sticky'));
+      expect(z('sticky')).toBeGreaterThan(z('dropdown'));
+    });
   });
 });
