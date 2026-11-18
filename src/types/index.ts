@@ -27,7 +27,7 @@ export interface Policy {
   product?:     Product;
   policyholder: string;
   coverage:     string;  // stroops
-  premiumPaid:  string;  // stroops
+  premiumPaid:  string | null;  // stroops; the backend may omit it (#911)
   oracleKey:    string;
   startTime:    number;  // unix epoch seconds
   endTime:      number;  // unix epoch seconds

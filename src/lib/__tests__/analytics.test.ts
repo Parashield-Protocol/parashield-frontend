@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import posthog from 'posthog-js';
-import { page, resetPageviewTracking, setPostHogReady, trackPageview } from '@/lib/analytics';
+import { page, resetPageviewTracking, setPostHogReady, track, trackPageview } from '@/lib/analytics';
 
 // Mock posthog capture
 // analytics.ts uses the default export (`import posthog from 'posthog-js'`).
@@ -114,6 +114,55 @@ describe('analytics track', () => {
     track('wallet_connect', { wallet: 'GABCDEFGHIJKLMNOP' });
     const [, props] = vi.mocked(posthog.capture).mock.calls[0];
     expect((props as { wallet: string }).wallet).toBe('GABCDEFG');
+  });
+
+  // #914 — sanitisation only touches `wallet`.
+  it('passes non-wallet properties through unchanged', () => {
+    track('policy_buy_success', {
+      wallet: 'GABCDEFGHIJKLMNOP',
+      productId: 'rain-001',
+      amount: 25,
+      sponsored: false,
+    });
+    expect(posthog.capture).toHaveBeenCalledWith('policy_buy_success', {
+      wallet: 'GABCDEFG',
+      productId: 'rain-001',
+      amount: 25,
+      sponsored: false,
+    });
+  });
+
+  it('does not mutate the caller’s properties object', () => {
+    const props = { wallet: 'GABCDEFGHIJKLMNOP' };
+    track('wallet_connect', props);
+    expect(props.wallet).toBe('GABCDEFGHIJKLMNOP');
+  });
+
+  it('is a no-op on the server', () => {
+    vi.stubGlobal('window', undefined);
+    try {
+      track('wallet_connect', { wallet: 'GABCDEFGHIJKLMNOP' });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(posthog.capture).not.toHaveBeenCalled();
+  });
+
+  it('logs to console.debug in development only', () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    try {
+      vi.stubEnv('NODE_ENV', 'development');
+      track('oracle_refresh', { wallet: 'GABCDEFGHIJKLMNOP' });
+      expect(debug).toHaveBeenCalledWith('[analytics]', 'oracle_refresh', { wallet: 'GABCDEFG' });
+
+      debug.mockClear();
+      vi.stubEnv('NODE_ENV', 'production');
+      track('oracle_refresh');
+      expect(debug).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+      debug.mockRestore();
+    }
   });
 });
 

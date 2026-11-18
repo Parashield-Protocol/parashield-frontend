@@ -21,7 +21,7 @@ interface LoadingRegionProps {
 export function LoadingRegion({ loading, label = 'Loading', className, children }: LoadingRegionProps) {
   return (
     <>
-      <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      <span role="status" aria-live="polite" className="sr-only">
         {loading ? label : ''}
       </span>
       <div aria-busy={loading} className={className}>

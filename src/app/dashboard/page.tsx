@@ -52,7 +52,11 @@ export default function DashboardPage() {
 
   const active = useMemo(() => policies.filter((p) => p.status === "Active"), [policies]);
   const totalCov = useMemo(() => active.reduce((sum, p) => sum + safeBigInt(p.coverage), 0n), [active]);
-  const totalPaid = useMemo(() => active.reduce((sum, p) => sum + safeBigInt(p.premiumPaid), 0n), [active]);
+  // A policy without premiumPaid contributes nothing to the total (#911).
+  const totalPaid = useMemo(
+    () => active.reduce((sum, p) => (p.premiumPaid == null ? sum : sum + safeBigInt(p.premiumPaid)), 0n),
+    [active],
+  );
 
   // Trend vs. TREND_PERIOD_SECONDS ago, rebuilt from policy timestamps (#688).
   const trends = useMemo(() => {

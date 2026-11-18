@@ -18,7 +18,8 @@ function activeAt(p: Policy, at: number): boolean {
   return p.cancelledAt === undefined || p.cancelledAt > at;
 }
 
-function toBigInt(value: string): bigint {
+function toBigInt(value: string | null): bigint {
+  if (value == null) return 0n;
   try {
     return BigInt(value);
   } catch {

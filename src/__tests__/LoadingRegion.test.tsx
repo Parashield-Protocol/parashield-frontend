@@ -21,6 +21,8 @@ describe('LoadingRegion', () => {
     render(<Fixture loading />);
     const status = screen.getByRole('status');
     expect(status).toHaveAttribute('aria-live', 'polite');
+    // #913 — non-atomic, so only the changed text is re-announced.
+    expect(status).not.toHaveAttribute('aria-atomic');
     expect(status).toHaveTextContent('Loading');
   });
 

@@ -6,7 +6,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/dashboard', '/policies', '/claims'],
+        // '/policies/' also covers detail pages, as defence in depth behind
+        // their per-page noindex metadata (#912).
+        disallow: ['/dashboard', '/policies', '/policies/', '/claims'],
       },
     ],
     sitemap: 'https://parashield.app/sitemap.xml',
