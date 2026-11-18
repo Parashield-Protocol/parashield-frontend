@@ -22,3 +22,24 @@ describe('Badge', () => {
     expect(span).toHaveClass('bg-red-500/10');
   });
 });
+
+describe('Badge size', () => {
+  it('defaults to sm, preserving the original sizing', () => {
+    render(<Badge label="Active" />);
+    const span = screen.getByText('Active');
+    expect(span).toHaveClass('px-2.5', 'py-0.5', 'text-[10px]');
+  });
+
+  it('applies md sizing classes', () => {
+    render(<Badge label="Active" size="md" />);
+    const span = screen.getByText('Active');
+    expect(span).toHaveClass('px-3', 'py-1', 'text-xs');
+    expect(span).not.toHaveClass('text-[10px]');
+  });
+
+  it('applies lg sizing classes', () => {
+    render(<Badge label="Active" size="lg" />);
+    const span = screen.getByText('Active');
+    expect(span).toHaveClass('px-4', 'py-1.5', 'text-sm');
+  });
+});

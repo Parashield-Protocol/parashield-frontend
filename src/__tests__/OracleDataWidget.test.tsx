@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { render } from '@testing-library/react';
 import { OracleDataWidget } from '../components/OracleDataWidget';
 
 vi.mock('@/hooks/useOracle', () => ({
@@ -16,6 +17,7 @@ vi.mock('@/lib/format', () => ({
     return num.toFixed(4);
   },
   formatDateTime: (ts: number) => new Date(ts * 1000).toLocaleString(),
+  formatUtcDateTime: (ts: number) => new Date(ts * 1000).toUTCString(),
 }));
 
 vi.mock('@/lib/oracle', () => ({
@@ -43,6 +45,26 @@ const mockUseOracleReading = vi.mocked(useOracleReading);
 describe('OracleDataWidget', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('does not rerender when its parent rerenders with unchanged props', () => {
+    mockUseOracleReading.mockReturnValue({
+      reading: null,
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const { rerender } = render(
+      <OracleDataWidget oracleKey="rainfall:1,1:2025-01" className="widget" />,
+    );
+    expect(mockUseOracleReading).toHaveBeenCalledTimes(1);
+
+    rerender(<OracleDataWidget oracleKey="rainfall:1,1:2025-01" className="widget" />);
+    expect(mockUseOracleReading).toHaveBeenCalledTimes(1);
+
+    rerender(<OracleDataWidget oracleKey="rainfall:2,2:2025-01" className="widget" />);
+    expect(mockUseOracleReading).toHaveBeenCalledTimes(2);
   });
 
   it('shows skeleton when loading', () => {
@@ -100,6 +122,27 @@ describe('OracleDataWidget', () => {
 
     const html = renderToStaticMarkup(<OracleDataWidget oracleKey="rainfall:1,1:2025-01" />);
     expect(html).toContain('mm');
+  });
+
+  it('renders oracle metadata as escaped text', () => {
+    mockUseOracleReading.mockReturnValue({
+      reading: {
+        key: 'rainfall:1,1:2025-01',
+        value: '324000000',
+        confidence: 95,
+        timestamp: 1720000000,
+        source: '<script>alert(1)</script>',
+        dataType: 'weather',
+      },
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const html = renderToStaticMarkup(<OracleDataWidget oracleKey="rainfall:1,1:2025-01" />);
+    expect(html).toContain('Source: ');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).not.toContain('<script>alert(1)</script>');
   });
 
   it('displays temperature value with °C unit', () => {

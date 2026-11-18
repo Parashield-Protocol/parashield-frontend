@@ -1,16 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { PoolStats } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
 import { fetchPoolShares } from '@/lib/api';
 import { buildDepositTx, submitSignedTransaction, withStateRestore } from '@/lib/contract';
 import { signTransaction } from '@/lib/stellar';
 import { displayToStroops, formatUSDC, stroopsToDisplay } from '@/lib/format';
+import { amountInputGuards, isPlainDecimal } from '@/lib/numberInput';
+import { NumberInput } from '@/components/NumberInput';
 import { ContractError, toUserMessage } from '@/lib/errors';
 import { CATEGORY_LABELS, MIN_DEPOSIT_STROOPS } from '@/lib/constants';
 import { Modal } from './Modal';
 import { useToast } from '@/context/ToastContext';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { ButtonSpinner } from './LoadingSpinner';
 import { INPUT_CLASS, LABEL_CLASS, ERROR_TEXT, WARNING_TEXT, CARD_PANEL } from '@/lib/styles';
 
 interface Props {
@@ -49,31 +54,49 @@ export function DepositModal({ pool, onClose }: Props) {
   const [totalLiquidity, setTotalLiquidity] = useState<bigint | null>(null);
   const [paused,       setPaused]       = useState(false);
   const [loadingShares, setLoadingShares] = useState(true);
+  const [sharesFetchError, setSharesFetchError] = useState('');
   const [busy,         setBusy]         = useState(false);
   const [error,        setError]        = useState('');
+  const { guard, pending } = useSubmitGuard();
+  const online = useOnlineStatus();
+
+  const loadShares = useCallback(
+    (signal: { cancelled: boolean }) => {
+      setLoadingShares(true);
+      setSharesFetchError('');
+      fetchPoolShares(pool.poolId)
+        .then((info) => {
+          if (signal.cancelled) return;
+          setShareSupply(BigInt(info.shareSupply));
+          setTotalLiquidity(BigInt(info.totalLiquidity));
+          setPaused(info.paused ?? false);
+        })
+        .catch((err) => {
+          if (signal.cancelled) return;
+          // Distinct from `error` (deposit-submission errors): this gates
+          // whether the input/button are usable at all (#464), rather than
+          // being cleared on every amount keystroke like `error` is.
+          setSharesFetchError(toUserMessage(err));
+        })
+        .finally(() => { if (!signal.cancelled) setLoadingShares(false); });
+    },
+    [pool.poolId],
+  );
 
   useEffect(() => {
-    let cancelled = false;
-    setLoadingShares(true);
-    fetchPoolShares(pool.poolId)
-      .then((info) => {
-        if (cancelled) return;
-        setShareSupply(BigInt(info.shareSupply));
-        setTotalLiquidity(BigInt(info.totalLiquidity));
-        setPaused(info.paused ?? false);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(toUserMessage(err));
-      })
-      .finally(() => { if (!cancelled) setLoadingShares(false); });
-    return () => { cancelled = true; };
-  }, [pool.poolId]);
+    const signal = { cancelled: false };
+    loadShares(signal);
+    return () => { signal.cancelled = true; };
+  }, [loadShares]);
 
   const amountNum     = parseFloat(amount) || 0;
+  // Same plain-decimal rule as WithdrawModal/BuyPolicyModal (#782): "1e10"
+  // parses as a huge positive number but displayToStroops rejects it, which
+  // used to surface as a misleading "Minimum deposit" error.
+  const invalidFormat = amount.trim() !== '' && !isPlainDecimal(amount);
   let   depositStroops = 0n;
   try {
-    depositStroops = amount ? displayToStroops(amount) : 0n;
+    depositStroops = amount && !invalidFormat ? displayToStroops(amount) : 0n;
   } catch {
     // Negative or otherwise invalid input — keep depositStroops at 0n so
     // the render doesn't throw. handleDeposit surfaces the user-facing
@@ -87,7 +110,9 @@ export function DepositModal({ pool, onClose }: Props) {
 
   async function handleDeposit() {
     if (!address) return;
+    if (!sharesAvailable) { setError('Pool data is unavailable — retry loading before depositing.'); return; }
     if (paused) { setError('This pool is currently paused. Deposits are not accepted.'); return; }
+    if (invalidFormat) { setError('Enter a plain positive number (no scientific notation).'); return; }
     if (amountNum <= 0) { setError('Enter a valid USDC amount.'); return; }
     if (depositStroops < MIN_DEPOSIT_STROOPS) { 
       setError(`Minimum deposit is ${stroopsToDisplay(MIN_DEPOSIT_STROOPS, 2)} USDC`);
@@ -116,21 +141,43 @@ export function DepositModal({ pool, onClose }: Props) {
 
   const poolLabel = CATEGORY_LABELS[pool.category] ?? pool.category;
 
+  // Pool shares failed to load: show an error state instead of an input
+  // that would let a user attempt a deposit with incomplete data (#464).
+  if (sharesFetchError && !loadingShares) {
+    return (
+      <Modal open title={`Deposit — ${poolLabel} Pool`} onClose={onClose}>
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 p-6 text-center text-sm">
+          <p className={ERROR_TEXT}>{sharesFetchError}</p>
+          <button
+            onClick={() => loadShares({ cancelled: false })}
+            className="rounded-lg border border-white/10 px-4 py-1.5 text-xs font-semibold text-gray-300 hover:border-teal-500/30 hover:text-teal-400 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal open title={`Deposit — ${poolLabel} Pool`} onClose={onClose}>
       <div className="space-y-4">
         <div>
-          <label className={LABEL_CLASS}>
+          <label htmlFor="deposit-amount" className={LABEL_CLASS}>
             Amount (USDC)
           </label>
-          <input
-            type="number"
+          <NumberInput
+            id="deposit-amount"
             value={amount}
             onChange={(e) => { setAmount(e.target.value); setError(''); }}
+            {...amountInputGuards}
             placeholder="0.00"
             min={0}
             step="0.01"
+            maxLength={16}
             className={INPUT_CLASS}
+            aria-invalid={!!error}
+            aria-describedby={error ? 'deposit-amount-error' : undefined}
           />
         </div>
 
@@ -162,15 +209,17 @@ export function DepositModal({ pool, onClose }: Props) {
         {paused && (
           <p className={WARNING_TEXT}>This pool is paused. Deposits are temporarily disabled.</p>
         )}
-        {error && <p className={ERROR_TEXT}>{error}</p>}
+        {error && <p id="deposit-amount-error" className={ERROR_TEXT} aria-live="polite">{error}</p>}
       </div>
 
       <button
-        onClick={handleDeposit}
-        disabled={busy || loadingShares || paused}
-        className="mt-6 w-full rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
+        onClick={guard(handleDeposit)}
+        disabled={busy || pending || loadingShares || paused || !online}
+        aria-busy={busy}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
       >
-        {busy ? 'Confirming on chain…' : 'Confirm deposit'}
+        {busy && <ButtonSpinner />}
+        {busy ? 'Confirming on chain…' : !online ? 'Offline — waiting for connection' : 'Confirm deposit'}
       </button>
     </Modal>
   );

@@ -124,4 +124,64 @@ describe('useLocalStorage', () => {
       expect(hook.current[0]).toEqual({ mode: 'light' });
     });
   });
+
+  // Issue #472: external localStorage writes (another tab, a dev-tools
+  // edit) previously never reached this hook's state at all -- only its
+  // own setValue()/remove() calls updated `storedValue`.
+  describe('external storage events', () => {
+    it('picks up a value written by another tab for the same key', () => {
+      const hook = renderHook(() =>
+        useLocalStorage<string>('sync_key', 'default')
+      );
+      expect(hook.current[0]).toBe('default');
+
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: 'sync_key',
+            newValue: JSON.stringify('from-another-tab'),
+          })
+        );
+      });
+
+      expect(hook.current[0]).toBe('from-another-tab');
+    });
+
+    it('resets to the initial value when another tab removes the key', () => {
+      const hook = renderHook(() =>
+        useLocalStorage<string>('sync_remove_key', 'default')
+      );
+
+      act(() => {
+        const [, setValue] = hook.current;
+        setValue('modified');
+      });
+      expect(hook.current[0]).toBe('modified');
+
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent('storage', { key: 'sync_remove_key', newValue: null })
+        );
+      });
+
+      expect(hook.current[0]).toBe('default');
+    });
+
+    it('ignores storage events for unrelated keys', () => {
+      const hook = renderHook(() =>
+        useLocalStorage<string>('this_key', 'default')
+      );
+
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: 'other_key',
+            newValue: JSON.stringify('should-not-apply'),
+          })
+        );
+      });
+
+      expect(hook.current[0]).toBe('default');
+    });
+  });
 });

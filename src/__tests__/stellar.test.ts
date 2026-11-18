@@ -36,9 +36,9 @@ import {
 
 describe('stellar helpers', () => {
   beforeEach(() => {
-    storage.remove(WALLET_STORAGE_KEY);
-    storage.remove(ADDRESS_STORAGE_KEY);
-    storage.remove(NETWORK_STORAGE_KEY);
+    storage.removeSession(WALLET_STORAGE_KEY);
+    storage.removeSession(ADDRESS_STORAGE_KEY);
+    storage.removeSession(NETWORK_STORAGE_KEY);
     vi.clearAllMocks();
   });
 
@@ -61,22 +61,22 @@ describe('stellar helpers', () => {
     });
 
     it('returns the address written by the connect flow', () => {
-      storage.set(ADDRESS_STORAGE_KEY, 'GABCDEF1234567890');
+      storage.setSession(ADDRESS_STORAGE_KEY, 'GABCDEF1234567890');
       expect(getStoredAddress()).toBe('GABCDEF1234567890');
     });
   });
 
   describe('disconnectWallet', () => {
     it('removes the wallet-id, address, and network keys from storage', () => {
-      storage.set(WALLET_STORAGE_KEY,  'freighter');
-      storage.set(ADDRESS_STORAGE_KEY, 'GTEST');
-      storage.set(NETWORK_STORAGE_KEY, 'testnet');
+      storage.setSession(WALLET_STORAGE_KEY,  'freighter');
+      storage.setSession(ADDRESS_STORAGE_KEY, 'GTEST');
+      storage.setSession(NETWORK_STORAGE_KEY, 'testnet');
 
       disconnectWallet();
 
-      expect(storage.get(WALLET_STORAGE_KEY)).toBeNull();
-      expect(storage.get(ADDRESS_STORAGE_KEY)).toBeNull();
-      expect(storage.get(NETWORK_STORAGE_KEY)).toBeNull();
+      expect(storage.getSession(WALLET_STORAGE_KEY)).toBeNull();
+      expect(storage.getSession(ADDRESS_STORAGE_KEY)).toBeNull();
+      expect(storage.getSession(NETWORK_STORAGE_KEY)).toBeNull();
     });
   });
 
@@ -86,8 +86,8 @@ describe('stellar helpers', () => {
     });
 
     it('passes through the signedMessage returned by kit.signMessage', async () => {
-      storage.set(ADDRESS_STORAGE_KEY, 'GTEST123');
-      storage.set(WALLET_STORAGE_KEY,  'freighter');
+      storage.setSession(ADDRESS_STORAGE_KEY, 'GTEST123');
+      storage.setSession(WALLET_STORAGE_KEY,  'freighter');
       mockSignMessage.mockResolvedValueOnce({ signedMessage: 'base64sig==' });
 
       const result = await signAuthMessage('my-challenge-nonce');
@@ -102,8 +102,8 @@ describe('stellar helpers', () => {
     it('returns the raw base64 value without any encoding transformation', async () => {
       // signAuthMessage must return exactly what the wallet kit provides.
       // SEP-43 wallets return base64, not hex. The backend owns decoding.
-      storage.set(ADDRESS_STORAGE_KEY, 'GTEST123');
-      storage.set(WALLET_STORAGE_KEY,  'freighter');
+      storage.setSession(ADDRESS_STORAGE_KEY, 'GTEST123');
+      storage.setSession(WALLET_STORAGE_KEY,  'freighter');
       const b64 = 'aGVsbG8gd29ybGQ=';
       mockSignMessage.mockResolvedValueOnce({ signedMessage: b64 });
 

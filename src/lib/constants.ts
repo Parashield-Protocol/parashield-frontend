@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from './storageKeys';
+
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -15,9 +17,38 @@ if (_rawNetwork !== 'TESTNET' && _rawNetwork !== 'PUBLIC') {
 export const STELLAR_NETWORK: 'TESTNET' | 'PUBLIC' =
   _rawNetwork === 'PUBLIC' || _rawNetwork === 'MAINNET' ? 'PUBLIC' : 'TESTNET';
 
+/**
+ * Single source of truth for everything derived from the active Stellar
+ * network (#489). Import these instead of re-checking
+ * `STELLAR_NETWORK === 'PUBLIC'` in individual modules/components.
+ */
+export const IS_MAINNET = STELLAR_NETWORK === 'PUBLIC';
+
+export const NETWORK_PASSPHRASES = {
+  PUBLIC:  'Public Global Stellar Network ; September 2015',
+  TESTNET: 'Test SDF Network ; September 2015',
+} as const;
+
+/** Passphrase transactions are built/signed with and wallets must match. */
+export const NETWORK_PASSPHRASE: string = NETWORK_PASSPHRASES[STELLAR_NETWORK];
+
+/** Human-readable name of the app's network. */
+export const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
+
+/** Human-readable name for an arbitrary wallet-reported passphrase. */
+export function networkLabelForPassphrase(passphrase: string | null): string {
+  if (passphrase === NETWORK_PASSPHRASES.PUBLIC)  return 'Mainnet';
+  if (passphrase === NETWORK_PASSPHRASES.TESTNET) return 'Testnet';
+  return 'an unsupported network';
+}
+
+export const EXPLORER_TX_BASE_URL = IS_MAINNET
+  ? 'https://stellar.expert/explorer/public/tx/'
+  : 'https://stellar.expert/explorer/testnet/tx/';
+
 export const SOROBAN_RPC_URL =
   process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ??
-  (STELLAR_NETWORK === 'PUBLIC'
+  (IS_MAINNET
     ? 'https://soroban.stellar.org'
     : 'https://soroban-testnet.stellar.org');
 
@@ -27,6 +58,12 @@ export const STROOPS_PER_UNIT = 10_000_000n;
 // At STROOPS_PER_UNIT = 10_000_000n, 100_000n stroops = 0.01 USDC.
 // This prevents dust deposits that may round to 0 or be rejected by the pool contract.
 export const MIN_DEPOSIT_STROOPS = 100_000n;
+
+// Minimum withdrawal: 0.01 LP shares (100,000 stroops), matching the deposit
+// floor so dust withdrawals that round to 0 USDC or fail on chain are blocked
+// client-side. A holder whose entire balance is below this can still withdraw
+// all of it, so small positions are never stuck.
+export const MIN_WITHDRAW_STROOPS = 100_000n;
 
 const _CONTRACT_RE = /^C[A-Z2-7]{55}$/;
 
@@ -109,10 +146,11 @@ export const STATUS_COLOURS: Record<PolicyStatus | ClaimStatus, string> = {
   Rejected:   'red',
 };
 
-export const WALLET_STORAGE_KEY   = 'ps_wallet_id';
-export const ADDRESS_STORAGE_KEY  = 'ps_wallet_address';
-export const NETWORK_STORAGE_KEY  = 'ps_wallet_network';
-export const AUTH_TOKEN_STORAGE_KEY = 'ps_auth_token';
+// Defined in the storage-key registry; re-exported for existing callers.
+export const WALLET_STORAGE_KEY     = STORAGE_KEYS.walletId;
+export const ADDRESS_STORAGE_KEY    = STORAGE_KEYS.walletAddress;
+export const NETWORK_STORAGE_KEY    = STORAGE_KEYS.walletNetwork;
+export const AUTH_TOKEN_STORAGE_KEY = STORAGE_KEYS.authToken;
 
 export const TOAST_DEFAULT_DURATION_MS = 4000;
 export const COPY_FEEDBACK_DURATION_MS  = 2000;
@@ -121,3 +159,21 @@ export const ORACLE_REFRESH_INTERVAL_MS = 60_000;
 export const CLAIMS_REFRESH_INTERVAL_MS = 15_000;
 export const CLAIM_POLL_INTERVAL_MS    = 3000;
 export const CLAIM_POLL_MAX_ATTEMPTS   = 20;
+
+/**
+ * Hard input length caps (#736). Enforced both via `maxLength` on the field
+ * and in submit-time validation, so a paste or programmatic set cannot smuggle
+ * unbounded strings into the UI or API.
+ */
+export const MAX_INPUT_LENGTHS = {
+  /** Search queries. */
+  search: 80,
+  /** Short free-text labels (wallet label, policy label). */
+  label: 64,
+  /** Flight numbers / PNR-style references. */
+  reference: 16,
+  /** Oracle parameter strings like "rainfall:1.5,36.8:2026-06". */
+  oracleParams: 64,
+  /** Numeric amount strings (covers "123456.78" with headroom). */
+  amount: 16,
+} as const;

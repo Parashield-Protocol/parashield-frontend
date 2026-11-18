@@ -137,6 +137,17 @@ describe('formatDateTime', () => {
   it('returns — for undefined', () => {
     expect(formatDateTime(undefined as unknown as number)).toBe('—');
   });
+
+  it('omits the timezone by default', () => {
+    expect(formatDateTime(1720000000)).not.toMatch(/UTC|GMT|[A-Z]{3,4}$/);
+  });
+
+  it('appends a timezone indicator when withTimeZone is set', () => {
+    const plain = formatDateTime(1720000000);
+    const zoned = formatDateTime(1720000000, { withTimeZone: true });
+    expect(zoned.startsWith(plain)).toBe(true);
+    expect(zoned.length).toBeGreaterThan(plain.length);
+  });
 });
 
 describe('formatOracleValue', () => {
