@@ -1,8 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWalletContext } from '@/context/WalletContext';
+import { useDebounce } from '@/hooks/useDebounce';
 import { shortenAddress } from '@/lib/format';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+
+/** Delay before showing the connecting indicator (#486), so a connection
+ * that resolves faster than this never flashes a loading state at all. */
+const CONNECTING_INDICATOR_DELAY_MS = 200;
+
+const DISMISS_TIMEOUT_MS = 5000;
 
 interface WalletButtonProps {
   className?: string;
@@ -11,6 +19,33 @@ interface WalletButtonProps {
 export function WalletButton({ className }: WalletButtonProps) {
   const { address, connected, connecting, error, connect, disconnect } = useWalletContext();
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const online = useOnlineStatus();
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
+  const showConnecting = useDebounce(connecting, CONNECTING_INDICATOR_DELAY_MS) && connecting;
+
+  const dismiss = useCallback(() => setConfirmDisconnect(false), []);
+
+  // Clear dismissed error when a new error occurs or connection succeeds
+  useEffect(() => {
+    if (error) {
+      setDismissedError(null);
+    } else if (connected) {
+      setDismissedError(null);
+    }
+  }, [error, connected]);
+
+  // Dismiss error when connecting starts (user clicked Connect again)
+  useEffect(() => {
+    if (connecting && error) {
+      setDismissedError(error);
+    }
+  }, [connecting, error]);
+
+  useEffect(() => {
+    if (!confirmDisconnect) return;
+    const timer = setTimeout(dismiss, DISMISS_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [confirmDisconnect, dismiss]);
 
   if (connected && address) {
     return (
@@ -30,7 +65,7 @@ export function WalletButton({ className }: WalletButtonProps) {
               Sure?
             </button>
             <button
-              onClick={() => setConfirmDisconnect(false)}
+              onClick={dismiss}
               className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white transition-all"
             >
               Cancel
@@ -52,12 +87,13 @@ export function WalletButton({ className }: WalletButtonProps) {
     <div className={`flex flex-col items-start gap-1 ${className ?? ''}`}>
       <button
         onClick={connect}
-        disabled={connecting}
+        disabled={connecting || !online}
+        title={online ? undefined : 'You are offline'}
         className="rounded-full bg-teal-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
       >
-        {connecting ? 'Connecting…' : 'Connect Wallet'}
+        {showConnecting ? 'Connecting…' : 'Connect Wallet'}
       </button>
-      {error && !connecting && (
+      {error && !connecting && error !== dismissedError && (
         <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
       )}
     </div>

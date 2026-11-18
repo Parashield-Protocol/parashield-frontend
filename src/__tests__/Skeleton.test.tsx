@@ -17,6 +17,11 @@ describe('Skeleton', () => {
     const html = renderToStaticMarkup(<Skeleton className="h-8 w-8 rounded-full" />);
     expect(html).toContain('h-8 w-8 rounded-full');
   });
+
+  it('is hidden from screen readers', () => {
+    const html = renderToStaticMarkup(<Skeleton />);
+    expect(html).toContain('aria-hidden="true"');
+  });
 });
 
 describe('SkeletonCard', () => {
@@ -29,6 +34,11 @@ describe('SkeletonCard', () => {
     const html = renderToStaticMarkup(<SkeletonCard />);
     const count = (html.match(/animate-pulse/g) || []).length;
     expect(count).toBe(6);
+  });
+
+  it('is hidden from screen readers', () => {
+    const html = renderToStaticMarkup(<SkeletonCard />);
+    expect(html).toContain('aria-hidden="true"');
   });
 });
 
@@ -50,6 +60,11 @@ describe('SkeletonTable', () => {
     const count = (html.match(/animate-pulse/g) || []).length;
     expect(count).toBe(1);
   });
+
+  it('is hidden from screen readers', () => {
+    const html = renderToStaticMarkup(<SkeletonTable />);
+    expect(html).toContain('aria-hidden="true"');
+  });
 });
 
 describe('SkeletonText', () => {
@@ -69,5 +84,10 @@ describe('SkeletonText', () => {
     const html = renderToStaticMarkup(<SkeletonText count={2} />);
     expect(html).toContain('w-full');
     expect(html).toContain('w-2/3');
+  });
+
+  it('is hidden from screen readers', () => {
+    const html = renderToStaticMarkup(<SkeletonText />);
+    expect(html).toContain('aria-hidden="true"');
   });
 });

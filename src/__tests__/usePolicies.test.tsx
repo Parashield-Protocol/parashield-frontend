@@ -58,6 +58,18 @@ describe('usePolicies', () => {
     expect(hook.current.error).toBeNull();
   });
 
+  // #525: the wallet must not leak into the /policies query string -- the
+  // backend resolves it from the JWT, so the API call takes no wallet arg.
+  it('does not pass the wallet address to fetchUserPolicies', async () => {
+    fetchUserPolicies.mockResolvedValue([]);
+
+    renderHook(() => usePolicies('GWALLET'));
+    await flushMicrotasks();
+
+    expect(fetchUserPolicies).toHaveBeenCalledTimes(1);
+    expect(fetchUserPolicies).toHaveBeenCalledWith();
+  });
+
   it('surfaces an error message when the fetch fails', async () => {
     fetchUserPolicies.mockRejectedValue(new Error('failed to reach api'));
 
@@ -88,13 +100,17 @@ describe('usePolicies', () => {
   });
 
   it('discards a stale response from a previous wallet after the wallet address changes', async () => {
+    // fetchUserPolicies takes no wallet arg (#525 -- the backend reads it from
+    // the JWT), so key pending requests by the wallet active at call time.
     const pending: Record<string, (policies: Policy[]) => void> = {};
+    let wallet = 'GWALLET_A';
     fetchUserPolicies.mockImplementation(
-      (wallet: string) =>
-        new Promise<Policy[]>((resolve) => { pending[wallet] = resolve; }),
+      () => {
+        const forWallet = wallet;
+        return new Promise<Policy[]>((resolve) => { pending[forWallet] = resolve; });
+      },
     );
 
-    let wallet = 'GWALLET_A';
     const hook = renderHook(() => usePolicies(wallet));
     await flushMicrotasks();
     expect(pending['GWALLET_A']).toBeDefined();

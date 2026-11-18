@@ -1,9 +1,10 @@
-﻿'use client';
+'use client';
 
-import { useState, useCallback } from 'react';
+import { memo, useState, useCallback, useRef } from 'react';
 import { useOracleReading } from '@/hooks/useOracle';
 import { Skeleton } from './Skeleton';
-import { formatOracleValue, formatDateTime } from '@/lib/format';
+import { LoadingRegion } from './LoadingRegion';
+import { formatOracleValue, formatDateTime, formatUtcDateTime } from '@/lib/format';
 import { oracleKeyLabel, confidenceLabel, confidenceColour, parseOracleKey } from '@/lib/oracle';
 
 interface OracleDataWidgetProps {
@@ -11,15 +12,31 @@ interface OracleDataWidgetProps {
   className?: string;
 }
 
-export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps) {
-  const { reading, loading, error, refetch } = useOracleReading(oracleKey);
+type OracleDataWidgetBodyProps = OracleDataWidgetProps & ReturnType<typeof useOracleReading>;
+
+function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetProps) {
+  const state = useOracleReading(oracleKey);
+
+  return (
+    <LoadingRegion loading={state.loading} label="Loading oracle data">
+      <OracleDataWidgetBody oracleKey={oracleKey} className={className} {...state} />
+    </LoadingRegion>
+  );
+}
+
+function OracleDataWidgetBody({ oracleKey, className, reading, loading, error, refetch }: OracleDataWidgetBodyProps) {
   const [refreshing, setRefreshing] = useState(false);
+
+  // Keep a stable refetch reference so handleRefresh doesn't change identity
+  // when the hook re-exports a new function on every render.
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetch();
+    await refetchRef.current();
     setRefreshing(false);
-  }, [refetch]);
+  }, []);
 
   if (loading) {
     return (
@@ -43,6 +60,7 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
         <button
           onClick={() => void handleRefresh()}
           disabled={refreshing}
+          aria-busy={refreshing}
           className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
         >
           {refreshing ? 'Retrying…' : 'Retry'}
@@ -58,6 +76,7 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
         <button
           onClick={() => void handleRefresh()}
           disabled={refreshing}
+          aria-busy={refreshing}
           className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
           aria-label="Refresh oracle data"
         >
@@ -69,6 +88,7 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
 
   const confLabel  = confidenceLabel(reading.confidence);
   const confColour = confidenceColour(reading.confidence);
+  const formattedOracleValue = String(formatOracleValue(reading.value, parseOracleKey(oracleKey).dataType));
 
   return (
     <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${className ?? ''}`}>
@@ -76,7 +96,7 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
       <p className="mt-1 text-xs text-gray-400 truncate">{oracleKeyLabel(oracleKey)}</p>
 
       <p className="mt-3 text-2xl font-black text-white">
-        {formatOracleValue(reading.value, parseOracleKey(oracleKey).dataType)}
+        {formattedOracleValue}
       </p>
 
       <div className="mt-3 flex items-center justify-between text-[10px] text-gray-400">
@@ -84,9 +104,20 @@ export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps
         <span className={`font-semibold ${confColour}`}>{confLabel} confidence</span>
       </div>
 
-      <time dateTime={new Date(reading.timestamp * 1000).toISOString()} className="mt-1 block text-[10px] text-gray-400">
-        {formatDateTime(reading.timestamp)}
+      <time
+        dateTime={new Date(reading.timestamp * 1000).toISOString()}
+        title={formatUtcDateTime(reading.timestamp)}
+        className="mt-1 block text-[10px] text-gray-400"
+      >
+        {formatDateTime(reading.timestamp, { withTimeZone: true })}
       </time>
     </div>
   );
 }
+
+export const OracleDataWidget = memo(
+  OracleDataWidgetComponent,
+  (previous, next) => previous.oracleKey === next.oracleKey && previous.className === next.className,
+);
+
+OracleDataWidget.displayName = 'OracleDataWidget';

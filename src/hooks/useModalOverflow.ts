@@ -11,6 +11,12 @@ import { useCallback, useRef } from 'react';
 const activeLocks = new Set<symbol>();
 let originalOverflow = '';
 
+// Class on <html> while any modal is open. globals.css turns off
+// overscroll/scroll chaining for html + body under it, since iOS Safari
+// still rubber-bands and chains scroll to the page even with the body's
+// overflow hidden (#552).
+export const SCROLL_LOCK_CLASS = 'modal-scroll-locked';
+
 export function useModalOverflow() {
   const tokenRef = useRef<symbol | null>(null);
 
@@ -22,6 +28,7 @@ export function useModalOverflow() {
     if (activeLocks.size === 0) {
       originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
+      document.documentElement.classList.add(SCROLL_LOCK_CLASS);
     }
     activeLocks.add(token);
   }, []);
@@ -34,6 +41,7 @@ export function useModalOverflow() {
     activeLocks.delete(token);
     if (activeLocks.size === 0) {
       document.body.style.overflow = originalOverflow;
+      document.documentElement.classList.remove(SCROLL_LOCK_CLASS);
     }
   }, []);
 
@@ -50,4 +58,5 @@ export function useModalOverflow() {
 export function resetModalOverflow() {
   activeLocks.clear();
   document.body.style.overflow = originalOverflow;
+  document.documentElement.classList.remove(SCROLL_LOCK_CLASS);
 }

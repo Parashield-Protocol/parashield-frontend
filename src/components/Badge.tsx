@@ -7,7 +7,11 @@ interface BadgeProps {
   label:     BadgeLabel;
   variant?:  ColourName;
   className?: string;
+  icon?:     string;
+  size?:     BadgeSize;
 }
+
+export type BadgeSize = 'sm' | 'md' | 'lg';
 
 type ColourName = 'emerald' | 'sky' | 'amber' | 'red' | 'gray' | 'purple' | 'teal';
 
@@ -21,12 +25,20 @@ const COLOUR_CLASSES: Record<ColourName, string> = {
   teal:    'bg-teal-500/10    text-teal-400    border-teal-500/20',
 };
 
+// 'sm' matches the original fixed styling so existing badges are unchanged.
+const SIZE_CLASSES: Record<BadgeSize, string> = {
+  sm: 'gap-1 px-2.5 py-0.5 text-[10px]',
+  md: 'gap-1.5 px-3 py-1 text-xs',
+  lg: 'gap-2 px-4 py-1.5 text-sm',
+};
+
 const STATUS_ICONS: Record<string, string> = {
   Active:    '●',
   Expired:   '○',
   Claimed:   '◆',
   Cancelled: '✕',
   Pending:   '◐',
+  Processing:'◌',
   Paid:      '✓',
   Rejected:  '✕',
 };
@@ -35,13 +47,14 @@ function isStatusKey(key: string): key is PolicyStatus | ClaimStatus {
   return key in STATUS_COLOURS;
 }
 
-export function Badge({ label, variant, className }: BadgeProps) {
+export function Badge({ label, variant, className, icon: customIcon, size = 'sm' }: BadgeProps) {
   const colour: ColourName = (variant ?? (isStatusKey(label) ? STATUS_COLOURS[label] : undefined) ?? 'gray') as ColourName;
   const colourClass = COLOUR_CLASSES[colour];
-  const icon = isStatusKey(label) ? STATUS_ICONS[label] : undefined;
+  const sizeClass = SIZE_CLASSES[size] ?? SIZE_CLASSES.sm;
+  const icon = customIcon ?? (isStatusKey(label) ? STATUS_ICONS[label] : undefined);
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${colourClass} ${className ?? ''}`}
+      className={`inline-flex items-center rounded-full border font-bold uppercase tracking-widest ${sizeClass} ${colourClass} ${className ?? ''}`}
       aria-label={label}
     >
       {icon && <span aria-hidden="true">{icon}</span>}

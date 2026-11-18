@@ -36,7 +36,22 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-    expect(screen.getByText('Test error')).toBeInTheDocument();
+  });
+
+  // Issue #465: the raw error message may contain technical details or
+  // internal information, so it must never be rendered to the user --
+  // only a generic message. The full error is still captured via
+  // console.error/track() (see 'calls track with error details' below).
+  it('does not render the raw error message to the user', () => {
+    render(
+      <ErrorBoundary>
+        <ThrowingComponent />
+      </ErrorBoundary>
+    );
+    expect(screen.queryByText('Test error')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/an unexpected error occurred/i)
+    ).toBeInTheDocument();
   });
 
   it('renders custom fallback when provided', () => {

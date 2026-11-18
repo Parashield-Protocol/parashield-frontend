@@ -11,6 +11,7 @@ vi.mock('@/lib/stellar', () => ({
   disconnectWallet:           vi.fn(),
   getStoredAddress:           vi.fn(() => null),
   getConnectedAddress:        vi.fn(),
+  getWalletNetworkPassphrase: vi.fn(async () => null),
   signAuthMessage:            vi.fn(async (c: string) => `signed:${c}`),
   EXPECTED_NETWORK_PASSPHRASE: 'Test SDF Network ; September 2015',
 }));
@@ -26,6 +27,7 @@ vi.mock('@/lib/storage', () => ({
     getSession:    vi.fn(() => null),
     setSession:    vi.fn(),
     removeSession: vi.fn(),
+    clearSession:  vi.fn(),
   },
 }));
 
