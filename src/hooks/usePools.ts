@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchPoolStats } from '@/lib/api';
 import type { PoolStats } from '@/types';
+import { POLLING_INTERVAL_MS } from '@/lib/constants';
 
 export function usePools() {
   const [pools,   setPools]   = useState<PoolStats[]>([]);
@@ -30,7 +31,18 @@ export function usePools() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+    const interval = setInterval(() => {
+      if (!document.hidden) void load();
+    }, POLLING_INTERVAL_MS);
+    const onVisible = () => { if (!document.hidden) void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [load]);
 
   return { pools, loading, error, refetch: load };
 }
