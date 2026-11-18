@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
+const isStaticExport = process.env.NEXT_EXPORT === 'true';
+
 const nextConfig = {
-  images: { unoptimized: true },
+  images: { unoptimized: isStaticExport },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.externals = [...(config.externals || []), 'sodium-native'];
