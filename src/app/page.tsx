@@ -1,30 +1,131 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { BASE_FEE } from '@stellar/stellar-sdk';
 import { useProducts } from '@/hooks/useProducts';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { fetchProtocolStats } from '@/lib/api';
+import { formatUSDC, stroopsToDisplay } from '@/lib/format';
 import { ProductCard } from '@/components/ProductCard';
-import { SkeletonCard } from '@/components/Skeleton';
+import { Skeleton, SkeletonCard } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
 import { LogoWordmark } from '@/components/Logo';
 import { SearchBar } from '@/components/SearchBar';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { EmptyState } from '@/components/EmptyState';
-import type { Category } from '@/types';
+import { CompareModal } from '@/components/CompareModal';
+import { CATEGORY_LABELS } from '@/lib/constants';
+import { STORAGE_KEYS } from '@/lib/storageKeys';
+import { serializeJsonLd } from '@/lib/queryParams';
+import type { Category, Product } from '@/types';
 
 type CategoryFilterValue = Category | 'all';
+
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function StatValue({ loading, failed, children }: { loading: boolean; failed: boolean; children: React.ReactNode }) {
+  if (loading) return <Skeleton className="mx-auto h-9 w-28" />;
+  if (failed)  return <p className="text-3xl font-black text-teal-400">—</p>;
+  return <p className="text-3xl font-black text-teal-400">{children}</p>;
+}
 
 export default function HomePage() {
   const { products, loading, error, refetch } = useProducts();
   const [searchQuery, setSearchQuery]   = useState('');
   const [category, setCategory]         = useState<CategoryFilterValue>('all');
-  const debouncedQuery                  = useDebounce(searchQuery, 250);
+  const [compareIds, setCompareIds]     = useState<Set<string>>(new Set());
+  const [compareOpen, setCompareOpen]   = useState(false);
+  const handleCloseCompare = useCallback(() => setCompareOpen(false), []);
+
+  // #742 — clear comparison selection when the page unmounts (route change away)
+  useEffect(() => {
+    return () => setCompareIds(new Set());
+  }, []);
+
+  const toggleCompare = useCallback((product: Product) => {
+    setCompareIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(product.id)) {
+        next.delete(product.id);
+      } else if (next.size < 3) {
+        next.add(product.id);
+      }
+      return next;
+    });
+  }, []);
+
+  const compareProducts = useMemo(
+    () => products.filter((p) => compareIds.has(p.id)),
+    [products, compareIds],
+  );
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.categoryFilter);
+      if (stored) {
+        setCategory(JSON.parse(stored) as CategoryFilterValue);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.categoryFilter, JSON.stringify(category));
+    } catch {
+      // ignore
+    }
+  }, [category]);
+
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError,   setStatsError]   = useState(false);
+  const [totalCoverage, setTotalCoverage] = useState<string | null>(null);
+  const [totalPayouts,  setTotalPayouts]  = useState<string | null>(null);
+  const [statsLastUpdated, setStatsLastUpdated] = useState<Date | null>(null);
+  const [, setTick] = useState(0);
+
+  // Refresh the "Updated X ago" text every 60s
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatsLoading(true);
+    setStatsError(false);
+    fetchProtocolStats()
+      .then((stats) => {
+        if (cancelled) return;
+        setTotalCoverage(stats.totalCoverage);
+        setTotalPayouts(stats.totalPayouts);
+        setStatsLastUpdated(new Date());
+      })
+      .catch(() => { if (!cancelled) setStatsError(true); })
+      .finally(() => { if (!cancelled) setStatsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const activeProductCount = useMemo(
+    () => products.filter((p) => p.status === 'Active').length,
+    [products],
+  );
 
   const filteredProducts = useMemo(() => {
     let result = products;
     if (category !== 'all') {
       result = result.filter((p) => p.category === category);
     }
-    const q = debouncedQuery.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     if (q) {
       result = result.filter((p) =>
         p.name.toLowerCase().includes(q) ||
@@ -33,12 +134,42 @@ export default function HomePage() {
       );
     }
     return result;
-  }, [products, category, debouncedQuery]);
+  }, [products, category, searchQuery]);
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white">
+    <main className="min-h-screen bg-gray-950 dark:bg-gray-950 bg-white dark:text-white text-gray-950">
+      {/* JSON-LD structured data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd({
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            name: 'Parashield Insurance Products',
+            description: 'Parametric insurance products on Stellar blockchain with automatic USDC payouts',
+            itemListElement: filteredProducts.map((product: Product, index: number) => ({
+              '@type': 'ListItem',
+              position: index + 1,
+              item: {
+                '@type': 'Product',
+                name: product.name,
+                description: product.description ?? `${CATEGORY_LABELS[product.category]} insurance policy`,
+                category: CATEGORY_LABELS[product.category],
+                offers: {
+                  '@type': 'Offer',
+                  priceCurrency: 'USDC',
+                  price: stroopsToDisplay(product.coverageMax, 2),
+                  availability: product.status === 'Active'
+                    ? 'https://schema.org/InStock'
+                    : 'https://schema.org/OutOfStock',
+                },
+              },
+            })),
+          }),
+        }}
+      />
       {/* Hero */}
-      <section className="border-b border-white/10 px-6 py-20 text-center">
+      <section className="border-b border-gray-200 dark:border-white/10 px-6 py-20 text-center">
         <div className="mx-auto max-w-3xl">
           <div className="mb-6 flex justify-center">
             <LogoWordmark size={40} />
@@ -50,12 +181,12 @@ export default function HomePage() {
             Insurance that pays out{' '}
             <span className="text-teal-400">automatically</span>
           </h1>
-          <p className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto">
+          <p className="mt-6 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
             When the trigger condition is met — drought, flight delay, storm, DeFi exploit —
             the smart contract pays you in USDC within seconds.
             No claims form. No adjuster. No waiting.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-500">
+          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             <span>⚡ Seconds, not weeks</span>
             <span>·</span>
             <span>🌍 MoneyGram cash-out globally</span>
@@ -71,19 +202,23 @@ export default function HomePage() {
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-6">
           <h2 className="text-2xl font-bold">Insurance Products</h2>
-          <p className="mt-1 text-sm text-gray-500">Live on Stellar testnet · Payouts in USDC</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Live on Stellar testnet · Payouts in USDC</p>
         </div>
 
         <CategoryFilter value={category} onChange={setCategory} className="mb-4" />
         <SearchBar
           onSearch={setSearchQuery}
-          debounceMs={0}
           placeholder="Search products…"
+          label="Search insurance products"
+          resultsId="product-results"
+          resultCount={loading || error ? undefined : filteredProducts.length}
           className="mb-8 max-w-md"
         />
 
+        <div id="product-results">
+        <LoadingRegion loading={loading} label="Loading insurance products">
         {loading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid-fluid-cards gap-6">
             {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
           </div>
         ) : error ? (
@@ -100,19 +235,58 @@ export default function HomePage() {
           <EmptyState
             icon="🔍"
             title="No products found"
-            description={debouncedQuery
-              ? `No products match "${debouncedQuery}". Try a different search or category.`
+            description={searchQuery
+              ? `No products match "${searchQuery}". Try a different search or category.`
               : 'No products in this category yet.'}
           />
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {filteredProducts.map((p) => <ProductCard key={p.id} product={p} />)}
+          <div className="grid-fluid-cards gap-6">
+            {filteredProducts.map((p) => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                compareSelected={compareIds.has(p.id)}
+                onCompareToggle={toggleCompare}
+              />
+            ))}
           </div>
+        )}
+        </LoadingRegion>
+        </div>
+
+        {compareIds.size > 0 && (
+          <div className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/10 bg-gray-900/95 px-6 py-3 shadow-2xl backdrop-blur-md">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-300">
+                {compareIds.size} of 3 selected
+              </span>
+              <button
+                onClick={() => setCompareOpen(true)}
+                disabled={compareIds.size < 2}
+                className="rounded-xl bg-teal-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Compare
+              </button>
+              <button
+                onClick={() => setCompareIds(new Set())}
+                className="text-xs text-gray-400 hover:text-white transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
+        {compareOpen && compareProducts.length >= 2 && (
+          <CompareModal
+            products={compareProducts}
+            onClose={handleCloseCompare}
+          />
         )}
       </section>
 
       {/* How it works */}
-      <section className="border-t border-white/10 bg-white/[0.02] px-6 py-16">
+      <section className="border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] px-6 py-16">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-10 text-center text-2xl font-bold">How it works</h2>
           <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -122,10 +296,10 @@ export default function HomePage() {
               { n: '03', title: 'Oracle monitors', desc: 'NOAA, AviationStack, and on-chain monitors feed verified data to the Oracle Verifier contract every hour.' },
               { n: '04', title: 'Automatic payout', desc: 'Trigger confirmed → contract transfers your coverage to your wallet. No form, no adjuster, no delay.' },
             ].map((step) => (
-              <li key={step.n} className="rounded-2xl border border-white/10 bg-white/5 p-6">
+              <li key={step.n} className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-6">
                 <span className="text-3xl font-black text-teal-500/30">{step.n}</span>
-                <p className="mt-3 font-semibold text-white">{step.title}</p>
-                <p className="mt-2 text-sm text-gray-400 leading-relaxed">{step.desc}</p>
+                <p className="mt-3 font-semibold text-gray-950 dark:text-white">{step.title}</p>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{step.desc}</p>
               </li>
             ))}
           </ol>
@@ -133,19 +307,40 @@ export default function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="border-t border-white/10 px-6 py-12">
-        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-6 text-center">
-          {[
-            { v: '33', l: 'Tests passing' },
-            { v: '4',  l: 'Live products' },
-            { v: '$0.00001', l: 'Per transaction' },
-          ].map((s) => (
-            <div key={s.l}>
-              <p className="text-3xl font-black text-teal-400">{s.v}</p>
-              <p className="mt-1 text-sm text-gray-500">{s.l}</p>
-            </div>
-          ))}
-        </div>
+      <section className="border-t border-gray-200 dark:border-white/10 px-6 py-12">
+        <LoadingRegion
+          loading={statsLoading || loading}
+          label="Loading protocol stats"
+          className="mx-auto grid max-w-4xl grid-cols-2 gap-6 text-center sm:grid-cols-4"
+        >
+          <div>
+            <StatValue loading={statsLoading} failed={statsError}>
+              {totalCoverage !== null ? formatUSDC(totalCoverage, false) : null}
+            </StatValue>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total coverage issued</p>
+          </div>
+          <div>
+            <StatValue loading={loading} failed={!!error}>
+              {activeProductCount}
+            </StatValue>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Active products</p>
+          </div>
+          <div>
+            <StatValue loading={statsLoading} failed={statsError}>
+              {totalPayouts !== null ? formatUSDC(totalPayouts, false) : null}
+            </StatValue>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total payouts</p>
+          </div>
+          <div>
+            <p className="text-3xl font-black text-teal-400">{stroopsToDisplay(BASE_FEE, 5)} XLM</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Per transaction (network base fee)</p>
+          </div>
+        </LoadingRegion>
+        {statsLastUpdated && !statsLoading && (
+          <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+            Updated {timeAgo(statsLastUpdated)}
+          </p>
+        )}
       </section>
     </main>
   );

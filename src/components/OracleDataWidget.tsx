@@ -1,54 +1,123 @@
 'use client';
 
+import { memo, useState, useCallback, useRef } from 'react';
 import { useOracleReading } from '@/hooks/useOracle';
-import { LoadingSpinner } from './LoadingSpinner';
-import { formatOracleValue, formatDateTime } from '@/lib/format';
-import { oracleKeyLabel, confidenceLabel, confidenceColour } from '@/lib/oracle';
+import { Skeleton } from './Skeleton';
+import { LoadingRegion } from './LoadingRegion';
+import { formatOracleValue, formatDateTime, formatUtcDateTime } from '@/lib/format';
+import { oracleKeyLabel, confidenceLabel, confidenceColour, parseOracleKey } from '@/lib/oracle';
 
 interface OracleDataWidgetProps {
   oracleKey: string;
   className?: string;
 }
 
-export function OracleDataWidget({ oracleKey, className }: OracleDataWidgetProps) {
-  const { reading, loading, error } = useOracleReading(oracleKey);
+type OracleDataWidgetBodyProps = OracleDataWidgetProps & ReturnType<typeof useOracleReading>;
+
+function OracleDataWidgetComponent({ oracleKey, className }: OracleDataWidgetProps) {
+  const state = useOracleReading(oracleKey);
+
+  return (
+    <LoadingRegion loading={state.loading} label="Loading oracle data">
+      <OracleDataWidgetBody oracleKey={oracleKey} className={className} {...state} />
+    </LoadingRegion>
+  );
+}
+
+function OracleDataWidgetBody({ oracleKey, className, reading, loading, error, refetch }: OracleDataWidgetBodyProps) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Keep a stable refetch reference so handleRefresh doesn't change identity
+  // when the hook re-exports a new function on every render.
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetchRef.current();
+    setRefreshing(false);
+  }, []);
 
   if (loading) {
     return (
-      <div className={`flex h-28 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] ${className ?? ''}`}>
-        <LoadingSpinner size="sm" />
+      <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${className ?? ''}`}>
+        <Skeleton className="h-2 w-24 rounded-full" />
+        <Skeleton className="mt-1 h-2 w-32 rounded-full" />
+        <Skeleton className="mt-3 h-7 w-20 rounded-lg" />
+        <div className="mt-3 flex items-center justify-between">
+          <Skeleton className="h-2 w-28 rounded-full" />
+          <Skeleton className="h-2 w-16 rounded-full" />
+        </div>
+        <Skeleton className="mt-1 h-2 w-36 rounded-full" />
       </div>
     );
   }
 
-  if (error || !reading) {
+  if (error) {
     return (
-      <div className={`flex h-28 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-sm text-gray-500 ${className ?? ''}`}>
-        No oracle data
+      <div className={`flex h-28 flex-col items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-white/[0.03] text-sm ${className ?? ''}`}>
+        <p className="text-red-400">{error}</p>
+        <button
+          onClick={() => void handleRefresh()}
+          disabled={refreshing}
+          aria-busy={refreshing}
+          className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
+        >
+          {refreshing ? 'Retrying…' : 'Retry'}
+        </button>
+      </div>
+    );
+  }
+
+  if (!reading) {
+    return (
+      <div className={`flex h-28 flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] text-sm text-gray-400 ${className ?? ''}`}>
+        <p>No oracle data</p>
+        <button
+          onClick={() => void handleRefresh()}
+          disabled={refreshing}
+          aria-busy={refreshing}
+          className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-400 transition-all hover:border-white/20 hover:text-white active:scale-95 disabled:opacity-60"
+          aria-label="Refresh oracle data"
+        >
+          {refreshing ? '↻ Refreshing…' : '↻ Refresh'}
+        </button>
       </div>
     );
   }
 
   const confLabel  = confidenceLabel(reading.confidence);
   const confColour = confidenceColour(reading.confidence);
+  const formattedOracleValue = String(formatOracleValue(reading.value, parseOracleKey(oracleKey).dataType));
 
   return (
     <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${className ?? ''}`}>
-      <p className="text-[10px] uppercase tracking-widest text-gray-500">Oracle Reading</p>
+      <p className="text-[10px] uppercase tracking-widest text-gray-400">Oracle Reading</p>
       <p className="mt-1 text-xs text-gray-400 truncate">{oracleKeyLabel(oracleKey)}</p>
 
       <p className="mt-3 text-2xl font-black text-white">
-        {formatOracleValue(reading.value, reading.dataType)}
+        {formattedOracleValue}
       </p>
 
-      <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500">
+      <div className="mt-3 flex items-center justify-between text-[10px] text-gray-400">
         <span>Source: <span className="text-gray-400">{reading.source}</span></span>
         <span className={`font-semibold ${confColour}`}>{confLabel} confidence</span>
       </div>
 
-      <p className="mt-1 text-[10px] text-gray-600">
-        {formatDateTime(reading.timestamp)}
-      </p>
+      <time
+        dateTime={new Date(reading.timestamp * 1000).toISOString()}
+        title={formatUtcDateTime(reading.timestamp)}
+        className="mt-1 block text-[10px] text-gray-400"
+      >
+        {formatDateTime(reading.timestamp, { withTimeZone: true })}
+      </time>
     </div>
   );
 }
+
+export const OracleDataWidget = memo(
+  OracleDataWidgetComponent,
+  (previous, next) => previous.oracleKey === next.oracleKey && previous.className === next.className,
+);
+
+OracleDataWidget.displayName = 'OracleDataWidget';

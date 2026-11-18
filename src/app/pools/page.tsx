@@ -1,43 +1,72 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchPoolStats } from '@/lib/api';
 import type { PoolStats } from '@/types';
-import { formatUSDC } from '@/lib/format';
+import { formatUSDC, getUtilizationColorName } from '@/lib/format';
 import { Badge } from '@/components/Badge';
 import { ProgressBar } from '@/components/ProgressBar';
-import { FullPageSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { SkeletonCard } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DepositModal } from '@/components/DepositModal';
+import { WithdrawModal } from '@/components/WithdrawModal';
 import { useWallet } from '@/hooks/useWallet';
+import { usePools } from '@/hooks/usePools';
 import { CATEGORY_ICONS, CATEGORY_LABELS } from '@/lib/constants';
 
 export default function PoolsPage() {
   const { connected } = useWallet();
-  const [pools,        setPools]        = useState<PoolStats[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState<string | null>(null);
+  const { pools, loading, error, refetch } = usePools();
   const [depositPool,  setDepositPool]  = useState<PoolStats | null>(null);
+  const [withdrawPool, setWithdrawPool] = useState<PoolStats | null>(null);
 
   useEffect(() => {
-    fetchPoolStats()
-      .then(setPools)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load pools'))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!connected) {
+      setDepositPool(null);
+      setWithdrawPool(null);
+    }
+  }, [connected]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <h1 className="text-2xl font-bold">Risk Pools</h1>
-      <p className="mt-1 text-sm text-gray-400">
-        Provide liquidity, underwrite risk, and earn yield on USDC premiums
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Risk Pools</h1>
+          <p className="mt-1 text-sm text-gray-400">
+            Provide liquidity, underwrite risk, and earn yield on USDC premiums
+          </p>
+        </div>
+        <button
+          onClick={() => void refetch()}
+          disabled={loading}
+          className="rounded-lg bg-teal-500 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors flex items-center gap-2"
+        >
+          {loading && <LoadingSpinner size="sm" />}
+          Refresh
+        </button>
+      </div>
 
-      {loading && <FullPageSpinner />}
+      <LoadingRegion loading={loading} label="Loading risk pools">
+      {loading && (
+        <div className="mt-8 grid-fluid-cards gap-6">
+          {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+        </div>
+      )}
 
       {error && (
-        <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-sm text-red-400">
-          {error}
+        <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-sm text-red-400">{error}</p>
+            <button
+              onClick={() => void refetch()}
+              disabled={loading}
+              className="shrink-0 rounded-lg bg-red-500 px-4 py-2 text-xs font-semibold text-white hover:bg-red-400 disabled:opacity-60 transition-colors flex items-center gap-2"
+            >
+              {loading && <LoadingSpinner size="sm" />}
+              Try again
+            </button>
+          </div>
         </div>
       )}
 
@@ -51,7 +80,7 @@ export default function PoolsPage() {
       )}
 
       {!loading && pools.length > 0 && (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid-fluid-cards gap-6">
           {pools.map((pool) => (
             <div key={pool.poolId} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
               <div className="flex items-center gap-3">
@@ -64,16 +93,18 @@ export default function PoolsPage() {
 
               <dl className="mt-5 space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Liquidity</dt>
+                  <dt className="text-gray-400">Liquidity</dt>
                   <dd className="font-semibold text-white">{formatUSDC(pool.totalLiquidity)}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Active policies</dt>
+                  <dt className="text-gray-400">Active policies</dt>
                   <dd className="font-semibold text-white">{pool.activePolicies}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">APY</dt>
-                  <dd className="font-semibold text-emerald-400">{(pool.apy * 100).toFixed(1)}%</dd>
+                  <dt className="text-gray-400">APY</dt>
+                  <dd className="font-semibold text-emerald-400">
+                    {pool.apy != null ? `${(pool.apy * 100).toFixed(1)}%` : '—'}
+                  </dd>
                 </div>
               </dl>
 
@@ -81,7 +112,7 @@ export default function PoolsPage() {
                 <ProgressBar
                   value={pool.utilizationRate * 100}
                   label="Utilization"
-                  colour={pool.utilizationRate > 0.8 ? 'red' : pool.utilizationRate > 0.5 ? 'amber' : 'teal'}
+                  colour={getUtilizationColorName(pool.utilizationRate)}
                 />
               </div>
 
@@ -89,25 +120,34 @@ export default function PoolsPage() {
                 {connected && (
                   <button
                     onClick={() => setDepositPool(pool)}
-                    className="flex-1 rounded-xl bg-teal-500 py-2 text-xs font-semibold text-white hover:bg-teal-400 transition-colors"
+                    disabled={pool.paused}
+                    className="flex-1 rounded-xl bg-teal-500 py-2 text-xs font-semibold text-white hover:bg-teal-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-teal-500"
+                    aria-label={pool.paused ? "Deposit — pool paused" : "Deposit"}
                   >
                     Deposit
                   </button>
                 )}
-                <button
-                  disabled
-                  className={`${connected ? 'flex-1' : 'w-full'} rounded-xl border border-white/10 py-2 text-xs font-semibold text-gray-500 cursor-not-allowed`}
-                >
-                  Withdraw (coming soon)
-                </button>
+                {connected && (
+                  <button
+                    onClick={() => setWithdrawPool(pool)}
+                    className="flex-1 rounded-xl border border-white/10 py-2 text-xs font-semibold text-gray-300 hover:border-white/20 hover:text-white transition-colors"
+                  >
+                    Withdraw
+                  </button>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
+      </LoadingRegion>
 
       {depositPool && (
         <DepositModal pool={depositPool} onClose={() => setDepositPool(null)} />
+      )}
+
+      {withdrawPool && (
+        <WithdrawModal pool={withdrawPool} onClose={() => setWithdrawPool(null)} />
       )}
     </main>
   );

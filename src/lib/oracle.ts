@@ -1,5 +1,5 @@
 export interface OracleKey {
-  dataType: 'rainfall' | 'temperature' | 'flight' | 'defi';
+  dataType: 'rainfall' | 'temperature' | 'flight' | 'defi' | 'unknown';
   location?: string;
   flightNumber?: string;
   period?: string;
@@ -9,34 +9,61 @@ export interface OracleKey {
 
 export function parseOracleKey(key: string): OracleKey {
   if (key.startsWith('rainfall:')) {
-    const [, coords, period] = key.split(':');
+    const segments = key.split(':');
+    if (segments.length < 3 || !segments[1] || !segments[2]) {
+      return { dataType: 'unknown', rawKey: key };
+    }
+    const [, coords, period] = segments;
     return { dataType: 'rainfall', location: coords, period };
   }
   if (key.startsWith('temperature:')) {
-    const [, coords, period] = key.split(':');
+    const segments = key.split(':');
+    if (segments.length < 3 || !segments[1] || !segments[2]) {
+      return { dataType: 'unknown', rawKey: key };
+    }
+    const [, coords, period] = segments;
     return { dataType: 'temperature', location: coords, period };
   }
   if (key.startsWith('flight:')) {
-    const [, flightNumber, date] = key.split(':');
-    return { dataType: 'flight', flightNumber, period: date };
+    // The date is always the final segment. Splitting on every ':' would drop it
+    // if the flight number itself contains a colon (e.g. "AB:12"), so isolate the
+    // date from the last ':' and treat everything before it as the flight number.
+    const rest = key.slice('flight:'.length);
+    if (!rest) {
+      return { dataType: 'unknown', rawKey: key };
+    }
+    const lastColon = rest.lastIndexOf(':');
+    if (lastColon === -1) {
+      return { dataType: 'flight', flightNumber: rest };
+    }
+    const flightNumber = rest.slice(0, lastColon);
+    const period = rest.slice(lastColon + 1);
+    if (!flightNumber || !period) {
+      return { dataType: 'unknown', rawKey: key };
+    }
+    return { dataType: 'flight', flightNumber, period };
   }
   if (key === 'defi') {
     return { dataType: 'defi' };
   }
   if (key.startsWith('defi:')) {
-    const [, defiKey] = key.split(':', 2);
+    const segments = key.split(':', 2);
+    const defiKey = segments[1];
+    if (!defiKey) {
+      return { dataType: 'unknown', rawKey: key };
+    }
     return { dataType: 'defi', defiKey };
   }
-  return { dataType: 'defi', rawKey: key };
+  return { dataType: 'unknown', rawKey: key };
 }
 
 export function oracleKeyLabel(key: string): string {
   const parsed = parseOracleKey(key);
   switch (parsed.dataType) {
     case 'rainfall':
-      return `Rainfall · ${parsed.location ?? ''} · ${parsed.period ?? ''}`;
+      return `Rainfall · ${formatCoordinates(parsed.location ?? '')} · ${parsed.period ?? ''}`;
     case 'temperature':
-      return `Temperature · ${parsed.location ?? ''} · ${parsed.period ?? ''}`;
+      return `Temperature · ${formatCoordinates(parsed.location ?? '')} · ${parsed.period ?? ''}`;
     case 'flight':
       return `Flight ${parsed.flightNumber ?? ''} · ${parsed.period ?? ''}`;
     case 'defi':
@@ -47,35 +74,74 @@ export function oracleKeyLabel(key: string): string {
         return 'DeFi Exploit Monitor';
       }
       return parsed.rawKey;
+    case 'unknown':
+      return parsed.rawKey ?? key;
     default:
       return key;
   }
 }
 
-export function oracleValueUnit(dataType: string): string {
-  if (dataType === 'rainfall')    return 'mm';
-  if (dataType === 'temperature') return '°C';
-  if (dataType === 'flight')      return 'min';
-  return '';
-}
-
 export function confidenceLabel(confidence: number): string {
+  if (confidence === 0) return 'No Data';
   if (confidence >= 90) return 'High';
   if (confidence >= 70) return 'Medium';
   return 'Low';
 }
 
 export function confidenceColour(confidence: number): string {
+  if (confidence === 0) return 'text-gray-400';
   if (confidence >= 90) return 'text-emerald-400';
   if (confidence >= 70) return 'text-amber-400';
   return 'text-red-400';
 }
 
+export function confidenceIcon(confidence: number): string {
+  if (confidence >= 90) return '●';
+  if (confidence >= 70) return '◐';
+  return '○';
+}
+
+const rainfallKeyCache = new Map<string, string>();
+const MAX_RAINFALL_KEY_CACHE_SIZE = 100;
+
 export function buildRainfallKey(lat: number, lng: number, year: number, month: number): string {
+  const cacheKey = `${lat}|${lng}|${year}|${month}`;
+  const cachedKey = rainfallKeyCache.get(cacheKey);
+  if (cachedKey) return cachedKey;
+
   const monthStr = String(month).padStart(2, '0');
-  return `rainfall:${lat},${lng}:${year}-${monthStr}`;
+  // Clamp coordinate precision to 4 decimals (~11m). Without a cap, values like
+  // parseFloat('-0.09171234567') produce long keys that can blow past Soroban's
+  // 32-char limit. toFixed(4) keeps keys well within budget (issue #222).
+  const latStr = clampCoord(lat);
+  const lngStr = clampCoord(lng);
+  const key = `rainfall:${latStr},${lngStr}:${year}-${monthStr}`;
+  if (rainfallKeyCache.size >= MAX_RAINFALL_KEY_CACHE_SIZE) {
+    const oldestKey = rainfallKeyCache.keys().next().value;
+    if (oldestKey !== undefined) rainfallKeyCache.delete(oldestKey);
+  }
+  rainfallKeyCache.set(cacheKey, key);
+  return key;
+}
+
+// Format a coordinate to at most 4 decimals without trailing-zero padding,
+// so whole numbers stay short ("0") and precise values are capped ("-0.0917").
+function clampCoord(value: number): string {
+  return String(Number(value.toFixed(4)));
 }
 
 export function buildFlightKey(flightNumber: string, date: string): string {
   return `flight:${flightNumber}:${date}`;
+}
+
+/** Format raw comma-separated coordinates (e.g. "-0.0917,34.7679") with N/S/E/W indicators. */
+function formatCoordinates(coords: string): string {
+  const parts = coords.split(',');
+  if (parts.length !== 2) return coords;
+  const lat = parseFloat(parts[0]);
+  const lng = parseFloat(parts[1]);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return coords;
+  const latDir = lat >= 0 ? 'N' : 'S';
+  const lngDir = lng >= 0 ? 'E' : 'W';
+  return `${Math.abs(lat)}${latDir}, ${Math.abs(lng)}${lngDir}`;
 }

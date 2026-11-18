@@ -14,8 +14,8 @@ export interface Product {
   triggerType: TriggerType;
   threshold:   string;
   comparison:  Comparison;
-  coverageMin: string;
-  coverageMax: string;
+  coverageMin: string;  // stroops
+  coverageMax: string;  // stroops
   premiumRate: number;  // basis points (500 = 5.00%)
   maxDuration: number;  // days
   status:      'Active' | 'Paused' | 'Deprecated';
@@ -31,6 +31,9 @@ export interface Policy {
   oracleKey:    string;
   startTime:    number;  // unix epoch seconds
   endTime:      number;  // unix epoch seconds
+  cancelledAt?: number;  // unix epoch seconds, set when status === 'Cancelled'
+  createdAt?:   number;  // unix epoch seconds, creation time (when the backend provides it)
+  updatedAt?:   number;  // unix epoch seconds, last status change (when the backend provides it)
   status:       PolicyStatus;
   contractTxHash?: string;
 }
@@ -73,12 +76,17 @@ export interface PoolShareInfo {
   paused?:        boolean;
 }
 
-export interface WalletState {
-  address:   string | null;
-  connected: boolean;
-  walletId:  string | null;
-  network:   string | null;
+export interface ProtocolStats {
+  totalCoverage:  string;  // stroops — sum of active policy coverage
+  activeProducts: number;
+  totalPayouts:   string;  // stroops — cumulative paid claims
 }
+
+export type WalletState =
+  | { status: 'disconnected' }
+  | { status: 'connecting' }
+  | { status: 'connected'; address: string }
+  | { status: 'error'; address: null; message: string };
 
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 

@@ -1,19 +1,28 @@
-'use client';
+﻿'use client';
 
 import { useClaim } from '@/hooks/useClaim';
 import { useWallet } from '@/hooks/useWallet';
 import { Badge } from './Badge';
-import { LoadingSpinner } from './LoadingSpinner';
+import { TransactionProgress, TX_COMPLETE, type TransactionStep } from './TransactionProgress';
 import { formatDateTime, formatUSDC } from '@/lib/format';
 import Link from 'next/link';
+
+const CLAIM_STEPS: TransactionStep[] = [
+  { id: 'preparing',  label: 'Prepare transaction', status: 'Preparing transaction…' },
+  { id: 'signing',    label: 'Sign in wallet',      status: 'Waiting for your wallet signature…' },
+  { id: 'submitting', label: 'Submit to network',   status: 'Submitting to the network…' },
+  { id: 'confirming', label: 'Confirm on-chain',    status: 'Confirming transaction…' },
+  { id: 'recording',  label: 'Record claim',        status: 'Recording your claim…' },
+  { id: 'processing', label: 'Oracle evaluation',   status: 'Processing claim…' },
+];
 
 interface ClaimStatusProps {
   policyId: string;
 }
 
 export function ClaimStatus({ policyId }: ClaimStatusProps) {
-  const { address }                           = useWallet();
-  const { step, claim, error, submit, reset } = useClaim();
+  const { address }                                     = useWallet();
+  const { step, progress, claim, error, submit, reset } = useClaim(policyId);
 
   async function handleSubmit() {
     if (!address) return;
@@ -37,10 +46,15 @@ export function ClaimStatus({ policyId }: ClaimStatusProps) {
   }
 
   if (step === 'submitting' || step === 'polling') {
+    // A claim loaded from history has no session progress; it is already
+    // past the on-chain steps, so show it at the oracle evaluation step.
+    const current = progress ?? (step === 'submitting' ? 'preparing' : 'processing');
     return (
-      <div className="flex items-center gap-3 text-sm text-gray-400">
-        <LoadingSpinner size="sm" />
-        <span>{step === 'submitting' ? 'Submitting claim…' : 'Processing claim…'}</span>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+          {step === 'submitting' ? 'Submitting claim…' : 'Processing claim…'}
+        </p>
+        <TransactionProgress steps={CLAIM_STEPS} current={current} />
       </div>
     );
   }
@@ -71,6 +85,13 @@ export function ClaimStatus({ policyId }: ClaimStatusProps) {
   if (step === 'done' && claim) {
     return (
       <div className="space-y-2">
+        {progress === TX_COMPLETE && (
+          <TransactionProgress
+            steps={CLAIM_STEPS}
+            current={TX_COMPLETE}
+            completeText="Complete! Your claim has been processed."
+          />
+        )}
         <div className="flex items-center gap-3">
           <Badge label={claim.status} />
           {claim.payoutAmount && (
@@ -80,9 +101,9 @@ export function ClaimStatus({ policyId }: ClaimStatusProps) {
           )}
         </div>
         {claim.processedAt && (
-          <p className="text-xs text-gray-500">Processed {formatDateTime(claim.processedAt)}</p>
+          <p className="text-xs text-gray-400">Processed {formatDateTime(claim.processedAt)}</p>
         )}
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-400">
           Trigger:{' '}
           <span className={claim.triggerMet ? 'text-emerald-400' : 'text-red-400'}>
             {claim.triggerMet ? 'Met' : 'Not met'}
@@ -92,5 +113,18 @@ export function ClaimStatus({ policyId }: ClaimStatusProps) {
     );
   }
 
-  return null;
+  // Fallback for any state this component doesn't explicitly render --
+  // including step === 'done' with no claim data yet, and forward
+  // compatibility with a future ClaimStep value the smart contract adds that
+  // this component hasn't been updated to handle (#453). Silently rendering
+  // nothing here previously made a claim's status disappear from the UI with
+  // no indication anything was wrong.
+  return (
+    <div className="flex items-center justify-between">
+      <p className="text-sm text-gray-400">Unable to display claim status.</p>
+      <button onClick={reset} className="text-xs text-gray-400 hover:text-white transition-colors">
+        Refresh
+      </button>
+    </div>
+  );
 }
