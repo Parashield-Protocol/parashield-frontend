@@ -16,6 +16,29 @@ interface EmptyStateProps {
   className?:   string;
 }
 
+interface DefaultActionProps {
+  label:     string;
+  href?:     string;
+  onAction?: () => void;
+}
+
+/**
+ * Convenience CTA for EmptyState. When both href and onAction are supplied,
+ * onAction fires and navigation is prevented — use href-only for plain links.
+ */
+export function DefaultAction({ label, href, onAction }: DefaultActionProps) {
+  if (href) {
+    return (
+      <Link
+        href={href}
+        onClick={(e) => {
+          if (onAction) {
+            e.preventDefault();
+            onAction();
+          }
+        }}
+        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+      >
 const CTA_CLASS =
   'inline-block rounded-xl bg-teal-500 px-6 py-2.5 font-semibold text-white hover:bg-teal-400 transition-colors';
 
@@ -27,6 +50,12 @@ function DefaultAction({ label, onAction, href }: { label: string; onAction?: ()
       </Link>
     );
   }
+
+  return (
+    <button
+      onClick={onAction}
+      className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+    >
   return (
     <button type="button" onClick={onAction} className={CTA_CLASS}>
       {label}
@@ -34,6 +63,7 @@ function DefaultAction({ label, onAction, href }: { label: string; onAction?: ()
   );
 }
 
+export function EmptyState({ icon = '📭', title, description, action, className }: EmptyStateProps) {
 export function EmptyState({
   icon = '📭',
   iconSize = 'text-5xl',
