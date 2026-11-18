@@ -7,6 +7,7 @@ import { Badge } from '@/components/Badge';
 import { ProgressBar } from '@/components/ProgressBar';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DepositModal } from '@/components/DepositModal';
 import { WithdrawModal } from '@/components/WithdrawModal';
@@ -46,8 +47,9 @@ export default function PoolsPage() {
         </button>
       </div>
 
+      <LoadingRegion loading={loading} label="Loading risk pools">
       {loading && (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid-fluid-cards gap-6">
           {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
         </div>
       )}
@@ -78,7 +80,7 @@ export default function PoolsPage() {
       )}
 
       {!loading && pools.length > 0 && (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid-fluid-cards gap-6">
           {pools.map((pool) => (
             <div key={pool.poolId} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
               <div className="flex items-center gap-3">
@@ -138,6 +140,7 @@ export default function PoolsPage() {
           ))}
         </div>
       )}
+      </LoadingRegion>
 
       {depositPool && (
         <DepositModal pool={depositPool} onClose={() => setDepositPool(null)} />

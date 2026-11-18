@@ -1,21 +1,61 @@
 const isClient = typeof window !== 'undefined';
 
-function get(key: string): string | null {
-  if (!isClient) return null;
-  try { return localStorage.getItem(key); }
-  catch { return null; }
+let securityErrorWarned = false;
+
+// In-memory fallback (#613). Safari private browsing (and blocked/full
+// storage) makes setItem throw even for tiny writes; previously the value was
+// just dropped. Failed writes now land here so reads in the same page session
+// still see them. Browser storage stays the source of truth when it works.
+const memoryLocal   = new Map<string, string>();
+const memorySession = new Map<string, string>();
+
+function warnSecurityError(operation: string, error: unknown): void {
+  if (!securityErrorWarned && error instanceof DOMException && error.name === 'SecurityError') {
+    console.warn(
+      `[storage] ${operation} failed due to SecurityError — storage may be disabled (e.g. private browsing mode).`,
+      error,
+    );
+    securityErrorWarned = true;
+  }
 }
 
-function set(key: string, value: string): void {
-  if (!isClient) return;
-  try { localStorage.setItem(key, value); }
-  catch { /* quota exceeded — ignore */ }
+function get(key: string): string | null {
+  if (!isClient) return null;
+  try {
+    const value = localStorage.getItem(key);
+    if (value !== null) return value;
+  } catch (error) { warnSecurityError('get', error); }
+  return memoryLocal.get(key) ?? null;
+}
+
+function isQuotaExceededError(error: unknown): boolean {
+  return error instanceof DOMException && (
+    error.name === 'QuotaExceededError' ||
+    error.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    error.code === 22 ||
+    error.code === 1014
+  );
+}
+
+function set(key: string, value: string): boolean {
+  if (!isClient) return false;
+  try {
+    localStorage.setItem(key, value);
+    memoryLocal.delete(key);
+    return true;
+  } catch (error) {
+    if (!isQuotaExceededError(error)) warnSecurityError('set', error);
+    // Not persisted, but keep it readable for this page session.
+    memoryLocal.set(key, value);
+    return false;
+  }
 }
 
 function remove(key: string): void {
   if (!isClient) return;
+  memoryLocal.delete(key);
   try { localStorage.removeItem(key); }
-  catch { /* ignore */ }
+  catch (error) { warnSecurityError('remove', error); }
 }
 
 function getJSON<T>(key: string): T | null {
@@ -25,28 +65,66 @@ function getJSON<T>(key: string): T | null {
   catch { return null; }
 }
 
-function setJSON<T>(key: string, value: T): void {
-  try { set(key, JSON.stringify(value)); }
-  catch { /* ignore */ }
+function setJSON<T>(key: string, value: T): boolean {
+  try { return set(key, JSON.stringify(value)); }
+  catch { return false; }
 }
 
 function getSession(key: string): string | null {
   if (!isClient) return null;
-  try { return sessionStorage.getItem(key); }
-  catch { return null; }
+  try {
+    const value = sessionStorage.getItem(key);
+    if (value !== null) return value;
+  } catch (error) { warnSecurityError('getSession', error); }
+  return memorySession.get(key) ?? null;
 }
 
-function setSession(key: string, value: string): void {
-  if (!isClient) return;
-  try { sessionStorage.setItem(key, value); }
-  catch { /* quota exceeded — ignore */ }
+function setSession(key: string, value: string): boolean {
+  if (!isClient) return false;
+  try {
+    sessionStorage.setItem(key, value);
+    memorySession.delete(key);
+    return true;
+  } catch (error) {
+    if (!isQuotaExceededError(error)) warnSecurityError('setSession', error);
+    // Not persisted, but keep it readable for this page session.
+    memorySession.set(key, value);
+    return false;
+  }
 }
 
 function removeSession(key: string): void {
   if (!isClient) return;
+  memorySession.delete(key);
   try { sessionStorage.removeItem(key); }
-  catch { /* ignore */ }
+  catch (error) { warnSecurityError('removeSession', error); }
 }
 
-const storage = { get, set, remove, getJSON, setJSON, getSession, setSession, removeSession };
+/**
+ * Wipe everything tied to the connected wallet / signed-in session (#687):
+ * the exact `keys` from both localStorage and sessionStorage, every key that
+ * starts with one of `prefixes` (per-wallet keys such as
+ * `ps_expiry_notified_<fingerprint>`), and their in-memory fallbacks.
+ * User preferences (theme, filters) are deliberately not listed by callers.
+ */
+function clearSession(keys: readonly string[], prefixes: readonly string[] = []): void {
+  if (!isClient) return;
+  const matches = (key: string) => keys.includes(key) || prefixes.some((p) => key.startsWith(p));
+
+  for (const map of [memoryLocal, memorySession]) {
+    for (const key of [...map.keys()]) if (matches(key)) map.delete(key);
+  }
+  for (const [area, name] of [[localStorage, 'clearSession(local)'], [sessionStorage, 'clearSession(session)']] as const) {
+    try {
+      const doomed: string[] = [];
+      for (let i = 0; i < area.length; i++) {
+        const key = area.key(i);
+        if (key !== null && matches(key)) doomed.push(key);
+      }
+      doomed.forEach((key) => area.removeItem(key));
+    } catch (error) { warnSecurityError(name, error); }
+  }
+}
+
+const storage = { get, set, remove, getJSON, setJSON, getSession, setSession, removeSession, clearSession };
 export default storage;

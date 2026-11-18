@@ -13,6 +13,19 @@ const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
+      // #707: eslint-config-next turns this rule off. Re-enable it so every
+      // target="_blank" link (and form) must carry rel="noopener noreferrer",
+      // closing reverse tabnabbing via window.opener. Dynamic hrefs are
+      // checked too, since explorer URLs are built from runtime values.
+      "react/jsx-no-target-blank": [
+        "error",
+        {
+          allowReferrer: false,
+          enforceDynamicLinks: "always",
+          links: true,
+          forms: true,
+        },
+      ],
       // #495: this codebase has no components/ui barrel file today — every
       // component is already imported directly by filename. This rule keeps
       // it that way by rejecting any future `@/components/ui` (or a nested

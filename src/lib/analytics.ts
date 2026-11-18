@@ -95,3 +95,24 @@ export function page(name: string, properties?: EventProperties): void {
   }
   bufferedPageviews.push({ properties, url: window.location.href });
 }
+
+// Last route a pageview was recorded for (#711). The route-change effect is the
+// single source of pageviews, but React can run it more than once for the same
+// route (Strict Mode double-invokes effects; a layout remount re-runs it), and
+// each run used to record another $pageview for the same navigation.
+let lastPageviewPath: string | null = null;
+
+/**
+ * Record exactly one pageview per navigation: a no-op when `path` is the route
+ * already recorded, so only a real route change produces a new event.
+ */
+export function trackPageview(path: string, properties?: EventProperties): void {
+  if (!path || path === lastPageviewPath) return;
+  lastPageviewPath = path;
+  page(path, properties);
+}
+
+/** Test helper: forget the last recorded route. */
+export function resetPageviewTracking(): void {
+  lastPageviewPath = null;
+}

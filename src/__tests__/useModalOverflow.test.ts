@@ -1,4 +1,4 @@
-import { useModalOverflow, resetModalOverflow } from '../hooks/useModalOverflow';
+import { useModalOverflow, resetModalOverflow, SCROLL_LOCK_CLASS } from '../hooks/useModalOverflow';
 import { renderHook } from './renderHook';
 
 describe('useModalOverflow', () => {
@@ -46,5 +46,28 @@ describe('useModalOverflow', () => {
     resetModalOverflow();
 
     expect(document.body.style.overflow).toBe('');
+  });
+
+  it('marks <html> with the scroll-lock class only while a lock is held (#552)', () => {
+    const first = renderHook(() => useModalOverflow());
+    const second = renderHook(() => useModalOverflow());
+    const html = document.documentElement;
+
+    first.current.lock();
+    second.current.lock();
+    expect(html.classList.contains(SCROLL_LOCK_CLASS)).toBe(true);
+
+    first.current.unlock();
+    expect(html.classList.contains(SCROLL_LOCK_CLASS)).toBe(true);
+
+    second.current.unlock();
+    expect(html.classList.contains(SCROLL_LOCK_CLASS)).toBe(false);
+  });
+
+  it('resetModalOverflow also clears the scroll-lock class', () => {
+    const hook = renderHook(() => useModalOverflow());
+    hook.current.lock();
+    resetModalOverflow();
+    expect(document.documentElement.classList.contains(SCROLL_LOCK_CLASS)).toBe(false);
   });
 });

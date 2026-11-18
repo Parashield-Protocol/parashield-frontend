@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchUserPolicies, fetchPolicy } from "@/lib/api";
+import { isApiError } from "@/lib/errors";
 import type { Policy } from "@/types";
 import { POLLING_INTERVAL_MS } from "@/lib/constants";
+import { getCachedPolicy, setCachedPolicy } from "@/lib/policyCache";
 
 export function usePolicies(walletAddress: string | null) {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pollingError, setPollingError] = useState<string | null>(null);
   const isFirstLoad = useRef(true);
   // Seeded with the initial wallet: on mount there is nothing stale to clear.
   const prevWallet = useRef(walletAddress);
@@ -21,14 +24,20 @@ export function usePolicies(walletAddress: string | null) {
       setLoading(true);
       isFirstLoad.current = false;
     }
-    setError(null);
+    if (isFirst) setError(null);
     try {
       const data = await fetchUserPolicies();
       if (signal.aborted) return;
       setPolicies(data);
+      setPollingError(null);
     } catch (err) {
       if (signal.aborted) return;
-      setError(err instanceof Error ? err.message : "Failed to load policies");
+      const message = err instanceof Error ? err.message : "Failed to load policies";
+      if (isFirst) {
+        setError(message);
+      } else {
+        setPollingError(message);
+      }
     } finally {
       if (isFirst && !signal.aborted) {
         setLoading(false);
@@ -49,6 +58,7 @@ export function usePolicies(walletAddress: string | null) {
     prevWallet.current = walletAddress;
     setPolicies([]);
     setError(null);
+    setPollingError(null);
     isFirstLoad.current = true;
   }, [walletAddress]);
 
@@ -75,28 +85,43 @@ export function usePolicies(walletAddress: string | null) {
     return load(controller.signal);
   }, [load]);
 
-  return { policies, loading, error, refetch };
+  return { policies, loading, error, pollingError, refetch };
 }
 
 export function usePolicy(id: string | null) {
-  const [policy, setPolicy] = useState<Policy | null>(null);
+  const [policy, setPolicy] = useState<Policy | null>(() => {
+    if (!id) return null;
+    return getCachedPolicy(id);
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
+    const cached = getCachedPolicy(id);
+    if (cached) {
+      setPolicy(cached);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
     fetchPolicy(id)
       .then((p) => {
         if (!cancelled) {
+          setCachedPolicy(id, p);
           setPolicy(p);
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load policy");
+          // 404 means the policy doesn't exist — show "not found" instead of error
+          if (isApiError(err) && err.status === 404) {
+            setPolicy(null);
+          } else {
+            setError(err instanceof Error ? err.message : "Failed to load policy");
+          }
         }
       })
       .finally(() => {
@@ -120,9 +145,15 @@ export function usePolicy(id: string | null) {
     setError(null);
     try {
       const p = await fetchPolicy(id);
+      setCachedPolicy(id, p);
       setPolicy(p);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load policy");
+      // 404 means the policy doesn't exist — show "not found" instead of error
+      if (isApiError(err) && err.status === 404) {
+        setPolicy(null);
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to load policy");
+      }
     } finally {
       setRefetching(false);
     }

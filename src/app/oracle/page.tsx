@@ -3,6 +3,7 @@
 import { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { useAllOracleReadings } from '@/hooks/useOracle';
 import { SkeletonTable } from '@/components/Skeleton';
+import { LoadingRegion } from '@/components/LoadingRegion';
 import { Badge } from '@/components/Badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { formatOracleValue, formatDateTime, formatUtcDateTime } from '@/lib/format';
@@ -133,6 +134,7 @@ export default function OraclePage() {
         </button>
       </div>
 
+      <LoadingRegion loading={loading && readings.length === 0} label="Loading oracle readings">
       {loading && readings.length === 0 && (
         <div className="mt-8">
           <SkeletonTable rows={5} />
@@ -261,6 +263,7 @@ export default function OraclePage() {
         </div>
         </>
       )}
+      </LoadingRegion>
 
       {/* Legend */}
       <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">

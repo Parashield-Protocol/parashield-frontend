@@ -45,7 +45,7 @@ export function NavBar() {
   useKeyboardShortcut('?', () => setShortcutsOpen(true));
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-gray-200 dark:border-white/10 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
+    <nav className="sticky top-0 z-(--z-sticky) border-b border-gray-200 dark:border-white/10 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link href="/">
           <LogoWordmark size={28} />
@@ -72,7 +72,9 @@ export function NavBar() {
           <button
             onClick={toggle}
             className="text-gray-400 hover:text-white transition-colors"
+            aria-pressed={theme === 'dark'}
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
             <div className="relative w-5 h-5 inline-block">
               {theme === 'dark' ? (
@@ -89,14 +91,21 @@ export function NavBar() {
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-nav"
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
-      {mobileMenuOpen && (
-        <div id="mobile-nav" ref={mobileMenuRef} className="md:hidden border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950">
+      {/* Always rendered (hidden when closed) so the toggle's aria-controls
+          never points at a missing element (#692). */}
+      <div
+        id="mobile-nav"
+        ref={mobileMenuRef}
+        hidden={!mobileMenuOpen}
+        className="md:hidden border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950"
+      >
           <div className="px-6 py-4 space-y-3">
             {NAV_LINKS.map(({ href, label }) => (
               <Link
@@ -114,8 +123,7 @@ export function NavBar() {
               </Link>
             ))}
           </div>
-        </div>
-      )}
+      </div>
       <KeyboardShortcutHelpModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </nav>
   );

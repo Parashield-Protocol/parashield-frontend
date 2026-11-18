@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { NavBar } from '../components/NavBar';
 
 const mockUsePathname = vi.fn().mockReturnValue('/');
@@ -23,6 +25,7 @@ vi.mock('@/lib/stellar', () => ({
   disconnectWallet: vi.fn(),
   getStoredAddress: vi.fn().mockReturnValue(null),
   getConnectedAddress: vi.fn().mockReturnValue(null),
+  getWalletNetworkPassphrase: vi.fn(async () => null),
   signAuthMessage: vi.fn(),
   EXPECTED_NETWORK_PASSPHRASE: 'Test SDF Network ; September 2015',
 }));
@@ -112,5 +115,32 @@ describe('NavBar', () => {
     mockUsePathname.mockReturnValue('/');
     const html = renderToStaticMarkup(<NavBar />);
     expect(html).toContain('shortcut-modal');
+  });
+
+  it('toggles aria-expanded and keeps aria-controls pointing at the menu (#692)', () => {
+    mockUsePathname.mockReturnValue('/');
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<NavBar />));
+
+    const toggle = container.querySelector<HTMLButtonElement>('button[aria-controls]')!;
+    const menu = () => container.querySelector<HTMLElement>(`#${toggle.getAttribute('aria-controls')}`);
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(menu()).not.toBeNull();
+    expect(menu()!.hidden).toBe(true);
+
+    act(() => toggle.click());
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(menu()!.hidden).toBe(false);
+
+    act(() => toggle.click());
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(menu()!.hidden).toBe(true);
+
+    act(() => root.unmount());
+    container.remove();
   });
 });

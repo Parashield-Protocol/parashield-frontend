@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from './storageKeys';
+
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -56,6 +58,12 @@ export const STROOPS_PER_UNIT = 10_000_000n;
 // At STROOPS_PER_UNIT = 10_000_000n, 100_000n stroops = 0.01 USDC.
 // This prevents dust deposits that may round to 0 or be rejected by the pool contract.
 export const MIN_DEPOSIT_STROOPS = 100_000n;
+
+// Minimum withdrawal: 0.01 LP shares (100,000 stroops), matching the deposit
+// floor so dust withdrawals that round to 0 USDC or fail on chain are blocked
+// client-side. A holder whose entire balance is below this can still withdraw
+// all of it, so small positions are never stuck.
+export const MIN_WITHDRAW_STROOPS = 100_000n;
 
 const _CONTRACT_RE = /^C[A-Z2-7]{55}$/;
 
@@ -138,10 +146,11 @@ export const STATUS_COLOURS: Record<PolicyStatus | ClaimStatus, string> = {
   Rejected:   'red',
 };
 
-export const WALLET_STORAGE_KEY   = 'ps_wallet_id';
-export const ADDRESS_STORAGE_KEY  = 'ps_wallet_address';
-export const NETWORK_STORAGE_KEY  = 'ps_wallet_network';
-export const AUTH_TOKEN_STORAGE_KEY = 'ps_auth_token';
+// Defined in the storage-key registry; re-exported for existing callers.
+export const WALLET_STORAGE_KEY     = STORAGE_KEYS.walletId;
+export const ADDRESS_STORAGE_KEY    = STORAGE_KEYS.walletAddress;
+export const NETWORK_STORAGE_KEY    = STORAGE_KEYS.walletNetwork;
+export const AUTH_TOKEN_STORAGE_KEY = STORAGE_KEYS.authToken;
 
 export const TOAST_DEFAULT_DURATION_MS = 4000;
 export const COPY_FEEDBACK_DURATION_MS  = 2000;
@@ -150,3 +159,21 @@ export const ORACLE_REFRESH_INTERVAL_MS = 60_000;
 export const CLAIMS_REFRESH_INTERVAL_MS = 15_000;
 export const CLAIM_POLL_INTERVAL_MS    = 3000;
 export const CLAIM_POLL_MAX_ATTEMPTS   = 20;
+
+/**
+ * Hard input length caps (#736). Enforced both via `maxLength` on the field
+ * and in submit-time validation, so a paste or programmatic set cannot smuggle
+ * unbounded strings into the UI or API.
+ */
+export const MAX_INPUT_LENGTHS = {
+  /** Search queries. */
+  search: 80,
+  /** Short free-text labels (wallet label, policy label). */
+  label: 64,
+  /** Flight numbers / PNR-style references. */
+  reference: 16,
+  /** Oracle parameter strings like "rainfall:1.5,36.8:2026-06". */
+  oracleParams: 64,
+  /** Numeric amount strings (covers "123456.78" with headroom). */
+  amount: 16,
+} as const;

@@ -1,12 +1,29 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { connectWallet, disconnectWallet, getStoredAddress, getConnectedAddress, signAuthMessage, EXPECTED_NETWORK_PASSPHRASE } from '@/lib/stellar';
+import { connectWallet, disconnectWallet, getStoredAddress, getConnectedAddress, getWalletNetworkPassphrase, signAuthMessage, EXPECTED_NETWORK_PASSPHRASE } from '@/lib/stellar';
 import { toUserMessage } from '@/lib/errors';
 import { fetchChallenge, login, setAuthErrorHandler } from '@/lib/api';
 import storage from '@/lib/storage';
-import { AUTH_TOKEN_STORAGE_KEY, NETWORK_LABEL, networkLabelForPassphrase } from '@/lib/constants';
+import {
+  ADDRESS_STORAGE_KEY,
+  AUTH_TOKEN_STORAGE_KEY,
+  NETWORK_LABEL,
+  NETWORK_STORAGE_KEY,
+  WALLET_STORAGE_KEY,
+  networkLabelForPassphrase,
+} from '@/lib/constants';
+import { EXPIRY_NOTIFIED_PREFIX, WALLET_KIT_STORAGE_KEY, migrateLegacyStorage } from '@/lib/storageKeys';
 import type { WalletState } from '@/types';
+
+/** Storage keys tied to the connected wallet / signed-in session (#687). */
+const SESSION_STORAGE_KEYS = [
+  AUTH_TOKEN_STORAGE_KEY,
+  WALLET_STORAGE_KEY,
+  ADDRESS_STORAGE_KEY,
+  NETWORK_STORAGE_KEY,
+  WALLET_KIT_STORAGE_KEY,
+] as const;
 
 interface WalletContextValue {
   address:           string | null;
@@ -21,6 +38,9 @@ interface WalletContextValue {
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
+/** How often to re-read the wallet's network while connected (#724). */
+export const NETWORK_RECHECK_INTERVAL_MS = 5_000;
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address,    setAddress]    = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -29,7 +49,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const disconnect = useCallback(() => {
     disconnectWallet();
-    storage.removeSession(AUTH_TOKEN_STORAGE_KEY);
+    // Clear all wallet/session data, not just the auth token, so nothing tied
+    // to this wallet survives logout on a shared device (#687).
+    storage.clearSession(SESSION_STORAGE_KEYS, [EXPIRY_NOTIFIED_PREFIX]);
     setAddress(null);
     setError(null);
     setNetworkPassphrase(null);
@@ -86,6 +108,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function initWallet() {
+      migrateLegacyStorage();
       const stored = getStoredAddress();
       if (!stored) return;
 
@@ -132,6 +155,34 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setAuthErrorHandler(disconnect);
   }, [disconnect]);
+
+  // The wallet kit exposes no network-change event, so while connected
+  // re-read the wallet's network on mount, when the tab regains focus, and on
+  // an interval — otherwise a switch made in the wallet leaves the banner and
+  // network checks on the stale value from connect time (#724).
+  useEffect(() => {
+    if (!address) return;
+    let cancelled = false;
+
+    const recheck = async () => {
+      const passphrase = await getWalletNetworkPassphrase();
+      if (!cancelled && passphrase) setNetworkPassphrase(passphrase);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void recheck();
+    };
+
+    void recheck();
+    const timer = setInterval(() => void recheck(), NETWORK_RECHECK_INTERVAL_MS);
+    window.addEventListener('focus', recheck);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      window.removeEventListener('focus', recheck);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [address]);
 
   const walletState: WalletState = connecting
     ? { status: 'connecting' }

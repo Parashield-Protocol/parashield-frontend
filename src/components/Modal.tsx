@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useModalOverflow } from '@/hooks/useModalOverflow';
 
 interface ModalProps {
@@ -9,12 +10,14 @@ interface ModalProps {
   title?:   string;
   children: ReactNode;
   maxWidth?: string;
+  /** Id of an element describing the dialog's content (sets aria-describedby). */
+  describedBy?: string;
 }
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }: ModalProps) {
+export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md', describedBy }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
@@ -38,8 +41,9 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
     }
   }, [open, shouldRender]);
 
-  // Unmount after close animation finishes
-  const handleTransitionEnd = () => {
+  // Unmount after close animation finishes — guard against bubbled events from child transitions
+  const handleTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
     if (!open) {
       setShouldRender(false);
       setVisible(false);
@@ -79,24 +83,53 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
     return () => unlock();
   }, [open, lock, unlock]);
 
+  // Hide the app root from assistive tech and prevent focus on it (#738).
+  // The dialog itself is portaled to document.body so it stays reachable.
+  // `inert` is preferred where supported; `aria-hidden` is the fallback.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.getElementById('__next');
+    if (!root) return;
+    const previousAriaHidden = root.getAttribute('aria-hidden');
+    root.setAttribute('aria-hidden', 'true');
+    if ('inert' in root) {
+      (root as HTMLElement & { inert: boolean }).inert = true;
+    }
+    return () => {
+      if (previousAriaHidden === null) root.removeAttribute('aria-hidden');
+      else root.setAttribute('aria-hidden', previousAriaHidden);
+      if ('inert' in root) {
+        (root as HTMLElement & { inert: boolean }).inert = false;
+      }
+    };
+  }, [open]);
+
   // Focus management
   useEffect(() => {
     if (!open) return;
 
     triggerRef.current = document.activeElement as HTMLElement | null;
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    (focusable?.[0] ?? dialogRef.current)?.focus();
+    // Focus the dialog element first so screen readers announce the modal,
+    // then move to the first interactive element after a short delay.
+    dialogRef.current?.focus();
+    const raf = requestAnimationFrame(() => {
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusable?.length) focusable[0].focus();
+    });
 
     return () => {
+      cancelAnimationFrame(raf);
       triggerRef.current?.focus();
     };
   }, [open]);
 
   if (!shouldRender) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ease-out ${
+      data-modal-overlay=""
+      className={`fixed inset-0 z-(--z-modal) flex items-center justify-center overscroll-contain p-4 transition-all duration-300 ease-out ${
         visible
           ? 'bg-black/50 dark:bg-black/70 backdrop-blur-sm opacity-100'
           : 'bg-black/0 dark:bg-black/0 backdrop-blur-0 opacity-0'
@@ -109,8 +142,11 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        aria-describedby={describedBy}
         tabIndex={-1}
-        className={`relative w-full ${maxWidth} rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-2xl transition-all duration-300 ease-out ${
+        // Own scroll container, capped to the viewport, with overscroll contained
+        // so reaching its top/bottom never chains to the page on iOS (#552).
+        className={`relative max-h-[calc(100dvh-2rem)] w-full ${maxWidth} overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-2xl transition-all duration-300 ease-out ${
           visible
             ? 'opacity-100 scale-100 translate-y-0'
             : 'opacity-0 scale-95 translate-y-2'
@@ -123,6 +159,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
               onClick={onClose}
               className="text-gray-500 dark:text-gray-400 transition-colors hover:text-gray-950 dark:hover:text-white"
               aria-label="Close modal"
+              title="Close"
             >
               ✕
             </button>
@@ -139,6 +176,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }:
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

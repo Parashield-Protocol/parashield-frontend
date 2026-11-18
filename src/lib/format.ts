@@ -89,6 +89,46 @@ export function formatUtcDateTime(epochSeconds: number | null | undefined): stri
   return new Date(epochSeconds * 1000).toUTCString();
 }
 
+/*
+ * Timezone handling (#778)
+ *
+ * - Instants (policy start/end, oracle readings, claim timestamps) are epoch
+ *   seconds, i.e. UTC. Store and compare them as-is; render them with
+ *   `formatDate` / `formatDateTime`, which use the viewer's local timezone.
+ * - Calendar dates from `<input type="date">` are "YYYY-MM-DD" strings with no
+ *   timezone. Never derive one with `toISOString()` (that is the *UTC* day, so
+ *   for anyone ahead of UTC it is yesterday until mid-morning) and never parse
+ *   one with `new Date(value)` and read it back with local getters. Use
+ *   `toDateInputValue` to get the viewer's local day, and `dateInputToEpoch`
+ *   to normalise a picked date to UTC midnight for storage/comparison.
+ */
+
+/** The calendar day of `date` in the viewer's local timezone, as "YYYY-MM-DD". */
+export function toDateInputValue(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Normalises a "YYYY-MM-DD" date-input value to epoch seconds at UTC
+ * midnight, so the same picked day stores identically in every timezone.
+ * Returns null for anything that isn't a real calendar date.
+ */
+export function dateInputToEpoch(value: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const [, y, m, d] = match.map(Number);
+  const ms = Date.UTC(y, m - 1, d);
+  const check = new Date(ms);
+  // Reject rollovers like 2026-02-31 → 2026-03-03.
+  if (check.getUTCFullYear() !== y || check.getUTCMonth() !== m - 1 || check.getUTCDate() !== d) {
+    return null;
+  }
+  return ms / 1000;
+}
+
 export function basisPointsToPercent(bps: number, decimals = 2): string {
   return `${(bps / 100).toFixed(decimals)}%`;
 }

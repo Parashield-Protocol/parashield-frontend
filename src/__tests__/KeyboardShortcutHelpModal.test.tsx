@@ -7,6 +7,7 @@ vi.mock('@/lib/stellar', () => ({
   disconnectWallet: vi.fn(),
   getStoredAddress: vi.fn(),
   getConnectedAddress: vi.fn(),
+  getWalletNetworkPassphrase: vi.fn(async () => null),
   signAuthMessage: vi.fn(),
   EXPECTED_NETWORK_PASSPHRASE: 'Test SDF Network ; September 2015',
 }));
