@@ -30,6 +30,12 @@ export function useDebounce<T>(
   const isFirstChange = useRef(true);
   const previousValue = useRef(value);
 
+  // Reset first-change guard when config changes so the next value update is
+  // treated as a fresh "first change" relative to the new configuration.
+  useEffect(() => {
+    isFirstChange.current = true;
+  }, [delayMs, leading]);
+
   useEffect(() => {
     // Skip the initial mount — the value is already correct.
     if (isFirstChange.current) {
