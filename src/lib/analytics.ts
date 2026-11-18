@@ -36,6 +36,7 @@ const MAX_BUFFERED_PAGEVIEWS = 50;
 
 let posthogReady = false;
 let bufferedPageviews: BufferedPageview[] = [];
+let bufferOverflowWarned = false;
 
 export function setPostHogReady(ready: boolean): void {
   posthogReady = ready;
@@ -45,6 +46,7 @@ export function setPostHogReady(ready: boolean): void {
   // were already sent on a subsequent call.
   const pending = bufferedPageviews;
   bufferedPageviews = [];
+  bufferOverflowWarned = false;
   for (const { properties, url } of pending) {
     posthog.capture('$pageview', {
       $current_url: url,
@@ -90,7 +92,14 @@ export function page(name: string, properties?: EventProperties): void {
 
   if (bufferedPageviews.length >= MAX_BUFFERED_PAGEVIEWS) {
     // Keep the oldest, drop the newest: the queue only ever fills when PostHog
-    // never loads, in which case the entry navigations matter most.
+    // never loads, in which case the entry navigations matter most. Say so
+    // once per fill rather than dropping silently (#926).
+    if (!bufferOverflowWarned) {
+      bufferOverflowWarned = true;
+      console.warn(
+        `[analytics] PostHog has not loaded; buffered ${MAX_BUFFERED_PAGEVIEWS} pageviews and is now dropping further pageviews.`,
+      );
+    }
     return;
   }
   bufferedPageviews.push({ properties, url: window.location.href });

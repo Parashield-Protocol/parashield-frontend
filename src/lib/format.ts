@@ -16,13 +16,19 @@ export function safeBigInt(value: string | bigint | null | undefined): bigint {
  * value for a specific call site, round at that call site instead of
  * changing this shared truncation behavior.
  */
-export function stroopsToDisplay(stroops: string | bigint | null | undefined, decimals = 2): string {
+export function stroopsToDisplay(
+  stroops: string | bigint | number | null | undefined,
+  decimals = 2,
+): string {
   if (stroops === null || stroops === undefined) return '—';
   if (typeof stroops === 'string') {
     const trimmed = stroops.trim();
     if (trimmed === '' || !/^-?\d+$/.test(trimmed)) return '—';
   }
-  const n = BigInt(stroops as string | bigint);
+  // BigInt() throws a RangeError for a non-integer number (1.5, NaN,
+  // Infinity); treat those like the invalid strings above (#924).
+  if (typeof stroops === 'number' && !Number.isInteger(stroops)) return '—';
+  const n = BigInt(stroops);
   const negative = n < 0n;
   const abs = negative ? -n : n;
   const whole = abs / STROOPS_PER_UNIT;
