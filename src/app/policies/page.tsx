@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useWallet } from '@/hooks/useWallet';
 import { usePolicies } from '@/hooks/usePolicies';
@@ -57,8 +57,15 @@ export default function PoliciesPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const POLICIES_PER_PAGE = 12;
 
-  // Sync filter state to URL query params (#746)
+  // Sync filter state to URL query params (#746). The state is initialised
+  // *from* the URL, so the first run would only replace the URL with itself;
+  // skip it (#923).
+  const isFirstSync = useRef(true);
   useEffect(() => {
+    if (isFirstSync.current) {
+      isFirstSync.current = false;
+      return;
+    }
     const params = new URLSearchParams();
     if (filter !== 'All') params.set('status', filter);
     if (searchQuery) params.set('q', searchQuery);

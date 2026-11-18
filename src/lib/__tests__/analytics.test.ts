@@ -86,6 +86,21 @@ describe('analytics page buffering', () => {
     expect(urls[0]).toContain('/route-0');
   });
 
+  // #926 — overflow is reported once per fill instead of dropping silently.
+  it('warns once when the buffer overflows, and again after a flush refills it', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    setPostHogReady(false);
+    for (let i = 0; i < 53; i++) page(`route-${i}`);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain('dropping further pageviews');
+
+    setPostHogReady(true);
+    setPostHogReady(false);
+    for (let i = 0; i < 51; i++) page(`again-${i}`);
+    expect(warn).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+  });
+
   it('setPostHogReady(false) allows the buffer to be populated again', () => {
     setPostHogReady(true);
     setPostHogReady(false);

@@ -23,6 +23,18 @@ describe('stroopsToDisplay', () => {
     expect(stroopsToDisplay(50000000n)).toBe('5.00');
   });
 
+  // #924 — a non-integer number used to reach BigInt() and throw RangeError.
+  it('returns — for non-integer numbers instead of throwing', () => {
+    expect(stroopsToDisplay(1.5)).toBe('—');
+    expect(stroopsToDisplay(Number.NaN)).toBe('—');
+    expect(stroopsToDisplay(Number.POSITIVE_INFINITY)).toBe('—');
+  });
+
+  it('formats integer numbers like the equivalent string', () => {
+    expect(stroopsToDisplay(10000000)).toBe('1.00');
+    expect(stroopsToDisplay(-25000000)).toBe('-2.50');
+  });
+
   it('respects decimal precision', () => {
     expect(stroopsToDisplay('12345678', 4)).toBe('1.2345');
   });

@@ -38,16 +38,8 @@ interface BufferedEvent {
 const MAX_BUFFERED_EVENTS = 50;
 
 let posthogReady = false;
-let bufferedEvents: BufferedEvent[] = [];
-
-function enqueue(entry: BufferedEvent): void {
-  if (bufferedEvents.length >= MAX_BUFFERED_EVENTS) {
-    // Keep the oldest, drop the newest: the queue only ever fills when PostHog
-    // never loads, in which case the entry navigations matter most.
-    return;
-  }
-  bufferedEvents.push(entry);
-}
+let bufferedPageviews: BufferedPageview[] = [];
+let bufferOverflowWarned = false;
 
 export function setPostHogReady(ready: boolean): void {
   posthogReady = ready;
@@ -55,10 +47,14 @@ export function setPostHogReady(ready: boolean): void {
 
   // Drain before capturing so a throwing capture() can't replay entries that
   // were already sent on a subsequent call.
-  const pending = bufferedEvents;
-  bufferedEvents = [];
-  for (const { event, properties } of pending) {
-    posthog.capture(event, properties);
+  const pending = bufferedPageviews;
+  bufferedPageviews = [];
+  bufferOverflowWarned = false;
+  for (const { properties, url } of pending) {
+    posthog.capture('$pageview', {
+      $current_url: url,
+      ...properties
+    });
   }
 }
 
@@ -101,10 +97,19 @@ export function page(name: string, properties?: EventProperties): void {
     return;
   }
 
-  enqueue({
-    event: '$pageview',
-    properties: { $current_url: window.location.href, ...properties },
-  });
+  if (bufferedPageviews.length >= MAX_BUFFERED_PAGEVIEWS) {
+    // Keep the oldest, drop the newest: the queue only ever fills when PostHog
+    // never loads, in which case the entry navigations matter most. Say so
+    // once per fill rather than dropping silently (#926).
+    if (!bufferOverflowWarned) {
+      bufferOverflowWarned = true;
+      console.warn(
+        `[analytics] PostHog has not loaded; buffered ${MAX_BUFFERED_PAGEVIEWS} pageviews and is now dropping further pageviews.`,
+      );
+    }
+    return;
+  }
+  bufferedPageviews.push({ properties, url: window.location.href });
 }
 
 // Last route a pageview was recorded for (#711). The route-change effect is the
