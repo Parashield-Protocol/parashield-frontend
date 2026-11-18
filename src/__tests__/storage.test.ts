@@ -1,6 +1,6 @@
 import storage from '../lib/storage';
 
-const localStorageMock = (() => {
+function makeMock() {
   let store: Record<string, string> = {};
   return {
     getItem:    (key: string) => store[key] ?? null,
@@ -10,9 +10,10 @@ const localStorageMock = (() => {
     get length() { return Object.keys(store).length; },
     key:        (i: number) => Object.keys(store)[i] ?? null,
   };
-})();
+}
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+const localStorageMock = makeMock();
+const sessionStorageMock = makeMock();
 
 const sessionStorageMock = {
   getItem: vi.fn<(key: string) => string | null>(() => null),
