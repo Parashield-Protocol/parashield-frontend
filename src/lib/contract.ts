@@ -17,11 +17,17 @@ import { ContractError, StateArchivedError } from './errors';
 import { invalidatePolicyCache } from './policyCache';
 
 // Cached singleton — avoids allocating a new HTTP connection pool on every
-// contract call (issue #129). Reset to null if the URL changes at runtime.
+// contract call (issue #129). The URL it was built for is kept alongside it,
+// so a different URL (a network switch, or a test pointing elsewhere) builds
+// a fresh server instead of silently reusing the old endpoint (#903).
 let _rpc: StellarRpc.Server | null = null;
+let _rpcUrl = '';
 
-function getRpc(): StellarRpc.Server {
-  if (!_rpc) _rpc = new StellarRpc.Server(SOROBAN_RPC_URL);
+export function getRpc(url: string = SOROBAN_RPC_URL): StellarRpc.Server {
+  if (!_rpc || _rpcUrl !== url) {
+    _rpc = new StellarRpc.Server(url);
+    _rpcUrl = url;
+  }
   return _rpc;
 }
 
@@ -200,19 +206,30 @@ export async function buildBuyPolicyTx(
 }
 
 const TX_POLL_INTERVAL_MS = 3_000;
-const TX_POLL_MAX_ATTEMPTS = 10;
+/** One confirmation budget shared by every submit path (#904). */
+export const TX_CONFIRM_TIMEOUT_MS = 30_000;
 
-async function waitForConfirmation(hash: string): Promise<string> {
+/**
+ * Polls `getTransaction` until the transaction succeeds, fails, or
+ * `timeoutMs` passes. The single confirmation routine for every submit path
+ * (#904): same polling interval, same timeout, same error messages.
+ */
+export async function confirmTransaction(
+  hash: string,
+  timeoutMs: number = TX_CONFIRM_TIMEOUT_MS,
+): Promise<string> {
   const rpc = getRpc();
-  for (let attempt = 0; attempt < TX_POLL_MAX_ATTEMPTS; attempt++) {
-    await new Promise((r) => setTimeout(r, TX_POLL_INTERVAL_MS));
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
     const status = await rpc.getTransaction(hash);
     if (status.status === StellarRpc.Api.GetTransactionStatus.SUCCESS) return hash;
     if (status.status === StellarRpc.Api.GetTransactionStatus.FAILED) {
       throw new ContractError('Transaction failed on-chain.', hash, status.resultXdr ?? status);
     }
+    if (Date.now() + TX_POLL_INTERVAL_MS > deadline) break;
+    await new Promise<void>((r) => setTimeout(r, TX_POLL_INTERVAL_MS));
   }
-  throw new ContractError(`Transaction not confirmed after ${TX_POLL_MAX_ATTEMPTS * TX_POLL_INTERVAL_MS / 1000}s — hash: ${hash}`);
+  throw new ContractError(`Transaction not confirmed after ${timeoutMs / 1_000}s — hash: ${hash}`, hash);
 }
 
 /**
@@ -252,7 +269,7 @@ export async function invokeBuyPolicy(
       throw new ContractError('Transaction rejected by the network.', submitResult.hash, submitResult.errorResult);
     }
     onProgress?.('confirming');
-    const txHash = await waitForConfirmation(submitResult.hash);
+    const txHash = await confirmTransaction(submitResult.hash);
     invalidatePolicyCache(); // #730 — the new policy must not be masked by cached reads
     return { txHash, signedXdr };
   });
@@ -305,7 +322,7 @@ async function submitClaimOnce(
     throw new ContractError('Claim transaction rejected by the network.', submitResult.hash, submitResult.errorResult);
   }
   onProgress?.('confirming');
-  return waitForConfirmation(submitResult.hash);
+  return confirmTransaction(submitResult.hash);
 }
 
 export async function buildDepositTx(
@@ -362,7 +379,10 @@ export async function buildWithdrawTx(
   return assembled.toXDR();
 }
 
-export async function submitSignedTransaction(signedXdr: string, confirmTimeoutMs = 30_000): Promise<string> {
+export async function submitSignedTransaction(
+  signedXdr: string,
+  confirmTimeoutMs: number = TX_CONFIRM_TIMEOUT_MS,
+): Promise<string> {
   const rpc          = getRpc();
   const signedTx     = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
   const submitResult = await rpc.sendTransaction(signedTx);
@@ -371,17 +391,5 @@ export async function submitSignedTransaction(signedXdr: string, confirmTimeoutM
     throw new ContractError('Transaction rejected by the network.', submitResult.hash, submitResult.errorResult);
   }
 
-  const hash     = submitResult.hash;
-  const deadline = Date.now() + confirmTimeoutMs;
-
-  while (Date.now() < deadline) {
-    const txResult = await rpc.getTransaction(hash);
-    if (txResult.status === StellarRpc.Api.GetTransactionStatus.SUCCESS) return hash;
-    if (txResult.status === StellarRpc.Api.GetTransactionStatus.FAILED) {
-      throw new ContractError('Transaction failed on-chain', hash);
-    }
-    await new Promise<void>((r) => setTimeout(r, 2_000));
-  }
-
-  throw new ContractError(`Transaction confirmation timed out after ${confirmTimeoutMs / 1_000}s`, hash);
+  return confirmTransaction(submitResult.hash, confirmTimeoutMs);
 }

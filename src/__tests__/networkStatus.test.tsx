@@ -80,6 +80,22 @@ describe('networkStatus', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
       unsubscribe();
     });
+
+    // #906 — HEAD isn't answered for the root on every deployment.
+    it('probes with GET, not HEAD', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response());
+      vi.stubGlobal('fetch', fetchMock);
+      const unsubscribe = subscribe(() => {});
+
+      reportRequestFailure();
+      await vi.advanceTimersByTimeAsync(PROBE_INTERVAL_MS);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        window.location.origin,
+        expect.objectContaining({ method: 'GET', cache: 'no-store' }),
+      );
+      unsubscribe();
+    });
   });
 });
 
