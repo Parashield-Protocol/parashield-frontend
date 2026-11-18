@@ -27,11 +27,17 @@ export function useClaim(policyId?: string) {
   const [error,   setError]   = useState<string | null>(null);
   const [progress, setProgress] = useState<ClaimProgress | null>(null);
 
-  const cancelledRef = useRef(false);
+  // Set once on unmount and never cleared: a later submit (e.g. from a stale
+  // closure held by a parent) must not re-enable an unmounted hook (#920).
+  const unmountedRef = useRef(false);
+  // Bumped by every submit and by reset(). An in-flight submit only touches
+  // state while it is still the latest generation, so a newer submit or a
+  // reset() silences the older one's callbacks (#920).
+  const submitGenRef = useRef(0);
 
   useEffect(() => {
     return () => {
-      cancelledRef.current = true;
+      unmountedRef.current = true;
     };
   }, []);
 
@@ -86,13 +92,13 @@ export function useClaim(policyId?: string) {
     let count = 0;
 
     async function poll() {
-      if (cancelledRef.current) return;
+      if (!active || unmountedRef.current) return;
       try {
         const result = await fetchClaim(currentClaimId);
-        // Re-check after await — reset() may have fired while the fetch was in-flight
-        if (!active || cancelledRef.current) return;
+        // Re-check after await — reset() (which changes `step`, ending this
+        // effect) or unmount may have happened while the fetch was in-flight.
+        if (!active || unmountedRef.current) return;
         if (result) {
-          if (cancelledRef.current) return;
           setClaim(result);
           if (result.status === 'Paid' || result.status === 'Rejected') {
             setStep('done');
@@ -101,7 +107,7 @@ export function useClaim(policyId?: string) {
           }
         }
       } catch (err) {
-        if (cancelledRef.current) return;
+        if (!active || unmountedRef.current) return;
         devError('Error polling claim:', err);
       }
 
@@ -129,15 +135,18 @@ export function useClaim(policyId?: string) {
   // silently done the wrong thing if a future caller ever passed different
   // values to useClaim() and submit().
   const submit = useCallback(async (claimant: string, submitPolicyId: string) => {
-    cancelledRef.current = false;
+    if (unmountedRef.current) return { error: null };
+    const gen = ++submitGenRef.current;
+    const isStale = () => unmountedRef.current || gen !== submitGenRef.current;
+
     setStep('submitting');
     setProgress('preparing');
     setError(null);
     try {
       const txHash = await invokeSubmitClaim(claimant, submitPolicyId, (stage) => {
-        if (!cancelledRef.current) setProgress(stage);
+        if (!isStale()) setProgress(stage);
       });
-      if (cancelledRef.current) return { error: null };
+      if (isStale()) return { error: null };
       setProgress('recording');
 
       // The claim is already final on-chain at this point; the backend still
@@ -152,13 +161,14 @@ export function useClaim(policyId?: string) {
           'warning',
         );
       }
+      if (isStale()) return { error: null };
 
       setClaimId(txHash);
       setStep('polling');
       setProgress('processing');
       return { error: null };
     } catch (err) {
-      if (cancelledRef.current) return { error: null };
+      if (isStale()) return { error: null };
       const errorMsg = toUserMessage(err);
       setError(errorMsg);
       setStep('error');
@@ -168,7 +178,7 @@ export function useClaim(policyId?: string) {
   }, [showToast]);
 
   const reset = useCallback(() => {
-    cancelledRef.current = true;
+    submitGenRef.current++;
     setStep('idle');
     setClaimId(null);
     setClaim(null);

@@ -138,16 +138,30 @@ export function usePolicy(id: string | null) {
   // the effect's `cancelled` guard above, since that guard exists to drop
   // stale responses when `id` changes, not to gate a user-triggered refetch.
   const [refetching, setRefetching] = useState(false);
+  // Same pattern as usePolicies/useClaims (#921): each refetch aborts the
+  // previous one, so a slower earlier response can't overwrite a newer one.
+  const refetchController = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => refetchController.current?.abort();
+  }, []);
 
   const refetch = useCallback(async () => {
     if (!id) return;
+    refetchController.current?.abort();
+    const controller = new AbortController();
+    refetchController.current = controller;
+    const { signal } = controller;
+
     setRefetching(true);
     setError(null);
     try {
       const p = await fetchPolicy(id);
+      if (signal.aborted) return;
       setCachedPolicy(id, p);
       setPolicy(p);
     } catch (err) {
+      if (signal.aborted) return;
       // 404 means the policy doesn't exist — show "not found" instead of error
       if (isApiError(err) && err.status === 404) {
         setPolicy(null);
@@ -155,7 +169,7 @@ export function usePolicy(id: string | null) {
         setError(err instanceof Error ? err.message : "Failed to load policy");
       }
     } finally {
-      setRefetching(false);
+      if (!signal.aborted) setRefetching(false);
     }
   }, [id]);
 
