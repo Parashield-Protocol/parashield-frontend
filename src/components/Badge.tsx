@@ -55,7 +55,6 @@ export function Badge({ label, variant, className, icon: customIcon, size = 'sm'
   return (
     <span
       className={`inline-flex items-center rounded-full border font-bold uppercase tracking-widest ${sizeClass} ${colourClass} ${className ?? ''}`}
-      aria-label={label}
     >
       {icon && <span aria-hidden="true">{icon}</span>}
       {label}
