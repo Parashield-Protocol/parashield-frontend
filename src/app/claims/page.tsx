@@ -26,6 +26,7 @@ export default function ClaimsPage() {
   } = useClaims(address);
   const [refreshing, setRefreshing] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [activeMenuIndex, setActiveMenuIndex] = useState<number | null>(null);
 
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const exportMenuRef   = useRef<HTMLDivElement>(null);
@@ -35,13 +36,16 @@ export default function ClaimsPage() {
 
   const closeExport = useCallback((restoreFocus: boolean) => {
     setExportOpen(false);
+    setActiveMenuIndex(null);
     if (restoreFocus) exportButtonRef.current?.focus();
   }, []);
 
   useEffect(() => {
     if (!exportOpen) return;
     const items = exportMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
-    items?.[exportFocusRef.current === 'last' ? items.length - 1 : 0]?.focus();
+    const idx = exportFocusRef.current === 'last' ? (items?.length ?? 1) - 1 : 0;
+    items?.[idx]?.focus();
+    setActiveMenuIndex(idx);
     exportFocusRef.current = 'first';
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -75,6 +79,7 @@ export default function ClaimsPage() {
     if (next !== null) {
       e.preventDefault();
       items[next].focus();
+      setActiveMenuIndex(next);
     }
   };
 
@@ -131,9 +136,11 @@ export default function ClaimsPage() {
                       ref={exportMenuRef}
                       role="menu"
                       aria-label="Export format"
+                      aria-activedescendant={activeMenuIndex !== null ? `export-item-${activeMenuIndex}` : undefined}
                       onKeyDown={handleExportMenuKeyDown}
                     >
                       <button
+                        id="export-item-0"
                         role="menuitem"
                         tabIndex={-1}
                         onClick={() => { downloadClaimsCSV(claims); closeExport(true); }}
@@ -142,6 +149,7 @@ export default function ClaimsPage() {
                         Download CSV
                       </button>
                       <button
+                        id="export-item-1"
                         role="menuitem"
                         tabIndex={-1}
                         onClick={() => { downloadClaimsJSON(claims); closeExport(true); }}
