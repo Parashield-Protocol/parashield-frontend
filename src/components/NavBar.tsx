@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 import { LogoWordmark } from './Logo';
 import { WalletButton } from './WalletButton';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
+import { SHORTCUTS } from '@/lib/shortcuts';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { KeyboardShortcutHelpModal } from './KeyboardShortcutHelpModal';
 import { useTheme } from '@/context/ThemeContext';
@@ -35,14 +36,14 @@ export function NavBar() {
   // panel is open (#459) -- React 18 already bails out of re-rendering for a
   // same-value primitive setState, but being explicit here means this stays
   // true even if these ever become non-primitive state.
-  useKeyboardShortcut('Escape', () => {
+  useKeyboardShortcut(SHORTCUTS.close.key, () => {
     if (shortcutsOpen) {
       setShortcutsOpen(false);
     } else if (mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
   });
-  useKeyboardShortcut('?', () => setShortcutsOpen(true));
+  useKeyboardShortcut(SHORTCUTS.showHelp.key, () => setShortcutsOpen(true));
 
   return (
     <nav className="sticky top-0 z-(--z-sticky) border-b border-gray-200 dark:border-white/10 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
