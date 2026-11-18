@@ -44,8 +44,21 @@ export function displayToStroops(display: string): bigint {
   return BigInt(whole) * STROOPS_PER_UNIT + BigInt(fracPadded || '0');
 }
 
-export function formatUSDC(stroops: string | bigint, showSymbol = true): string {
+/** Placeholder returned for a missing or unparseable amount. */
+export const MISSING_AMOUNT = '—';
+
+/**
+ * Formats a stroop amount as USDC with 2 decimals (truncated, see
+ * stroopsToDisplay), e.g. `"1.50 USDC"`.
+ *
+ * Contract (#937): zero is a real amount and renders `"0.00 USDC"`; `null`,
+ * `undefined` and unparseable input render `MISSING_AMOUNT` (`'—'`) with no
+ * symbol, so "no data" never looks like a priced value such as `"— USDC"`.
+ * Callers no longer need their own `!= null ? formatUSDC(x) : '—'` guard.
+ */
+export function formatUSDC(stroops: string | bigint | null | undefined, showSymbol = true): string {
   const value = stroopsToDisplay(stroops, 2);
+  if (value === MISSING_AMOUNT) return MISSING_AMOUNT;
   return showSymbol ? `${value} USDC` : value;
 }
 
