@@ -245,14 +245,38 @@ export function fetchPoolUserShares(poolId: string, wallet: string): Promise<{ s
 
 // ── Protocol stats ────────────────────────────────────────────────────────────
 
+/**
+ * Builds protocol stats from independently settled sub-requests (#900): a
+ * failing endpoint nulls only its own metric, so the others still render.
+ * Rejects only when every sub-request failed, so a real outage still shows
+ * the full error state.
+ */
+export function combineProtocolStats(
+  policies: PromiseSettledResult<{ totalCoverage: string }>,
+  claims: PromiseSettledResult<{ totalPayouts: string }>,
+  products: PromiseSettledResult<Product[]>,
+): ProtocolStats {
+  if (
+    policies.status === 'rejected' &&
+    claims.status === 'rejected' &&
+    products.status === 'rejected'
+  ) {
+    throw policies.reason;
+  }
+  return {
+    totalCoverage: policies.status === 'fulfilled' ? policies.value.totalCoverage : null,
+    totalPayouts:  claims.status === 'fulfilled' ? claims.value.totalPayouts : null,
+    activeProducts:
+      products.status === 'fulfilled'
+        ? products.value.filter((p) => p.status === 'Active').length
+        : null,
+  };
+}
+
 export function fetchProtocolStats(): Promise<ProtocolStats> {
-  return Promise.all([
+  return Promise.allSettled([
     get<{ totalCoverage: string }>('/policies/stats'),
     get<{ totalPayouts: string }>('/claims/stats'),
     get<Product[]>('/policies/products'),
-  ]).then(([policies, claims, products]) => ({
-    totalCoverage: policies.totalCoverage,
-    totalPayouts:    claims.totalPayouts,
-    activeProducts:  products.filter((p) => p.status === 'Active').length,
-  }));
+  ]).then(([policies, claims, products]) => combineProtocolStats(policies, claims, products));
 }
