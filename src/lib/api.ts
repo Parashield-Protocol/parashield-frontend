@@ -43,7 +43,7 @@ function parseRetryAfter(value: unknown): number | undefined {
 
 client.interceptors.response.use(
   (res) => { reportRequestSuccess(); return res; },
-  (err: AxiosError<{ message?: string; error?: string }>) => {
+  (err: AxiosError<{ message?: string; error?: string; code?: string }>) => {
     // Feed the offline indicator: any response, even an error status, proves
     // the network works; no response at all (not a cancel) means it doesn't.
     if (err.response) reportRequestSuccess();
@@ -55,7 +55,8 @@ client.interceptors.response.use(
       if (onAuthError) onAuthError();
     }
     const message = err.response?.data?.message ?? err.response?.data?.error ?? err.message;
-    throw new ApiError(message, status, undefined, parseRetryAfter(err.response?.headers?.['retry-after']));
+    const code = err.response?.data?.code;
+    throw new ApiError(message, status, typeof code === 'string' ? code : undefined, parseRetryAfter(err.response?.headers?.['retry-after']));
   },
 );
 
