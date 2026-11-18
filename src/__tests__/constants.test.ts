@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import {
   STROOPS_PER_UNIT,
   CATEGORY_ICONS,

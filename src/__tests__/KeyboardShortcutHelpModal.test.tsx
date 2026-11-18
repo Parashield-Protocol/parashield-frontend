@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { KeyboardShortcutHelpModal } from '../components/KeyboardShortcutHelpModal';
+import {
+  CONTEXT_SHORTCUTS,
+  KeyboardShortcutHelpModal,
+} from '../components/KeyboardShortcutHelpModal';
 
 vi.mock('@/lib/stellar', () => ({
   connectWallet: vi.fn(),
@@ -41,5 +44,16 @@ describe('KeyboardShortcutHelpModal', () => {
     );
     expect(html).toContain('Esc');
     expect(html).toContain('Close modal');
+  });
+
+  // #908 — the context-specific keyboard interactions are documented too.
+  it('documents the in-widget keyboard interactions', () => {
+    const html = renderToStaticMarkup(
+      <KeyboardShortcutHelpModal open={true} onClose={vi.fn()} />
+    );
+    expect(html).toContain('In menus, lists and dialogs');
+    for (const { context } of CONTEXT_SHORTCUTS) {
+      expect(html).toContain(context);
+    }
   });
 });

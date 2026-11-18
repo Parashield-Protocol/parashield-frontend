@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { ApiError, WalletError, ContractError, isApiError, toUserMessage } from '../lib/errors';
 
 describe('ApiError', () => {

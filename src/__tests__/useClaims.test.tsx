@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { useClaims } from '../hooks/useClaims';
 import { renderHook, flushMicrotasks } from './renderHook';

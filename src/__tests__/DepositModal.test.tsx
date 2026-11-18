@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DepositModal } from '../components/DepositModal';
 import type { PoolStats } from '../types';

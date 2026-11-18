@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useWallet } from '../hooks/useWallet';

@@ -8,7 +8,10 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    globals: true,
+    // No implicit globals (#910): every test file imports describe/it/expect/vi
+    // from 'vitest' itself, so its dependencies are explicit and a missing
+    // import fails loudly instead of being masked.
+    globals: false,
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['src/setupTests.ts'],
   },

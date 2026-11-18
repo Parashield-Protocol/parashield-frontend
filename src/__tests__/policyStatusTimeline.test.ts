@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { getPolicyTimelineEvents, getPolicyLastUpdated } from '../components/PolicyStatusTimeline';
 import type { Policy } from '../types';
 

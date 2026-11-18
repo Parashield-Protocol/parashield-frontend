@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { useOracleReading, useAllOracleReadings } from '../hooks/useOracle';
 import { renderHook, flushMicrotasks } from './renderHook';

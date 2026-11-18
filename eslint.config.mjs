@@ -5,6 +5,14 @@ import { FlatCompat } from "@eslint/eslintrc";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// FlatCompat is a deliberate, temporary shim (#907). eslint-config-next 15.x
+// (15.5.22 in yarn.lock) still ships only legacy `extends` configs, so they
+// must be wrapped. Migrate when eslint-config-next is upgraded to a version
+// that exports native flat configs (16.x), and drop @eslint/eslintrc:
+//
+//   import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+//   import nextTypescript from "eslint-config-next/typescript";
+//   export default [...nextCoreWebVitals, ...nextTypescript, { rules: { ... } }];
 const compat = new FlatCompat({
   baseDirectory: __dirname,
 });

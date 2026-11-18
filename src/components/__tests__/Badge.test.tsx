@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Badge } from '../Badge';
 import { STATUS_COLOURS } from '@/lib/constants';

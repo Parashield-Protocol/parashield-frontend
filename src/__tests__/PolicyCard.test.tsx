@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PolicyCard, isExpiringSoon } from '../components/PolicyCard';
 import type { Policy } from '../types';

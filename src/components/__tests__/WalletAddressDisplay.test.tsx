@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WalletAddressDisplay } from '../WalletAddressDisplay';
 import { shortenAddress } from '@/lib/format';
 

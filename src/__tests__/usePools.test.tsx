@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePools } from '../hooks/usePools';
 import { renderHook, flushMicrotasks } from './renderHook';
 import type { PoolStats } from '../types';
