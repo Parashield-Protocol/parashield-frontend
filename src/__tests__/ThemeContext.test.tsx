@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { STORAGE_KEYS } from '../lib/storageKeys';
 
 function ThemeDisplay() {
   const { theme, toggle } = useTheme();
@@ -25,6 +26,22 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     );
     expect(html).toContain('dark');
+  });
+
+  // #905 — no module-level cache: a remounted provider reads storage again.
+  it('re-reads the stored theme on each provider mount', () => {
+    const render = () =>
+      renderToStaticMarkup(
+        <ThemeProvider>
+          <ThemeDisplay />
+        </ThemeProvider>
+      );
+
+    localStorage.setItem(STORAGE_KEYS.theme, 'light');
+    expect(render()).toContain('>light<');
+
+    localStorage.setItem(STORAGE_KEYS.theme, 'dark');
+    expect(render()).toContain('>dark<');
   });
 
   it('provides useTheme hook', () => {

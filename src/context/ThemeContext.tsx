@@ -13,23 +13,17 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 const STORAGE_KEY = STORAGE_KEYS.theme;
 
-// Cache the initial theme so localStorage is read only once (#732).
-// React's useState lazy initializer calls this during the first render;
-// the module-level cache ensures a single read even across provider remounts.
-let cachedInitialTheme: Theme | null = null;
-
+// Read once per provider mount: useState's lazy initializer calls this only
+// on the first render of each ThemeProvider (#732). There is deliberately no
+// module-level cache (#905) — it outlived unmount/remount (tests, Next.js
+// error recovery) and restored a stale theme after localStorage changed.
 function getInitialTheme(): Theme {
-  if (cachedInitialTheme !== null) return cachedInitialTheme;
   if (typeof window === 'undefined') return 'dark';
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'light' || stored === 'dark') {
-      cachedInitialTheme = stored;
-      return stored;
-    }
+    if (stored === 'light' || stored === 'dark') return stored;
   } catch { /* ignore */ }
-  cachedInitialTheme = window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  return cachedInitialTheme;
+  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
