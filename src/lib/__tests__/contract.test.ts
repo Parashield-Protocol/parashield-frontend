@@ -215,6 +215,55 @@ describe('contract.ts', () => {
     });
   });
 
+  describe('withStateRestore() retry limit (#536)', () => {
+    const archived = () => new StateArchivedError('Contract data has expired', 'restore-xdr', '4321');
+
+    it('retries after a restore and returns the result', async () => {
+      const restore = vi.fn().mockResolvedValue('restore-hash');
+      const run = vi.fn()
+        .mockRejectedValueOnce(archived())
+        .mockResolvedValueOnce('ok');
+
+      await expect(withStateRestore(run, { restore })).resolves.toBe('ok');
+      expect(restore).toHaveBeenCalledTimes(1);
+      expect(run).toHaveBeenCalledTimes(2);
+    });
+
+    it('surfaces a ContractError when state is archived again after the restore', async () => {
+      const restore = vi.fn().mockResolvedValue('restore-hash');
+      const second = archived();
+      const run = vi.fn()
+        .mockRejectedValueOnce(archived())
+        .mockRejectedValueOnce(second);
+
+      const err = (await withStateRestore(run, { restore }).catch((e) => e)) as ContractError;
+
+      expect(err).toBeInstanceOf(ContractError);
+      expect(err).not.toBeInstanceOf(StateArchivedError);
+      expect(err.message).toMatch(/archived again/);
+      expect(err.details).toBe(second);
+      expect(restore).toHaveBeenCalledTimes(1);
+      expect(run).toHaveBeenCalledTimes(2);
+    });
+
+    it('never restores more than maxRestores times', async () => {
+      const restore = vi.fn().mockResolvedValue('restore-hash');
+      const run = vi.fn().mockRejectedValue(archived());
+
+      await expect(withStateRestore(run, { restore, maxRestores: 2 })).rejects.toBeInstanceOf(ContractError);
+      expect(restore).toHaveBeenCalledTimes(2);
+      expect(run).toHaveBeenCalledTimes(3);
+    });
+
+    it('propagates a restore failure without retrying', async () => {
+      const restore = vi.fn().mockRejectedValue(new Error('User rejected'));
+      const run = vi.fn().mockRejectedValue(archived());
+
+      await expect(withStateRestore(run, { restore })).rejects.toThrow('User rejected');
+      expect(run).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('RPC singleton caching', () => {
     it('reuses RPC instance across calls', () => {
       expect(simulateContractCall).toBeDefined();

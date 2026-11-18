@@ -1,11 +1,15 @@
 'use client';
 
 import { Component, type ReactNode, type ErrorInfo } from 'react';
+import { usePathname } from 'next/navigation';
 import { track } from '@/lib/analytics';
+import { devError } from '@/lib/devConsole';
 
 interface Props {
   children:  ReactNode;
   fallback?: ReactNode;
+  /** Current pathname for route-based error boundary reset (#748) */
+  pathname?: string;
 }
 
 interface State {
@@ -24,19 +28,18 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.children !== this.props.children && this.state.hasError) {
+    // Reset on children change OR pathname change (#748)
+    if ((prevProps.children !== this.props.children || prevProps.pathname !== this.props.pathname) && this.state.hasError) {
       this.setState({ hasError: false, error: null });
     }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // Only log to the browser console outside production (#476) -- track()
-    // below already reports the error for production monitoring; logging
-    // the raw error/component stack to the console in prod risks leaking
-    // internal details to anyone with devtools open.
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('[ErrorBoundary]', error, info);
-    }
+    // Console output only in development (#476, #720): track() below is the
+    // production monitoring path; logging the raw error/component stack to
+    // the console in any non-dev build risks leaking internal details to
+    // anyone with devtools open.
+    devError('[ErrorBoundary]', error, info);
     track('app_error', {
       message:    error.message,
       stack:      error.stack?.slice(0, 200),
@@ -59,8 +62,8 @@ export class ErrorBoundary extends Component<Props, State> {
             {/* The raw error message may contain technical details (stack
                 frames, internal identifiers, API response bodies) that are
                 confusing to users and can leak internal information -- the
-                full error is already logged via console.error and track()
-                above for debugging (#465). */}
+                error is reported via track() above (and logged to the
+                console in development only, #720) for debugging (#465). */}
             An unexpected error occurred. This has been logged so we can look into it.
           </p>
           <button

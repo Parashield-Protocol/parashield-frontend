@@ -32,13 +32,16 @@ export function ConnectWalletPrompt({ message = 'Connect your wallet to continue
           <CopyButton text={storedAddress} label="Copy" className="border-white/10" />
         </div>
       )}
-      <button
-        onClick={connect}
-        disabled={connecting}
-        className="mt-6 rounded-xl bg-teal-500 px-6 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
-      >
-        {connecting ? 'Connecting…' : storedAddress ? 'Switch Wallet' : 'Connect Wallet'}
-      </button>
+      <div aria-live="polite" aria-atomic="true" className="mt-6">
+        <button
+          onClick={connect}
+          disabled={connecting}
+          aria-busy={connecting}
+          className="rounded-xl bg-teal-500 px-6 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
+        >
+          {connecting ? 'Connecting…' : storedAddress ? 'Switch Wallet' : 'Connect Wallet'}
+        </button>
+      </div>
     </div>
   );
 }

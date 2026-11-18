@@ -7,10 +7,13 @@ import { fetchPoolShares, fetchPoolUserShares } from '@/lib/api';
 import { buildWithdrawTx, submitSignedTransaction, withStateRestore } from '@/lib/contract';
 import { signTransaction } from '@/lib/stellar';
 import { displayToStroops, stroopsToDisplay } from '@/lib/format';
+import { amountInputGuards, isPlainDecimal } from '@/lib/numberInput';
+import { NumberInput } from '@/components/NumberInput';
 import { ContractError, toUserMessage } from '@/lib/errors';
-import { CATEGORY_LABELS } from '@/lib/constants';
+import { CATEGORY_LABELS, MIN_WITHDRAW_STROOPS } from '@/lib/constants';
 import { Modal } from './Modal';
 import { useToast } from '@/context/ToastContext';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { INPUT_CLASS, LABEL_CLASS } from '@/lib/styles';
 
 interface Props {
@@ -48,6 +51,7 @@ export function WithdrawModal({ pool, onClose }: Props) {
   const [paused,       setPaused]       = useState(false);
   const [loading,      setLoading]      = useState(true);
   const [busy,         setBusy]         = useState(false);
+  const online = useOnlineStatus();
   const [error,        setError]        = useState('');
 
   useEffect(() => {
@@ -74,9 +78,16 @@ export function WithdrawModal({ pool, onClose }: Props) {
   }, [pool.poolId, address]);
 
   const amountNum     = parseFloat(amount) || 0;
+  // Reject scientific notation / non-plain-decimal input explicitly (mirrors
+  // BuyPolicyModal's coverage validation, #473/#475) rather than relying on
+  // displayToStroops's thrown TypeError alone: that error was being caught
+  // silently below and treated as "0 shares", which just disables the submit
+  // button with no explanation of why (#520).
+  const trimmedAmount = amount.trim();
+  const invalidFormat = trimmedAmount !== '' && !isPlainDecimal(trimmedAmount);
   let   withdrawShares = 0n;
   try {
-    withdrawShares = amount ? displayToStroops(amount) : 0n;
+    withdrawShares = amount && !invalidFormat ? displayToStroops(amount) : 0n;
   } catch {
     withdrawShares = 0n;
   }
@@ -86,10 +97,18 @@ export function WithdrawModal({ pool, onClose }: Props) {
     ? estimateUsdc(withdrawShares, totalLiquidity, shareSupply)
     : 0n;
 
+  // Below the minimum is only allowed when it withdraws the holder's whole
+  // (sub-minimum) balance; otherwise it would leave or create unredeemable dust.
+  const isFullBalance = userShares !== null && withdrawShares === userShares;
+  const belowMinimum  = withdrawShares > 0n && withdrawShares < MIN_WITHDRAW_STROOPS && !isFullBalance;
+  const minimumMessage = `Minimum withdrawal is ${stroopsToDisplay(MIN_WITHDRAW_STROOPS.toString(), 2)} shares.`;
+
   async function handleWithdraw() {
     if (!address) return;
     if (paused) { setError('This pool is currently paused. Withdrawals are not accepted.'); return; }
+    if (invalidFormat) { setError('Enter a plain positive number (no scientific notation).'); return; }
     if (amountNum <= 0) { setError('Enter a valid share amount.'); return; }
+    if (belowMinimum) { setError(minimumMessage); return; }
     if (userShares !== null && withdrawShares > userShares) {
       setError('Cannot withdraw more shares than you hold.');
       return;
@@ -121,15 +140,28 @@ export function WithdrawModal({ pool, onClose }: Props) {
           <label className={LABEL_CLASS}>
             LP Shares to Withdraw
           </label>
-          <input
-            type="number"
+          <NumberInput
             value={amount}
             onChange={(e) => { setAmount(e.target.value); setError(''); }}
+            {...amountInputGuards}
             placeholder="0.00"
             min={0}
             step="0.01"
-            className={INPUT_CLASS}
+            maxLength={16}
+            aria-invalid={invalidFormat || belowMinimum}
+            aria-describedby="withdraw-amount-error"
+            className={`${INPUT_CLASS} ${invalidFormat || belowMinimum ? 'border-red-500' : ''}`}
           />
+          {invalidFormat && (
+            <p className="mt-1 text-xs text-red-400">
+              Enter a plain positive number (no scientific notation).
+            </p>
+          )}
+          {belowMinimum && (
+            <p role="alert" className="mt-1 text-xs text-red-400">
+              {minimumMessage}
+            </p>
+          )}
           {sharesAvailable && (
             <p className="mt-1 text-xs text-gray-400">
               Available: {stroopsToDisplay(userShares.toString(), 4)} shares
@@ -163,15 +195,15 @@ export function WithdrawModal({ pool, onClose }: Props) {
         {paused && (
           <p className="text-sm text-amber-400">This pool is paused. Withdrawals are temporarily disabled.</p>
         )}
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p id="withdraw-amount-error" className="text-sm text-red-400" aria-live="polite">{error}</p>}
       </div>
 
       <button
         onClick={handleWithdraw}
-        disabled={busy || loading || paused || withdrawShares === 0n}
+        disabled={busy || loading || paused || withdrawShares === 0n || belowMinimum || !online}
         className="mt-6 w-full rounded-xl bg-teal-500 py-2.5 font-semibold text-white hover:bg-teal-400 disabled:opacity-60 transition-colors"
       >
-        {busy ? 'Confirming on chain…' : 'Confirm withdrawal'}
+        {busy ? 'Confirming on chain…' : !online ? 'Offline — waiting for connection' : 'Confirm withdrawal'}
       </button>
     </Modal>
   );

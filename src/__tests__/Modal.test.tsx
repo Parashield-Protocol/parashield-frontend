@@ -27,6 +27,15 @@ describe('Modal', () => {
     expect(screen.getByText('Modal content')).toBeInTheDocument();
   });
 
+  it('contains scroll inside the dialog so it cannot chain to the page (#552)', () => {
+    render(<Modal {...defaultProps} />);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.className).toContain('overflow-y-auto');
+    expect(dialog.className).toContain('overscroll-contain');
+    expect(dialog.className).toContain('max-h-[calc(100dvh-2rem)]');
+    expect(dialog.parentElement?.className).toContain('overscroll-contain');
+  });
+
   it('has aria-modal attribute', () => {
     render(<Modal {...defaultProps} />);
     expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'true');
@@ -109,5 +118,23 @@ describe('Modal', () => {
     
     rerender(<Modal {...defaultProps} open={false} />);
     expect(document.body.style.overflow).toBe('');
+  });
+
+  it('marks the app root aria-hidden while open and restores it on close (#738)', () => {
+    const root = document.createElement('div');
+    root.id = '__next';
+    document.body.appendChild(root);
+    const { rerender } = render(<Modal {...defaultProps} />);
+    expect(root.getAttribute('aria-hidden')).toBe('true');
+
+    rerender(<Modal {...defaultProps} open={false} />);
+    expect(root.getAttribute('aria-hidden')).toBeNull();
+    root.remove();
+  });
+
+  it('portals the dialog to document.body so hiding the app root does not hide it (#738)', () => {
+    render(<Modal {...defaultProps} />);
+    const dialog = screen.getByRole('dialog');
+    expect(document.body.contains(dialog)).toBe(true);
   });
 });

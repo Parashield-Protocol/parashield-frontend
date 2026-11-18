@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
+const isStaticExport = process.env.NEXT_EXPORT === 'true';
+
 const nextConfig = {
+  images: { unoptimized: isStaticExport },
   images: { unoptimized: true },
+  // Never emit source maps in production builds (#808).
+  productionBrowserSourceMaps: false,
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.externals = [...(config.externals || []), 'sodium-native'];
