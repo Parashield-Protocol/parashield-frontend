@@ -44,6 +44,11 @@ export function sanitizeSearchParam(
  * Serialises data for an inline <script type="application/ld+json"> block.
  * JSON.stringify alone does not escape `<`, so a value containing
  * `</script>` would close the tag and let following markup execute.
+ *
+ * Invariant: this is the ONLY place in the codebase that feeds user-sourced
+ * or backend-sourced data into dangerouslySetInnerHTML. All other product
+ * fields (name, description) are rendered as React text nodes or attribute
+ * values, which React escapes automatically — no XSS risk there (#866).
  */
 export function serializeJsonLd(data: unknown): string {
   return JSON.stringify(data)
