@@ -203,4 +203,82 @@ describe('useClaim', () => {
     expect(result.current.step).toBe('error');
     expect(result.current.progress).toBeNull();
   });
+
+  // #920 — each submit is its own generation: a newer submit, a reset() or
+  // an unmount silences an older submit's in-flight callbacks.
+  describe('stale submit callbacks (#920)', () => {
+    function deferred<T>() {
+      let resolve!: (value: T) => void;
+      let reject!: (reason: unknown) => void;
+      const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, resolve, reject };
+    }
+
+    it('ignores an older submit that settles after a newer one started', async () => {
+      const first = deferred<string>();
+      mockInvokeSubmitClaim
+        .mockImplementationOnce(() => first.promise)
+        .mockRejectedValueOnce(new Error('second failed'));
+
+      const { result } = renderHook(() => useClaim('policy-1'));
+      await flushPromises();
+
+      let firstSubmit!: Promise<unknown>;
+      act(() => {
+        firstSubmit = result.current.submit('GTESTADDRESS1234', 'policy-1');
+      });
+      await act(async () => {
+        await result.current.submit('GTESTADDRESS1234', 'policy-1');
+      });
+      expect(result.current.error).toBe('second failed');
+
+      await act(async () => {
+        first.resolve('txhash-stale');
+        await firstSubmit;
+      });
+
+      expect(result.current.claimId).toBeNull();
+      expect(result.current.step).toBe('error');
+      expect(result.current.error).toBe('second failed');
+    });
+
+    it('ignores a submit that settles after reset()', async () => {
+      const pending = deferred<string>();
+      mockInvokeSubmitClaim.mockImplementationOnce(() => pending.promise);
+
+      const { result } = renderHook(() => useClaim('policy-1'));
+      await flushPromises();
+
+      let submitting!: Promise<unknown>;
+      act(() => {
+        submitting = result.current.submit('GTESTADDRESS1234', 'policy-1');
+      });
+      act(() => {
+        result.current.reset();
+      });
+
+      await act(async () => {
+        pending.reject(new Error('late failure'));
+        await submitting;
+      });
+
+      expect(result.current.step).toBe('idle');
+      expect(result.current.error).toBeNull();
+    });
+
+    it('does nothing when submit is called after unmount', async () => {
+      const { result, unmount } = renderHook(() => useClaim('policy-1'));
+      await flushPromises();
+      const staleSubmit = result.current.submit;
+      unmount();
+
+      const res = await staleSubmit('GTESTADDRESS1234', 'policy-1');
+
+      expect(res).toEqual({ error: null });
+      expect(mockInvokeSubmitClaim).not.toHaveBeenCalled();
+    });
+  });
 });

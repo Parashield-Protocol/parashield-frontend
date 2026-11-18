@@ -68,7 +68,18 @@ async function simulateAndAssemble(
   tx: Transaction,
   simFailureMessage: string,
 ): Promise<Transaction> {
-  const simResult = await getRpc().simulateTransaction(tx);
+  // A transport failure (offline, timeout, unreachable RPC) would otherwise
+  // surface as raw RPC/HTTP error text (#922).
+  let simResult: StellarRpc.Api.SimulateTransactionResponse;
+  try {
+    simResult = await getRpc().simulateTransaction(tx);
+  } catch (err) {
+    throw new ContractError(
+      'Unable to reach the Stellar network. Please check your connection and try again.',
+      undefined,
+      err,
+    );
+  }
 
   if (StellarRpc.Api.isSimulationError(simResult)) {
     throw new ContractError(simFailureMessage, undefined, simResult.error);
